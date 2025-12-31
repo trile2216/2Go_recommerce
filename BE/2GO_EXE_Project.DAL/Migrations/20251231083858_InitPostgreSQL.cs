@@ -1,12 +1,13 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
 namespace _2GO_EXE_Project.DAL.Migrations
 {
     /// <inheritdoc />
-    public partial class InitAll : Migration
+    public partial class InitPostgreSQL : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -16,12 +17,12 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 columns: table => new
                 {
                     ApiId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Endpoint = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true),
-                    RequestMethod = table.Column<string>(type: "varchar(20)", unicode: false, maxLength: 20, nullable: true),
-                    RequestBody = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ResponseCode = table.Column<int>(type: "int", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())")
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Endpoint = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true),
+                    RequestMethod = table.Column<string>(type: "character varying(20)", unicode: false, maxLength: 20, nullable: true),
+                    RequestBody = table.Column<string>(type: "text", nullable: true),
+                    ResponseCode = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
@@ -32,10 +33,11 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 name: "Categories",
                 columns: table => new
                 {
-                    CategoryId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true),
-                    IconUrl = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true)
+                    CategoryId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true),
+                    IconUrl = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -46,9 +48,9 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 name: "Cities",
                 columns: table => new
                 {
-                    CityId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true)
+                    CityId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -60,10 +62,10 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 columns: table => new
                 {
                     ServiceId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    BasePrice = table.Column<decimal>(type: "decimal(15,2)", nullable: true)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    BasePrice = table.Column<decimal>(type: "numeric(15,2)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -75,15 +77,16 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 columns: table => new
                 {
                     UserId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Phone = table.Column<string>(type: "varchar(20)", unicode: false, maxLength: 20, nullable: true),
-                    Email = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true),
-                    PasswordHash = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true),
-                    Salt = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true),
-                    Role = table.Column<string>(type: "varchar(50)", unicode: false, maxLength: 50, nullable: true),
-                    Status = table.Column<string>(type: "varchar(50)", unicode: false, maxLength: 50, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())"),
-                    LastLoginAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Phone = table.Column<string>(type: "character varying(20)", unicode: false, maxLength: 20, nullable: true),
+                    Email = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true),
+                    PasswordHash = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true),
+                    Salt = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true),
+                    Role = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: true),
+                    Status = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: true),
+                    BanUntil = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()"),
+                    LastLoginAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -94,10 +97,11 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 name: "SubCategories",
                 columns: table => new
                 {
-                    SubCategoryId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    CategoryId = table.Column<int>(type: "int", nullable: true),
-                    Name = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true)
+                    SubCategoryId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CategoryId = table.Column<int>(type: "integer", nullable: true),
+                    Name = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -113,10 +117,10 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 name: "Districts",
                 columns: table => new
                 {
-                    DistrictId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    CityId = table.Column<int>(type: "int", nullable: true),
-                    Name = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true)
+                    DistrictId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CityId = table.Column<int>(type: "integer", nullable: true),
+                    Name = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -133,11 +137,11 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 columns: table => new
                 {
                     LogId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<long>(type: "bigint", nullable: true),
-                    Action = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true),
-                    Details = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())")
+                    Action = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true),
+                    Details = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
@@ -154,10 +158,10 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 columns: table => new
                 {
                     ChatId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     User1Id = table.Column<long>(type: "bigint", nullable: true),
                     User2Id = table.Column<long>(type: "bigint", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())")
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
@@ -179,11 +183,11 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 columns: table => new
                 {
                     LogId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<long>(type: "bigint", nullable: true),
-                    DeviceInfo = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true),
-                    IPAddress = table.Column<string>(type: "varchar(50)", unicode: false, maxLength: 50, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())")
+                    DeviceInfo = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true),
+                    IPAddress = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
@@ -196,38 +200,15 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Payments",
-                columns: table => new
-                {
-                    PaymentId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    UserId = table.Column<long>(type: "bigint", nullable: true),
-                    Amount = table.Column<decimal>(type: "decimal(15,2)", nullable: true),
-                    Method = table.Column<string>(type: "varchar(50)", unicode: false, maxLength: 50, nullable: true),
-                    Status = table.Column<string>(type: "varchar(50)", unicode: false, maxLength: 50, nullable: true),
-                    ReferenceCode = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK__Payments__9B556A383AF28E0A", x => x.PaymentId);
-                    table.ForeignKey(
-                        name: "FK_Payments_Users",
-                        column: x => x.UserId,
-                        principalTable: "Users",
-                        principalColumn: "UserId");
-                });
-
-            migrationBuilder.CreateTable(
                 name: "PointTransactions",
                 columns: table => new
                 {
                     TxId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<long>(type: "bigint", nullable: true),
-                    ChangeAmount = table.Column<int>(type: "int", nullable: true),
-                    Reason = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())")
+                    ChangeAmount = table.Column<int>(type: "integer", nullable: true),
+                    Reason = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
@@ -244,13 +225,13 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 columns: table => new
                 {
                     RefreshTokenId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<long>(type: "bigint", nullable: false),
-                    Token = table.Column<string>(type: "varchar(500)", unicode: false, maxLength: 500, nullable: false),
-                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "(sysdatetime())"),
-                    RevokedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ReplacedByToken = table.Column<string>(type: "varchar(500)", unicode: false, maxLength: 500, nullable: true)
+                    Token = table.Column<string>(type: "character varying(500)", unicode: false, maxLength: 500, nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()"),
+                    RevokedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ReplacedByToken = table.Column<string>(type: "character varying(500)", unicode: false, maxLength: 500, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -268,11 +249,11 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 columns: table => new
                 {
                     SearchId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<long>(type: "bigint", nullable: true),
-                    Query = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true),
-                    Filters = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())")
+                    Query = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true),
+                    Filters = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
@@ -289,12 +270,12 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 columns: table => new
                 {
                     TicketId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<long>(type: "bigint", nullable: true),
-                    Topic = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Status = table.Column<string>(type: "varchar(50)", unicode: false, maxLength: 50, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())")
+                    Topic = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    Status = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
@@ -311,11 +292,11 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 columns: table => new
                 {
                     DeviceId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<long>(type: "bigint", nullable: true),
-                    DeviceInfo = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true),
-                    IPAddress = table.Column<string>(type: "varchar(50)", unicode: false, maxLength: 50, nullable: true),
-                    LastActive = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())")
+                    DeviceInfo = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true),
+                    IPAddress = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: true),
+                    LastActive = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
@@ -332,12 +313,12 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 columns: table => new
                 {
                     PointId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<long>(type: "bigint", nullable: true),
-                    CurrentPoints = table.Column<int>(type: "int", nullable: true, defaultValue: 0),
-                    LifetimePoints = table.Column<int>(type: "int", nullable: true, defaultValue: 0),
-                    Tier = table.Column<string>(type: "varchar(50)", unicode: false, maxLength: 50, nullable: true),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())")
+                    CurrentPoints = table.Column<int>(type: "integer", nullable: true, defaultValue: 0),
+                    LifetimePoints = table.Column<int>(type: "integer", nullable: true, defaultValue: 0),
+                    Tier = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
@@ -354,17 +335,17 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 columns: table => new
                 {
                     ProfileId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<long>(type: "bigint", nullable: true),
-                    FullName = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true),
-                    AvatarUrl = table.Column<string>(type: "varchar(500)", unicode: false, maxLength: 500, nullable: true),
-                    Bio = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    FullName = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true),
+                    AvatarUrl = table.Column<string>(type: "character varying(500)", unicode: false, maxLength: 500, nullable: true),
+                    Bio = table.Column<string>(type: "text", nullable: true),
                     DateOfBirth = table.Column<DateOnly>(type: "date", nullable: true),
-                    Gender = table.Column<string>(type: "varchar(50)", unicode: false, maxLength: 50, nullable: true),
-                    AddressLine = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true),
-                    CityId = table.Column<int>(type: "int", nullable: true),
-                    DistrictId = table.Column<int>(type: "int", nullable: true),
-                    WardId = table.Column<int>(type: "int", nullable: true)
+                    Gender = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: true),
+                    AddressLine = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true),
+                    CityId = table.Column<int>(type: "integer", nullable: true),
+                    DistrictId = table.Column<int>(type: "integer", nullable: true),
+                    WardId = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -381,12 +362,12 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 columns: table => new
                 {
                     RatingId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     RaterId = table.Column<long>(type: "bigint", nullable: true),
                     RatedUserId = table.Column<long>(type: "bigint", nullable: true),
-                    Score = table.Column<int>(type: "int", nullable: true),
-                    Comment = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())")
+                    Score = table.Column<int>(type: "integer", nullable: true),
+                    Comment = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
@@ -408,13 +389,13 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 columns: table => new
                 {
                     VerificationId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<long>(type: "bigint", nullable: true),
-                    PhoneVerified = table.Column<bool>(type: "bit", nullable: true, defaultValue: false),
-                    EmailVerified = table.Column<bool>(type: "bit", nullable: true, defaultValue: false),
-                    IdCardFrontUrl = table.Column<string>(type: "varchar(500)", unicode: false, maxLength: 500, nullable: true),
-                    IdCardBackUrl = table.Column<string>(type: "varchar(500)", unicode: false, maxLength: 500, nullable: true),
-                    VerifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    PhoneVerified = table.Column<bool>(type: "boolean", nullable: true, defaultValue: false),
+                    EmailVerified = table.Column<bool>(type: "boolean", nullable: true, defaultValue: false),
+                    IdCardFrontUrl = table.Column<string>(type: "character varying(500)", unicode: false, maxLength: 500, nullable: true),
+                    IdCardBackUrl = table.Column<string>(type: "character varying(500)", unicode: false, maxLength: 500, nullable: true),
+                    VerifiedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -431,13 +412,13 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 columns: table => new
                 {
                     VerificationCodeId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<long>(type: "bigint", nullable: false),
-                    Code = table.Column<string>(type: "varchar(100)", unicode: false, maxLength: 100, nullable: false),
-                    Purpose = table.Column<string>(type: "varchar(50)", unicode: false, maxLength: 50, nullable: false),
-                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "(sysdatetime())"),
-                    ConsumedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    Code = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
+                    Purpose = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()"),
+                    ConsumedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -454,10 +435,10 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 name: "Wards",
                 columns: table => new
                 {
-                    WardId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    DistrictId = table.Column<int>(type: "int", nullable: true),
-                    Name = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true)
+                    WardId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    DistrictId = table.Column<int>(type: "integer", nullable: true),
+                    Name = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -474,12 +455,12 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 columns: table => new
                 {
                     MessageId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     ChatId = table.Column<long>(type: "bigint", nullable: true),
                     SenderId = table.Column<long>(type: "bigint", nullable: true),
-                    Content = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ImageUrl = table.Column<string>(type: "varchar(500)", unicode: false, maxLength: 500, nullable: true),
-                    SentAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())")
+                    Content = table.Column<string>(type: "text", nullable: true),
+                    ImageUrl = table.Column<string>(type: "character varying(500)", unicode: false, maxLength: 500, nullable: true),
+                    SentAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
@@ -497,45 +478,25 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "PaymentLogs",
-                columns: table => new
-                {
-                    LogId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    PaymentId = table.Column<long>(type: "bigint", nullable: true),
-                    RawResponse = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK__PaymentL__5E548648A3C99DC5", x => x.LogId);
-                    table.ForeignKey(
-                        name: "FK_PaymentLogs_Payments",
-                        column: x => x.PaymentId,
-                        principalTable: "Payments",
-                        principalColumn: "PaymentId");
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Listings",
                 columns: table => new
                 {
                     ListingId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     SellerId = table.Column<long>(type: "bigint", nullable: true),
-                    SubCategoryId = table.Column<int>(type: "int", nullable: true),
-                    WardId = table.Column<int>(type: "int", nullable: true),
-                    Title = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Condition = table.Column<string>(type: "varchar(50)", unicode: false, maxLength: 50, nullable: true),
-                    Price = table.Column<decimal>(type: "decimal(15,2)", nullable: true),
-                    HasNegotiation = table.Column<bool>(type: "bit", nullable: true, defaultValue: true),
-                    Dimensions = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true),
-                    Weight = table.Column<double>(type: "float", nullable: true),
-                    Brand = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true),
-                    Status = table.Column<string>(type: "varchar(50)", unicode: false, maxLength: 50, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())"),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    SubCategoryId = table.Column<int>(type: "integer", nullable: true),
+                    WardId = table.Column<int>(type: "integer", nullable: true),
+                    Title = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    Condition = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: true),
+                    Price = table.Column<decimal>(type: "numeric(15,2)", nullable: true),
+                    HasNegotiation = table.Column<bool>(type: "boolean", nullable: true, defaultValue: true),
+                    Dimensions = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true),
+                    Weight = table.Column<double>(type: "double precision", nullable: true),
+                    Brand = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true),
+                    Status = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()"),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -562,11 +523,11 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 columns: table => new
                 {
                     LogId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     ListingId = table.Column<long>(type: "bigint", nullable: true),
-                    Action = table.Column<string>(type: "varchar(50)", unicode: false, maxLength: 50, nullable: true),
-                    Reason = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())")
+                    Action = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: true),
+                    Reason = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
@@ -583,15 +544,15 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 columns: table => new
                 {
                     ScanId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     ListingId = table.Column<long>(type: "bigint", nullable: true),
-                    SpamScore = table.Column<double>(type: "float", nullable: true),
-                    NudityScore = table.Column<double>(type: "float", nullable: true),
-                    ScamScore = table.Column<double>(type: "float", nullable: true),
-                    PriceEstimation = table.Column<decimal>(type: "decimal(15,2)", nullable: true),
-                    CategoryPrediction = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true),
-                    Notes = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())")
+                    SpamScore = table.Column<double>(type: "double precision", nullable: true),
+                    NudityScore = table.Column<double>(type: "double precision", nullable: true),
+                    ScamScore = table.Column<double>(type: "double precision", nullable: true),
+                    PriceEstimation = table.Column<decimal>(type: "numeric(15,2)", nullable: true),
+                    CategoryPrediction = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true),
+                    Notes = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
@@ -604,52 +565,17 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "EscrowContracts",
-                columns: table => new
-                {
-                    EscrowId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    BuyerId = table.Column<long>(type: "bigint", nullable: true),
-                    SellerId = table.Column<long>(type: "bigint", nullable: true),
-                    ListingId = table.Column<long>(type: "bigint", nullable: true),
-                    DepositAmount = table.Column<decimal>(type: "decimal(15,2)", nullable: true),
-                    TotalAmount = table.Column<decimal>(type: "decimal(15,2)", nullable: true),
-                    Status = table.Column<string>(type: "varchar(50)", unicode: false, maxLength: 50, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())"),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK__EscrowCo__557665D406EDB275", x => x.EscrowId);
-                    table.ForeignKey(
-                        name: "FK_Escrow_Buyer",
-                        column: x => x.BuyerId,
-                        principalTable: "Users",
-                        principalColumn: "UserId");
-                    table.ForeignKey(
-                        name: "FK_Escrow_Listing",
-                        column: x => x.ListingId,
-                        principalTable: "Listings",
-                        principalColumn: "ListingId");
-                    table.ForeignKey(
-                        name: "FK_Escrow_Seller",
-                        column: x => x.SellerId,
-                        principalTable: "Users",
-                        principalColumn: "UserId");
-                });
-
-            migrationBuilder.CreateTable(
                 name: "FixerRequests",
                 columns: table => new
                 {
                     RequestId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     ListingId = table.Column<long>(type: "bigint", nullable: true),
                     UserId = table.Column<long>(type: "bigint", nullable: true),
                     ServiceId = table.Column<long>(type: "bigint", nullable: true),
-                    Notes = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Status = table.Column<string>(type: "varchar(50)", unicode: false, maxLength: 50, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())")
+                    Notes = table.Column<string>(type: "text", nullable: true),
+                    Status = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
@@ -676,10 +602,10 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 columns: table => new
                 {
                     AttributeId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     ListingId = table.Column<long>(type: "bigint", nullable: true),
-                    Name = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true),
-                    Value = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true)
+                    Name = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true),
+                    Value = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -696,10 +622,10 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 columns: table => new
                 {
                     ImageId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     ListingId = table.Column<long>(type: "bigint", nullable: true),
-                    ImageUrl = table.Column<string>(type: "varchar(500)", unicode: false, maxLength: 500, nullable: true),
-                    IsPrimary = table.Column<bool>(type: "bit", nullable: true, defaultValue: false)
+                    ImageUrl = table.Column<string>(type: "character varying(500)", unicode: false, maxLength: 500, nullable: true),
+                    IsPrimary = table.Column<bool>(type: "boolean", nullable: true, defaultValue: false)
                 },
                 constraints: table =>
                 {
@@ -716,10 +642,10 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 columns: table => new
                 {
                     ViewId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     ListingId = table.Column<long>(type: "bigint", nullable: true),
                     UserId = table.Column<long>(type: "bigint", nullable: true),
-                    ViewedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())")
+                    ViewedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
@@ -737,47 +663,14 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Reports",
-                columns: table => new
-                {
-                    ReportId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ReporterId = table.Column<long>(type: "bigint", nullable: true),
-                    TargetUserId = table.Column<long>(type: "bigint", nullable: true),
-                    ListingId = table.Column<long>(type: "bigint", nullable: true),
-                    Reason = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Status = table.Column<string>(type: "varchar(50)", unicode: false, maxLength: 50, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK__Reports__D5BD4805096823C8", x => x.ReportId);
-                    table.ForeignKey(
-                        name: "FK_Reports_Listing",
-                        column: x => x.ListingId,
-                        principalTable: "Listings",
-                        principalColumn: "ListingId");
-                    table.ForeignKey(
-                        name: "FK_Reports_Reporter",
-                        column: x => x.ReporterId,
-                        principalTable: "Users",
-                        principalColumn: "UserId");
-                    table.ForeignKey(
-                        name: "FK_Reports_Target",
-                        column: x => x.TargetUserId,
-                        principalTable: "Users",
-                        principalColumn: "UserId");
-                });
-
-            migrationBuilder.CreateTable(
                 name: "SavedListings",
                 columns: table => new
                 {
                     SavedId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<long>(type: "bigint", nullable: true),
                     ListingId = table.Column<long>(type: "bigint", nullable: true),
-                    SavedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())")
+                    SavedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
@@ -795,17 +688,79 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "FixerAssignments",
+                columns: table => new
+                {
+                    AssignmentId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    RequestId = table.Column<long>(type: "bigint", nullable: true),
+                    FixerUserId = table.Column<long>(type: "bigint", nullable: true),
+                    AssignedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK__FixerAss__32499E77DDD307A5", x => x.AssignmentId);
+                    table.ForeignKey(
+                        name: "FK_Assign_Request",
+                        column: x => x.RequestId,
+                        principalTable: "FixerRequests",
+                        principalColumn: "RequestId");
+                    table.ForeignKey(
+                        name: "FK_Assign_User",
+                        column: x => x.FixerUserId,
+                        principalTable: "Users",
+                        principalColumn: "UserId");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "EscrowContracts",
+                columns: table => new
+                {
+                    EscrowId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    BuyerId = table.Column<long>(type: "bigint", nullable: true),
+                    SellerId = table.Column<long>(type: "bigint", nullable: true),
+                    ListingId = table.Column<long>(type: "bigint", nullable: true),
+                    OrderId = table.Column<long>(type: "bigint", nullable: true),
+                    PaymentId = table.Column<long>(type: "bigint", nullable: true),
+                    DepositAmount = table.Column<decimal>(type: "numeric(15,2)", nullable: true),
+                    TotalAmount = table.Column<decimal>(type: "numeric(15,2)", nullable: true),
+                    Status = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()"),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK__EscrowCo__557665D406EDB275", x => x.EscrowId);
+                    table.ForeignKey(
+                        name: "FK_Escrow_Buyer",
+                        column: x => x.BuyerId,
+                        principalTable: "Users",
+                        principalColumn: "UserId");
+                    table.ForeignKey(
+                        name: "FK_Escrow_Listing",
+                        column: x => x.ListingId,
+                        principalTable: "Listings",
+                        principalColumn: "ListingId");
+                    table.ForeignKey(
+                        name: "FK_Escrow_Seller",
+                        column: x => x.SellerId,
+                        principalTable: "Users",
+                        principalColumn: "UserId");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "EscrowTransactions",
                 columns: table => new
                 {
                     TxId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     EscrowId = table.Column<long>(type: "bigint", nullable: true),
-                    Method = table.Column<string>(type: "varchar(50)", unicode: false, maxLength: 50, nullable: true),
-                    Amount = table.Column<decimal>(type: "decimal(15,2)", nullable: true),
-                    Type = table.Column<string>(type: "varchar(50)", unicode: false, maxLength: 50, nullable: true),
-                    Status = table.Column<string>(type: "varchar(50)", unicode: false, maxLength: 50, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())")
+                    Method = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: true),
+                    Amount = table.Column<decimal>(type: "numeric(15,2)", nullable: true),
+                    Type = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: true),
+                    Status = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
@@ -822,14 +777,15 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 columns: table => new
                 {
                     OrderId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     EscrowId = table.Column<long>(type: "bigint", nullable: true),
                     BuyerId = table.Column<long>(type: "bigint", nullable: true),
                     SellerId = table.Column<long>(type: "bigint", nullable: true),
                     ListingId = table.Column<long>(type: "bigint", nullable: true),
-                    TotalAmount = table.Column<decimal>(type: "decimal(15,2)", nullable: true),
-                    Status = table.Column<string>(type: "varchar(50)", unicode: false, maxLength: 50, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())")
+                    TotalAmount = table.Column<decimal>(type: "numeric(15,2)", nullable: true),
+                    PaymentMethod = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: true),
+                    Status = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
@@ -857,39 +813,14 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "FixerAssignments",
-                columns: table => new
-                {
-                    AssignmentId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    RequestId = table.Column<long>(type: "bigint", nullable: true),
-                    FixerUserId = table.Column<long>(type: "bigint", nullable: true),
-                    AssignedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK__FixerAss__32499E77DDD307A5", x => x.AssignmentId);
-                    table.ForeignKey(
-                        name: "FK_Assign_Request",
-                        column: x => x.RequestId,
-                        principalTable: "FixerRequests",
-                        principalColumn: "RequestId");
-                    table.ForeignKey(
-                        name: "FK_Assign_User",
-                        column: x => x.FixerUserId,
-                        principalTable: "Users",
-                        principalColumn: "UserId");
-                });
-
-            migrationBuilder.CreateTable(
                 name: "OrderItems",
                 columns: table => new
                 {
                     OrderItemId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     OrderId = table.Column<long>(type: "bigint", nullable: true),
                     ListingId = table.Column<long>(type: "bigint", nullable: true),
-                    Price = table.Column<decimal>(type: "decimal(15,2)", nullable: true)
+                    Price = table.Column<decimal>(type: "numeric(15,2)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -907,18 +838,87 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Payments",
+                columns: table => new
+                {
+                    PaymentId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserId = table.Column<long>(type: "bigint", nullable: true),
+                    OrderId = table.Column<long>(type: "bigint", nullable: true),
+                    Amount = table.Column<decimal>(type: "numeric(15,2)", nullable: true),
+                    Method = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: true),
+                    Status = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: true),
+                    ReferenceCode = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK__Payments__9B556A383AF28E0A", x => x.PaymentId);
+                    table.ForeignKey(
+                        name: "FK_Payments_Orders_OrderId",
+                        column: x => x.OrderId,
+                        principalTable: "Orders",
+                        principalColumn: "OrderId");
+                    table.ForeignKey(
+                        name: "FK_Payments_Users",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "UserId");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Reports",
+                columns: table => new
+                {
+                    ReportId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    OrderId = table.Column<long>(type: "bigint", nullable: true),
+                    ReporterId = table.Column<long>(type: "bigint", nullable: true),
+                    TargetUserId = table.Column<long>(type: "bigint", nullable: true),
+                    ListingId = table.Column<long>(type: "bigint", nullable: true),
+                    Reason = table.Column<string>(type: "text", nullable: true),
+                    Status = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: true),
+                    WaitingForUserId = table.Column<long>(type: "bigint", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK__Reports__D5BD4805096823C8", x => x.ReportId);
+                    table.ForeignKey(
+                        name: "FK_Reports_Listing",
+                        column: x => x.ListingId,
+                        principalTable: "Listings",
+                        principalColumn: "ListingId");
+                    table.ForeignKey(
+                        name: "FK_Reports_Orders_OrderId",
+                        column: x => x.OrderId,
+                        principalTable: "Orders",
+                        principalColumn: "OrderId");
+                    table.ForeignKey(
+                        name: "FK_Reports_Reporter",
+                        column: x => x.ReporterId,
+                        principalTable: "Users",
+                        principalColumn: "UserId");
+                    table.ForeignKey(
+                        name: "FK_Reports_Target",
+                        column: x => x.TargetUserId,
+                        principalTable: "Users",
+                        principalColumn: "UserId");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ShippingRequests",
                 columns: table => new
                 {
                     ShipId = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     OrderId = table.Column<long>(type: "bigint", nullable: true),
-                    Provider = table.Column<string>(type: "varchar(50)", unicode: false, maxLength: 50, nullable: true),
-                    TrackingCode = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true),
-                    PickupAddress = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true),
-                    DeliveryAddress = table.Column<string>(type: "varchar(255)", unicode: false, maxLength: 255, nullable: true),
-                    Status = table.Column<string>(type: "varchar(50)", unicode: false, maxLength: 50, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "(sysdatetime())")
+                    Provider = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: true),
+                    TrackingCode = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true),
+                    PickupAddress = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true),
+                    DeliveryAddress = table.Column<string>(type: "character varying(255)", unicode: false, maxLength: 255, nullable: true),
+                    Status = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
                 {
@@ -928,6 +928,26 @@ namespace _2GO_EXE_Project.DAL.Migrations
                         column: x => x.OrderId,
                         principalTable: "Orders",
                         principalColumn: "OrderId");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PaymentLogs",
+                columns: table => new
+                {
+                    LogId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PaymentId = table.Column<long>(type: "bigint", nullable: true),
+                    RawResponse = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true, defaultValueSql: "NOW()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK__PaymentL__5E548648A3C99DC5", x => x.LogId);
+                    table.ForeignKey(
+                        name: "FK_PaymentLogs_Payments",
+                        column: x => x.PaymentId,
+                        principalTable: "Payments",
+                        principalColumn: "PaymentId");
                 });
 
             migrationBuilder.CreateIndex(
@@ -974,6 +994,16 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 name: "IX_EscrowContracts_ListingId",
                 table: "EscrowContracts",
                 column: "ListingId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EscrowContracts_OrderId",
+                table: "EscrowContracts",
+                column: "OrderId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EscrowContracts_PaymentId",
+                table: "EscrowContracts",
+                column: "PaymentId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_EscrowContracts_SellerId",
@@ -1091,6 +1121,11 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 column: "PaymentId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Payments_OrderId",
+                table: "Payments",
+                column: "OrderId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Payments_UserId",
                 table: "Payments",
                 column: "UserId");
@@ -1109,6 +1144,11 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 name: "IX_Reports_ListingId",
                 table: "Reports",
                 column: "ListingId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Reports_OrderId",
+                table: "Reports",
+                column: "OrderId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Reports_ReporterId",
@@ -1189,11 +1229,65 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 name: "IX_Wards_DistrictId",
                 table: "Wards",
                 column: "DistrictId");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_EscrowContracts_Orders_OrderId",
+                table: "EscrowContracts",
+                column: "OrderId",
+                principalTable: "Orders",
+                principalColumn: "OrderId");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_EscrowContracts_Payments_PaymentId",
+                table: "EscrowContracts",
+                column: "PaymentId",
+                principalTable: "Payments",
+                principalColumn: "PaymentId");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropForeignKey(
+                name: "FK_Escrow_Buyer",
+                table: "EscrowContracts");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_Escrow_Seller",
+                table: "EscrowContracts");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_Listings_Users",
+                table: "Listings");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_Orders_Buyer",
+                table: "Orders");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_Orders_Seller",
+                table: "Orders");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_Payments_Users",
+                table: "Payments");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_Escrow_Listing",
+                table: "EscrowContracts");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_Orders_Listing",
+                table: "Orders");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_EscrowContracts_Orders_OrderId",
+                table: "EscrowContracts");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_Payments_Orders_OrderId",
+                table: "Payments");
+
             migrationBuilder.DropTable(
                 name: "ActivityLogs");
 
@@ -1279,25 +1373,16 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 name: "Chats");
 
             migrationBuilder.DropTable(
-                name: "Payments");
-
-            migrationBuilder.DropTable(
-                name: "Orders");
-
-            migrationBuilder.DropTable(
                 name: "FixerServices");
 
             migrationBuilder.DropTable(
-                name: "EscrowContracts");
+                name: "Users");
 
             migrationBuilder.DropTable(
                 name: "Listings");
 
             migrationBuilder.DropTable(
                 name: "SubCategories");
-
-            migrationBuilder.DropTable(
-                name: "Users");
 
             migrationBuilder.DropTable(
                 name: "Wards");
@@ -1310,6 +1395,15 @@ namespace _2GO_EXE_Project.DAL.Migrations
 
             migrationBuilder.DropTable(
                 name: "Cities");
+
+            migrationBuilder.DropTable(
+                name: "Orders");
+
+            migrationBuilder.DropTable(
+                name: "EscrowContracts");
+
+            migrationBuilder.DropTable(
+                name: "Payments");
         }
     }
 }

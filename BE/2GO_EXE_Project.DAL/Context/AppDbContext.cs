@@ -102,7 +102,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.LogId).HasName("PK__Activity__5E5486480DB36993");
 
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
 
             entity.HasOne(d => d.User).WithMany(p => p.ActivityLogs).HasConstraintName("FK_ActLogs_Users");
         });
@@ -111,7 +111,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.LogId).HasName("PK__AiModera__5E5486480174A9B8");
 
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
 
             entity.HasOne(d => d.Listing).WithMany(p => p.AiModerationLogs).HasConstraintName("FK_AiLogs_Listings");
         });
@@ -120,7 +120,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.ScanId).HasName("PK__AiScanRe__63B32681BFCE5E87");
 
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
 
             entity.HasOne(d => d.Listing).WithMany(p => p.AiScanResults).HasConstraintName("FK_AiScan_Listings");
         });
@@ -129,7 +129,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.ApiId).HasName("PK__ApiLogs__024B3BB3924051E4");
 
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
         });
 
         modelBuilder.Entity<Category>(entity =>
@@ -141,7 +141,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.ChatId).HasName("PK__Chats__A9FBE7C6633500B5");
 
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
 
             entity.HasOne(d => d.User1).WithMany(p => p.ChatUser1s).HasConstraintName("FK_Chat_User1");
 
@@ -157,7 +157,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.LogId).HasName("PK__DeviceLo__5E5486484AA0DD95");
 
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
 
             entity.HasOne(d => d.User).WithMany(p => p.DeviceLogs).HasConstraintName("FK_DeviceLogs_Users");
         });
@@ -173,7 +173,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.EscrowId).HasName("PK__EscrowCo__557665D406EDB275");
 
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
 
             entity.HasOne(d => d.Buyer).WithMany(p => p.EscrowContractBuyers).HasConstraintName("FK_Escrow_Buyer");
 
@@ -186,7 +186,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.TxId).HasName("PK__EscrowTr__F9FA65FC96EF3600");
 
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
 
             entity.HasOne(d => d.Escrow).WithMany(p => p.EscrowTransactions).HasConstraintName("FK_EscrowTx_Escrow");
         });
@@ -195,7 +195,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.AssignmentId).HasName("PK__FixerAss__32499E77DDD307A5");
 
-            entity.Property(e => e.AssignedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.AssignedAt).HasDefaultValueSql("NOW()");
 
             entity.HasOne(d => d.FixerUser).WithMany(p => p.FixerAssignments).HasConstraintName("FK_Assign_User");
 
@@ -206,7 +206,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.RequestId).HasName("PK__FixerReq__33A8517AE1259366");
 
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
 
             entity.HasOne(d => d.Listing).WithMany(p => p.FixerRequests).HasConstraintName("FK_FixerReq_Listings");
 
@@ -224,7 +224,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.ListingId).HasName("PK__Listings__BF3EBED0512A61BA");
 
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
             entity.Property(e => e.HasNegotiation).HasDefaultValue(true);
 
             entity.HasOne(d => d.Seller).WithMany(p => p.Listings).HasConstraintName("FK_Listings_Users");
@@ -254,7 +254,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.ViewId).HasName("PK__ListingV__1E371CF66220BD28");
 
-            entity.Property(e => e.ViewedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.ViewedAt).HasDefaultValueSql("NOW()");
 
             entity.HasOne(d => d.Listing).WithMany(p => p.ListingViews).HasConstraintName("FK_ListingViews_Listings");
 
@@ -265,7 +265,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.MessageId).HasName("PK__Messages__C87C0C9C5FC829B3");
 
-            entity.Property(e => e.SentAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.SentAt).HasDefaultValueSql("NOW()");
 
             entity.HasOne(d => d.Chat).WithMany(p => p.Messages).HasConstraintName("FK_Messages_Chat");
 
@@ -276,7 +276,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.OrderId).HasName("PK__Orders__C3905BCF29ADB7E0");
 
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
 
             entity.HasOne(d => d.Buyer).WithMany(p => p.OrderBuyers).HasConstraintName("FK_Orders_Buyer");
 
@@ -300,7 +300,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.PaymentId).HasName("PK__Payments__9B556A383AF28E0A");
 
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
 
             entity.HasOne(d => d.User).WithMany(p => p.Payments).HasConstraintName("FK_Payments_Users");
         });
@@ -309,7 +309,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.LogId).HasName("PK__PaymentL__5E548648A3C99DC5");
 
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
 
             entity.HasOne(d => d.Payment).WithMany(p => p.PaymentLogs).HasConstraintName("FK_PaymentLogs_Payments");
         });
@@ -318,7 +318,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.TxId).HasName("PK__PointTra__F9FA65FCC8C19C20");
 
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
 
             entity.HasOne(d => d.User).WithMany(p => p.PointTransactions).HasConstraintName("FK_PointTx_Users");
         });
@@ -327,7 +327,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.ReportId).HasName("PK__Reports__D5BD4805096823C8");
 
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
 
             entity.HasOne(d => d.Listing).WithMany(p => p.Reports).HasConstraintName("FK_Reports_Listing");
 
@@ -340,7 +340,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.SavedId).HasName("PK__SavedLis__0B058FDCCF45C708");
 
-            entity.Property(e => e.SavedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.SavedAt).HasDefaultValueSql("NOW()");
 
             entity.HasOne(d => d.Listing).WithMany(p => p.SavedListings).HasConstraintName("FK_SavedListings_Listings");
 
@@ -351,7 +351,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.SearchId).HasName("PK__SearchHi__21C535F47026F753");
 
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
 
             entity.HasOne(d => d.User).WithMany(p => p.SearchHistories).HasConstraintName("FK_SearchHistory_Users");
         });
@@ -360,7 +360,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.ShipId).HasName("PK__Shipping__2A05CAB3FA7A5C07");
 
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
 
             entity.HasOne(d => d.Order).WithMany(p => p.ShippingRequests).HasConstraintName("FK_Shipping_Orders");
         });
@@ -376,7 +376,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.TicketId).HasName("PK__SupportT__712CC6074908E846");
 
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
 
             entity.HasOne(d => d.User).WithMany(p => p.SupportTickets).HasConstraintName("FK_Tickets_Users");
         });
@@ -385,14 +385,14 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.UserId).HasName("PK__Users__1788CC4C13494ED7");
 
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
         });
 
         modelBuilder.Entity<UserDevice>(entity =>
         {
             entity.HasKey(e => e.DeviceId).HasName("PK__UserDevi__49E123115414FA0C");
 
-            entity.Property(e => e.LastActive).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.LastActive).HasDefaultValueSql("NOW()");
 
             entity.HasOne(d => d.User).WithMany(p => p.UserDevices).HasConstraintName("FK_UserDevices_Users");
         });
@@ -403,7 +403,7 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.CurrentPoints).HasDefaultValue(0);
             entity.Property(e => e.LifetimePoints).HasDefaultValue(0);
-            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("NOW()");
 
             entity.HasOne(d => d.User).WithMany(p => p.UserPoints).HasConstraintName("FK_UserPoints_Users");
         });
@@ -419,7 +419,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.RatingId).HasName("PK__UserRati__FCCDF87C065FCA12");
 
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
 
             entity.HasOne(d => d.RatedUser).WithMany(p => p.UserRatingRatedUsers).HasConstraintName("FK_UserRatings_Rated");
 
@@ -439,14 +439,14 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<RefreshToken>(entity =>
         {
             entity.HasKey(e => e.RefreshTokenId);
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
             entity.HasOne(d => d.User).WithMany(p => p.RefreshTokens).HasForeignKey(d => d.UserId).HasConstraintName("FK_RefreshTokens_Users");
         });
 
         modelBuilder.Entity<VerificationCode>(entity =>
         {
             entity.HasKey(e => e.VerificationCodeId);
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
             entity.Property(e => e.Purpose).HasMaxLength(50).IsUnicode(false);
             entity.HasOne(d => d.User).WithMany(p => p.VerificationCodes).HasForeignKey(d => d.UserId).HasConstraintName("FK_VerificationCodes_Users");
         });
