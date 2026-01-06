@@ -46,8 +46,10 @@ Region:          Singapore
 Database Name:   recommerce2go
 Status:          ✅ DEPLOYED & ACTIVE
 Tables:          40+ tables defined
-Migration:       InitPostgreSQL (31/12/2025)
+Migration:       InitPostgreSQL (20251231083858)
 ```
+
+*Note: Migration timestamp shows Dec 31, 2025, likely due to incorrect system clock when created.*
 
 ---
 

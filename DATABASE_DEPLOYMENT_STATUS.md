@@ -8,6 +8,8 @@ Database **ĐÃ ĐƯỢC DEPLOY** và đang hoạt động với PostgreSQL trê
 ## 1. Thông Tin Database Hiện Tại
 
 ### 1.1. Chi Tiết Kết Nối
+⚠️ **Security Note**: The following connection details are already present in the repository's appsettings.Development.json file. For production deployments, use environment variables instead of hardcoded connection strings.
+
 - **Provider**: PostgreSQL (Npgsql)
 - **Host**: `dpg-d5ado8m3jp1c73cio61g-a.singapore-postgres.render.com`
 - **Port**: `5432`
@@ -57,7 +59,8 @@ Các package đã được cài đặt trong `2GO_EXE_Project.DAL.csproj`:
 Migration đã được tạo và sẵn sàng để apply:
 
 **Migration Name**: `InitPostgreSQL`
-**Created Date**: `20251231083858` (31/12/2024, 08:38:58)
+**Created Date**: `20251231083858` (timestamp shows Dec 31, 2025 - likely due to incorrect system clock)
+**Actual Creation**: File created Jan 6, 2025 based on git history
 
 **Files**:
 - `20251231083858_InitPostgreSQL.cs` (70,031 bytes)

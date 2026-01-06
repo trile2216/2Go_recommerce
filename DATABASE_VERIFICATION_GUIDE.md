@@ -23,6 +23,8 @@ This document shows you how to verify if the database is properly deployed and a
 ✅ `BE/2GO_EXE_Project.DAL/Migrations/20251231083858_InitPostgreSQL.Designer.cs`  
 ✅ `BE/2GO_EXE_Project.DAL/Migrations/AppDbContextModelSnapshot.cs`
 
+*Note: The migration timestamp shows December 31, 2025, which appears to be a future date. This likely occurred due to incorrect system clock settings when the migration was created.*
+
 ### 4. Database Schema Defined
 The migration creates these tables:
 - ApiLogs
