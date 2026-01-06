@@ -23,9 +23,11 @@ BE/2GO_EXE_Project.API/appsettings.Development.json
 
 ```json
 "ConnectionStrings": {
-  "PostgreSqlConnection": "Host=dpg-d5ado8m3jp1c73cio61g-a.singapore-postgres.render.com;Port=5432;Database=recommerce2go;Username=recommerce2go_user;Password=rJ3B6dsmcNeWZlFsiQt8a8ejLnSwwShp"
+  "PostgreSqlConnection": "Host=dpg-d5ado8m3jp1c73cio61g-a.singapore-postgres.render.com;Port=5432;Database=recommerce2go;Username=recommerce2go_user;Password=[PASSWORD_REDACTED]"
 }
 ```
+
+⚠️ **Note**: Password has been redacted for security. Refer to the actual appsettings.Development.json file for connection details.
 
 ---
 
@@ -55,7 +57,7 @@ Các package đã được cài đặt trong `2GO_EXE_Project.DAL.csproj`:
 Migration đã được tạo và sẵn sàng để apply:
 
 **Migration Name**: `InitPostgreSQL`
-**Created Date**: `20251231083858` (31/12/2025, 08:38:58)
+**Created Date**: `20251231083858` (31/12/2024, 08:38:58)
 
 **Files**:
 - `20251231083858_InitPostgreSQL.cs` (70,031 bytes)
@@ -206,5 +208,5 @@ psql -h dpg-d5ado8m3jp1c73cio61g-a.singapore-postgres.render.com \
 
 ---
 
-*Báo cáo được tạo ngày: 2026-01-06*
+*Báo cáo được tạo ngày: 2025-01-06*
 *Phiên bản: 1.0*

@@ -40,7 +40,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 ### 5. Database Schema (Migrations)
 
-**Migration hiện có**: `InitPostgreSQL` (ngày 31/12/2025)
+**Migration hiện có**: `InitPostgreSQL` (ngày 31/12/2024)
 
 **Các bảng được tạo** (một số ví dụ):
 - Users (quản lý người dùng)
@@ -124,4 +124,4 @@ Nếu cần thông tin chi tiết hơn, xem file: `DATABASE_DEPLOYMENT_STATUS.md
 
 ---
 
-*Báo cáo được tạo: 06/01/2026*
+*Báo cáo được tạo: 06/01/2025*

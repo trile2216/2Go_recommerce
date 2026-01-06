@@ -100,6 +100,6 @@ dotnet run
 
 ---
 
-**Ngày tạo**: 06/01/2026  
+**Ngày tạo**: 06/01/2025  
 **Tác giả**: GitHub Copilot Workspace  
 **Mục đích**: Trả lời câu hỏi về trạng thái deployment database
