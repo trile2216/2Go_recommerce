@@ -42,7 +42,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 **Migration hiện có**: `InitPostgreSQL` (timestamp: 20251231083858)
 
-*Note: Timestamp hiển thị ngày 31/12/2025, có thể do đồng hồ hệ thống không chính xác khi tạo.*
+*Note: Timestamp hiển thị ngày 31/12/2025, có thể do đồng hồ hệ thống không chính xác khi tạo. File thực tế được tạo vào ngày 06/01/2025 dựa trên git history.*
 
 **Các bảng được tạo** (một số ví dụ):
 - Users (quản lý người dùng)

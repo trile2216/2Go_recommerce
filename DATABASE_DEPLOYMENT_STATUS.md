@@ -10,6 +10,8 @@ Database **ĐÃ ĐƯỢC DEPLOY** và đang hoạt động với PostgreSQL trê
 ### 1.1. Chi Tiết Kết Nối
 ⚠️ **Security Note**: The following connection details are already present in the repository's appsettings.Development.json file. For production deployments, use environment variables instead of hardcoded connection strings.
 
+⚠️ **Important**: The actual password is still stored in `BE/2GO_EXE_Project.API/appsettings.Development.json`. This documentation redacts it for security, but the source file should be updated to use environment variables in production.
+
 - **Provider**: PostgreSQL (Npgsql)
 - **Host**: `dpg-d5ado8m3jp1c73cio61g-a.singapore-postgres.render.com`
 - **Port**: `5432`
