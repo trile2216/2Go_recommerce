@@ -74,22 +74,22 @@ builder.Services.AddAuthentication(options =>
 });
 
 // Initialize Firebase Admin (for verifying ID tokens from Firebase Auth)
-var firebaseSection = builder.Configuration.GetSection("Firebase");
+var firebaseSection = builder.Configuration.GetSection("Firebase"); 
 if (FirebaseApp.DefaultInstance == null)
 {
     var credentialPath = firebaseSection["CredentialsPath"];
     var projectId = firebaseSection["ProjectId"];
 #pragma warning disable CS0618 // FromFile is marked obsolete in this version; acceptable for setup
     GoogleCredential credential;
-    var envPath = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
+    // var envPath = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
     if (!string.IsNullOrWhiteSpace(credentialPath) && File.Exists(credentialPath))
     {
         credential = GoogleCredential.FromFile(credentialPath);
     }
-    else if (!string.IsNullOrWhiteSpace(envPath) && File.Exists(envPath))
-    {
-        credential = GoogleCredential.FromFile(envPath);
-    }
+    // else if (!string.IsNullOrWhiteSpace(envPath) && File.Exists(envPath))
+    // {
+    //     credential = GoogleCredential.FromFile(envPath);
+    // }
     else
     {
         throw new InvalidOperationException("Firebase credentials not configured. Set Firebase:CredentialsPath or GOOGLE_APPLICATION_CREDENTIALS to a valid service account json.");
@@ -133,11 +133,12 @@ builder.Services.AddSwaggerGen(c =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("EnableSwaggerInProduction"))
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
 
 app.UseHttpsRedirection();
 
