@@ -77,8 +77,8 @@ builder.Services.AddAuthentication(options =>
 var firebaseSection = builder.Configuration.GetSection("Firebase"); 
 if (FirebaseApp.DefaultInstance == null)
 {
-    var credentialPath = firebaseSection["CredentialsPath"] ?? builder.Configuration.GetValue<string>("Firebase:CredentialsPath");
-    var projectId = firebaseSection["ProjectId"] ?? builder.Configuration.GetValue<string>("Firebase:ProjectId");
+    var credentialPath = firebaseSection["CredentialsPath"] ?? builder.Configuration.GetValue<string>("Firebase__CredentialsPath");
+    var projectId = firebaseSection["ProjectId"] ?? builder.Configuration.GetValue<string>("Firebase__ProjectId");
 #pragma warning disable CS0618 // FromFile is marked obsolete in this version; acceptable for setup
     GoogleCredential credential;
     // var envPath = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
