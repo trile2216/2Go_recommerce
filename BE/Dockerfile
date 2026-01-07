@@ -16,5 +16,4 @@ WORKDIR /app
 ENV ASPNETCORE_URLS=http://0.0.0.0:8080
 EXPOSE 8080
 COPY --from=build /app/publish .
-COPY 2GO_EXE_Project.API/configs/go-market-exe-project-firebase-adminsdk-fbsvc-4249a6834b.json /app/configs/
 ENTRYPOINT ["dotnet", "2GO_EXE_Project.API.dll"]

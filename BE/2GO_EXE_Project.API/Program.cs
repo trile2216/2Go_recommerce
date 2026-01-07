@@ -48,8 +48,9 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 // builder.Services.AddDbContext<AppDbContext>(options =>
 //     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+var connectionString = builder.Configuration.GetConnectionString("PostgreSqlConnection") ?? builder.Configuration.GetValue<string>("ConnectionStrings__PostgreSqlConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("PostgreSqlConnection")));
+    options.UseNpgsql(connectionString));
 
 builder.Services.AddAuthentication(options =>
 {

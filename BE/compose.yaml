@@ -5,18 +5,15 @@ services:
       dockerfile: Dockerfile
     image: 2go-recommerce-api:latest
     container_name: 2go-api
+    volumes:
+      - "E:/EXE/Secret/go-market-exe-project-firebase-adminsdk-fbsvc-a7fb7c969f.json:/app/configs/firebase-credentials.json:ro"
+    env_file:
+      - .env  
     ports:
       - "8080:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://0.0.0.0:8080
-      - ConnectionStrings:PostgreSqlConnection=Host=dpg-d3ros69r0fns73drnik0-a.singapore-postgres.render.com;Port=5432;Database=skincareshop;Username=skincareshop_user;Password=p613WWcGf3MDjRtKEbM8KeJXUqUJw1Uz;Ssl Mode=Require;Trust Server Certificate=true
-      - JWT:Issuer=https://twogo-recommerce.onrender.com
-      - JWT:Audience=https://twogo-recommerce.onrender.com
-      - JWT:Secret=p3J8X2c4y7V9s1Q5W8Z0T3L6N9R2F5H8K1M4P7S0V3Y6B9E2H5J8L1Q4
-      - Firebase:CredentialsPath=/app/configs/go-market-exe-project-firebase-adminsdk-fbsvc-4249a6834b.json
-      - Firebase:ProjectId=go-market-exe-project
-      - Gmail:AppPassword=pbbh pzzq qixt nvsl
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
