@@ -17,6 +17,15 @@ using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 var corsName = "AllowAll";
+
+builder.Services.AddCors(p => p.AddPolicy(name: corsName, policy =>
+{
+    policy.WithOrigins("http://localhost:5173")
+        .AllowCredentials()
+        .AllowAnyMethod()
+        .AllowAnyHeader();
+}));
+
 // Add services to the container.
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 builder.Services.Configure<GmailEmailSettings>(builder.Configuration.GetSection("Gmail"));
@@ -140,14 +149,7 @@ if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("EnableS
     app.UseSwaggerUI();
 }
 
-builder.Services.AddCors(p => p.AddPolicy(name: corsName, policy =>
-{
-    policy.WithOrigins("http://localhost:5173")
-        .AllowCredentials()
-        .AllowAnyMethod()
-        .AllowAnyHeader();
-}));
-
+app.UseCors(corsName);
 
 app.UseHttpsRedirection();
 
