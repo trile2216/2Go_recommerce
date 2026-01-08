@@ -68,15 +68,18 @@ builder.Services.AddAuthentication(options =>
 }).AddJwtBearer(options =>
 {
     var jwtSection = builder.Configuration.GetSection("Jwt").Get<JwtSettings>() ?? new JwtSettings();
+    var JwtIssuer = jwtSection.Issuer ?? builder.Configuration.GetValue<string>("Jwt__Issuer");
+    var JwtAudience = jwtSection.Audience ?? builder.Configuration.GetValue<string>("Jwt__Audience");
+    var JwtSecret = jwtSection.Secret ?? builder.Configuration.GetValue<string>("Jwt__Secret");
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSection.Issuer,
-        ValidAudience = jwtSection.Audience,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSection.Secret)),
+        ValidIssuer = JwtIssuer,
+        ValidAudience = JwtAudience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtSecret)),
         ClockSkew = TimeSpan.Zero,
         NameClaimType = JwtRegisteredClaimNames.Sub,
         RoleClaimType = ClaimTypes.Role
