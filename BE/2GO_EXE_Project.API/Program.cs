@@ -86,31 +86,41 @@ builder.Services.AddAuthentication(options =>
 // Initialize Firebase Admin (for verifying ID tokens from Firebase Auth)
 var firebaseSection = builder.Configuration.GetSection("Firebase"); 
 if (FirebaseApp.DefaultInstance == null)
-{
-    var credentialPath = firebaseSection["CredentialsPath"] ?? builder.Configuration.GetValue<string>("Firebase__CredentialsPath");
+{    var credentialPath = firebaseSection["CredentialsPath"] ?? builder.Configuration.GetValue<string>("Firebase__CredentialsPath");
     var projectId = firebaseSection["ProjectId"] ?? builder.Configuration.GetValue<string>("Firebase__ProjectId");
-    var credentialJson = firebaseSection["CredentialsJson"] ?? builder.Configuration.GetValue<string>("firebase-credentials");
+    var credentialJson = firebaseSection["CredentialsJson"]
+        ?? builder.Configuration.GetValue<string>("Firebase__CredentialsJson")
+        ?? builder.Configuration.GetValue<string>("firebase-credentials");
+    var envCredentialPath = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
 #pragma warning disable CS0618 // FromFile is marked obsolete in this version; acceptable for setup
-    GoogleCredential credential;
-    if (!string.IsNullOrWhiteSpace(credentialPath) && File.Exists(credentialPath))
-    {
-        credential = GoogleCredential.FromFile(credentialPath);
-    }
-    else if (!string.IsNullOrWhiteSpace(credentialJson) && File.Exists(credentialJson))
+    GoogleCredential? credential = null;
+    if (!string.IsNullOrWhiteSpace(credentialJson))
     {
         credential = GoogleCredential.FromJson(credentialJson);
     }
+    else if (!string.IsNullOrWhiteSpace(credentialPath) && File.Exists(credentialPath))
+    {
+        credential = GoogleCredential.FromFile(credentialPath);
+    }
+    else if (!string.IsNullOrWhiteSpace(envCredentialPath) && File.Exists(envCredentialPath))
+    {
+        credential = GoogleCredential.FromFile(envCredentialPath);
+    }
     else
     {
-        throw new InvalidOperationException("Firebase credentials not configured. Set Firebase:CredentialsPath or GOOGLE_APPLICATION_CREDENTIALS to a valid service account json.");
+        var logger = LoggerFactory.Create(logging => logging.AddConsole()).CreateLogger("FirebaseInit");
+        logger.LogWarning("Firebase credentials not configured. Firebase is disabled. Set Firebase:CredentialsJson, Firebase:CredentialsPath, or GOOGLE_APPLICATION_CREDENTIALS to a valid service account json.");
     }
 #pragma warning restore CS0618
 
-    FirebaseApp.Create(new AppOptions
+    if (credential != null)
     {
-        Credential = credential,
-        ProjectId = string.IsNullOrWhiteSpace(projectId) ? null : projectId
-    });
+        FirebaseApp.Create(new AppOptions
+        {
+            Credential = credential,
+            ProjectId = string.IsNullOrWhiteSpace(projectId) ? null : projectId
+        });
+    }
 }
 
 builder.Services.AddControllers();
