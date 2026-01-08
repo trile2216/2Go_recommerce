@@ -1,18 +1,46 @@
+import { useNavigate } from 'react-router-dom';
+
 export default function ProductCard({ product }) {
+  const navigate = useNavigate();
+
+  // Format giá tiền
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(price);
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Hôm nay';
+    if (diffDays === 1) return 'Hôm qua';
+    if (diffDays < 7) return `${diffDays} ngày trước`;
+    return date.toLocaleDateString('vi-VN');
+  };
+
+  const handleProductClick = () => {
+    navigate(`/product/${product.listingId}`);
+  };
+
   return (
-    <article className="product-card">
+    <article className="product-card" onClick={handleProductClick} style={{ cursor: 'pointer' }}>
       <div className="product-image-wrapper">
-        {product.image ? (
-          <img src={product.image} alt={product.title} className="product-image" />
+        {product.primaryImageUrl ? (
+          <img src={product.primaryImageUrl} alt={product.title} className="product-image" />
         ) : (
           <div className="product-image-placeholder">
             <span>{product.title}</span>
           </div>
         )}
         <div className="product-actions">
-          <button className={`action-btn ${product.liked ? 'liked' : ''}`}>
+          <button className="action-btn">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M12.6663 9.33333C13.6597 8.36 14.6663 7.19333 14.6663 5.66667C14.6663 4.69421 14.28 3.76158 13.5924 3.07394C12.9048 2.38631 11.9721 2 10.9997 2C9.82634 2 8.99967 2.33333 7.99967 3.33333C6.99967 2.33333 6.17301 2 4.99967 2C4.02721 2 3.09458 2.38631 2.40695 3.07394C1.71932 3.76158 1.33301 4.69421 1.33301 5.66667C1.33301 7.2 2.33301 8.36667 3.33301 9.33333L7.99967 14L12.6663 9.33333Z" stroke={product.liked ? "white" : "#1E293B"} fill={product.liked ? "white" : "none"} strokeOpacity="0.894118" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M12.6663 9.33333C13.6597 8.36 14.6663 7.19333 14.6663 5.66667C14.6663 4.69421 14.28 3.76158 13.5924 3.07394C12.9048 2.38631 11.9721 2 10.9997 2C9.82634 2 8.99967 2.33333 7.99967 3.33333C6.99967 2.33333 6.17301 2 4.99967 2C4.02721 2 3.09458 2.38631 2.40695 3.07394C1.71932 3.76158 1.33301 4.69421 1.33301 5.66667C1.33301 7.2 2.33301 8.36667 3.33301 9.33333L7.99967 14L12.6663 9.33333Z" stroke="#1E293B" fill="none" strokeOpacity="0.894118" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
           <button className="action-btn">
@@ -23,8 +51,8 @@ export default function ProductCard({ product }) {
             </svg>
           </button>
         </div>
-        {product.badge && (
-          <span className="product-badge">{product.badge}</span>
+        {product.status === 'Active' && (
+          <span className="product-badge">{product.subCategoryName}</span>
         )}
       </div>
       
@@ -33,9 +61,9 @@ export default function ProductCard({ product }) {
         
         {product.price && (
           <div className="product-pricing">
-            <div className="product-price">{product.price}</div>
-            {product.condition && (
-              <div className="product-condition">{product.condition}</div>
+            <div className="product-price">{formatPrice(product.price)}</div>
+            {product.categoryName && (
+              <div className="product-condition">{product.categoryName}</div>
             )}
           </div>
         )}
@@ -46,14 +74,14 @@ export default function ProductCard({ product }) {
               <path d="M10 5C10 7.4965 7.2305 10.0965 6.3005 10.8995C6.21386 10.9646 6.1084 10.9999 6 10.9999C5.8916 10.9999 5.78614 10.9646 5.6995 10.8995C4.7695 10.0965 2 7.4965 2 5C2 3.93913 2.42143 2.92172 3.17157 2.17157C3.92172 1.42143 4.93913 1 6 1C7.06087 1 8.07828 1.42143 8.82843 2.17157C9.57857 2.92172 10 3.93913 10 5Z" stroke="#6B7280" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M6 6.5C6.82843 6.5 7.5 5.82843 7.5 5C7.5 4.17157 6.82843 3.5 6 3.5C5.17157 3.5 4.5 4.17157 4.5 5C4.5 5.82843 5.17157 6.5 6 6.5Z" stroke="#6B7280" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <span>{product.location}</span>
+            <span>{product.status}</span>
           </div>
           <div className="meta-item">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
               <path d="M6 11C8.76142 11 11 8.76142 11 6C11 3.23858 8.76142 1 6 1C3.23858 1 1 3.23858 1 6C1 8.76142 3.23858 11 6 11Z" stroke="#6B7280" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M6 3V6L8 7" stroke="#6B7280" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <span>{product.time}</span>
+            <span>{formatDate(product.createdAt)}</span>
           </div>
         </div>
       </div>
