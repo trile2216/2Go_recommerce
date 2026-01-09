@@ -125,7 +125,6 @@ export default function ProductDetail() {
   return (
     <div className="product-detail-page">
       <Header />
-
       <main className="product-detail-main">
         <div className="product-detail-container">
           <div className="detail-layout">

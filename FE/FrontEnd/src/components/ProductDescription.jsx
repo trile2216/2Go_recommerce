@@ -10,14 +10,14 @@ export default function ProductDescription({ description, specifications }) {
             ))}
           </div>
 
-          <h4 className="subsection-title">Chọc ngoáy:</h4>
+          <h4 className="subsection-title">Thông tin chi tiết:</h4>
           <ul className="feature-list">
             {specifications.highlights.map((item, index) => (
               <li key={index}>{item}</li>
             ))}
           </ul>
 
-          <h4 className="subsection-title">Bảo gồm:</h4>
+          <h4 className="subsection-title">Thông tin người bán:</h4>
           <ul className="feature-list">
             {specifications.included.map((item, index) => (
               <li key={index}>{item}</li>
