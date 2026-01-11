@@ -1,7 +1,19 @@
 import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { Heart, Scale } from 'lucide-react';
+import { addToFavorites, removeFromFavorites } from '../store/slices/favoritesSlice';
+import { addToCompare, removeFromCompare } from '../store/slices/compareSlice';
 
 export default function ProductCard({ product }) {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  
+  // Get favorites and compare items from Redux
+  const favorites = useSelector(state => state.favorites.items);
+  const compareItems = useSelector(state => state.compare.items);
+  
+  const isFavorited = favorites.some(item => item.id === product.listingId);
+  const isInCompare = compareItems.some(item => item.id === product.listingId);
 
   // Format giá tiền
   const formatPrice = (price) => {
@@ -27,6 +39,41 @@ export default function ProductCard({ product }) {
     navigate(`/product/${product.listingId}`);
   };
 
+  const handleAddToFavorites = (e) => {
+    e.stopPropagation();
+    if (isFavorited) {
+      dispatch(removeFromFavorites(product.listingId));
+    } else {
+      dispatch(addToFavorites({
+        id: product.listingId,
+        title: product.title,
+        price: product.price,
+        image: product.primaryImageUrl,
+        ...product
+      }));
+    }
+  };
+
+  const handleAddToCompare = (e) => {
+    e.stopPropagation();
+    if (isInCompare) {
+      dispatch(removeFromCompare(product.listingId));
+    } else {
+      const canAdd = compareItems.length < 5;
+      if (canAdd) {
+        dispatch(addToCompare({
+          id: product.listingId,
+          name: product.title,
+          price: product.price,
+          image: product.primaryImageUrl,
+          ...product
+        }));
+      } else {
+        alert('Bạn chỉ có thể so sánh tối đa 5 sản phẩm');
+      }
+    }
+  };
+
   return (
     <article className="product-card" onClick={handleProductClick} style={{ cursor: 'pointer' }}>
       <div className="product-image-wrapper">
@@ -38,17 +85,19 @@ export default function ProductCard({ product }) {
           </div>
         )}
         <div className="product-actions">
-          <button className="action-btn">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M12.6663 9.33333C13.6597 8.36 14.6663 7.19333 14.6663 5.66667C14.6663 4.69421 14.28 3.76158 13.5924 3.07394C12.9048 2.38631 11.9721 2 10.9997 2C9.82634 2 8.99967 2.33333 7.99967 3.33333C6.99967 2.33333 6.17301 2 4.99967 2C4.02721 2 3.09458 2.38631 2.40695 3.07394C1.71932 3.76158 1.33301 4.69421 1.33301 5.66667C1.33301 7.2 2.33301 8.36667 3.33301 9.33333L7.99967 14L12.6663 9.33333Z" stroke="#1E293B" fill="none" strokeOpacity="0.894118" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+          <button 
+            className={`action-btn ${isFavorited ? 'active' : ''}`}
+            onClick={handleAddToFavorites}
+            title={isFavorited ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'}
+          >
+            <Heart size={16} fill={isFavorited ? '#ef4444' : 'none'} color={isFavorited ? '#ef4444' : '#1e293b'} />
           </button>
-          <button className="action-btn">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M7.99967 8.66659C8.36786 8.66659 8.66634 8.36811 8.66634 7.99992C8.66634 7.63173 8.36786 7.33325 7.99967 7.33325C7.63148 7.33325 7.33301 7.63173 7.33301 7.99992C7.33301 8.36811 7.63148 8.66659 7.99967 8.66659Z" stroke="#1E293B" strokeOpacity="0.894118" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M7.99967 4.00008C8.36786 4.00008 8.66634 3.7016 8.66634 3.33341C8.66634 2.96522 8.36786 2.66675 7.99967 2.66675C7.63148 2.66675 7.33301 2.96522 7.33301 3.33341C7.33301 3.7016 7.63148 4.00008 7.99967 4.00008Z" stroke="#1E293B" strokeOpacity="0.894118" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M7.99967 13.3333C8.36786 13.3333 8.66634 13.0349 8.66634 12.6667C8.66634 12.2985 8.36786 12 7.99967 12C7.63148 12 7.33301 12.2985 7.33301 12.6667C7.33301 13.0349 7.63148 13.3333 7.99967 13.3333Z" stroke="#1E293B" strokeOpacity="0.894118" strokeWidth="1.33333" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+          <button 
+            className={`action-btn ${isInCompare ? 'active' : ''}`}
+            onClick={handleAddToCompare}
+            title={isInCompare ? 'Bỏ so sánh' : 'Thêm vào so sánh'}
+          >
+            <Scale size={16} color={isInCompare ? '#3b82f6' : '#1e293b'} />
           </button>
         </div>
         {product.status === 'Active' && (

@@ -27,11 +27,42 @@ const Login = () => {
 
     try {
       const response = await login(credentials);
-      // Store token in localStorage or context
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
-      navigate('/');
+      console.log('Login response:', response);
+      
+      // Extract data from API response
+      const { accessToken, refreshToken, userId, email, phone } = response;
+      
+      console.log('Extracted - accessToken:', accessToken, 'userId:', userId, 'email:', email);
+      
+      if (accessToken && userId) {
+        // Create user object
+        const userData = {
+          userId,
+          email,
+          phone,
+          fullName: email.split('@')[0] // Use email prefix as fullName, can be updated later
+        };
+        
+        // Store tokens and user in localStorage
+        localStorage.setItem('token', accessToken);
+        localStorage.setItem('refreshToken', refreshToken);
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        console.log('Successfully stored - token:', accessToken);
+        console.log('Successfully stored - user:', userData);
+        console.log('Verify from localStorage:', localStorage.getItem('user'));
+        
+        // Navigate to home after a small delay
+        setTimeout(() => {
+          console.log('Navigating to home');
+          navigate('/');
+        }, 100);
+      } else {
+        setError('Invalid login response - missing required fields');
+        console.error('Missing required fields:', { accessToken, userId });
+      }
     } catch (err) {
+      console.error('Login error:', err);
       setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
