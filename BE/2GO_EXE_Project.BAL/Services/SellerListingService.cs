@@ -53,6 +53,19 @@ public class SellerListingService : ISellerListingService
         }
     }
 
+    private static List<ListingAttribute> BuildListingAttributes(long listingId, IEnumerable<ListingAttributeRequest> requests)
+    {
+        return requests
+            .Where(r => !string.IsNullOrWhiteSpace(r.Name))
+            .Select(r => new ListingAttribute
+            {
+                ListingId = listingId,
+                Name = r.Name.Trim(),
+                Value = string.IsNullOrWhiteSpace(r.Value) ? null : r.Value.Trim()
+            })
+            .ToList();
+    }
+
     public async Task<SellerListingListResponse> GetMyListingsAsync(ClaimsPrincipal sellerPrincipal, string? status, int skip, int take, CancellationToken cancellationToken = default)
     {
         var sellerId = GetUserId(sellerPrincipal);
@@ -90,6 +103,7 @@ public class SellerListingService : ISellerListingService
             .Include(l => l.SubCategory)
             .ThenInclude(sc => sc.Category)
             .Include(l => l.ListingImages)
+            .Include(l => l.ListingAttributes)
             .Where(l => l.ListingId == listingId && l.SellerId == sellerId)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -102,6 +116,12 @@ public class SellerListingService : ISellerListingService
             .ToList();
 
         var primary = images.FirstOrDefault();
+
+        var attributes = listing.ListingAttributes
+            .OrderBy(a => a.AttributeId)
+            .Where(a => !string.IsNullOrWhiteSpace(a.Name))
+            .Select(a => new ListingAttributeItem(a.Name ?? string.Empty, a.Value ?? string.Empty))
+            .ToList();
 
         return new ListingDetail(
             listing.ListingId,
@@ -121,7 +141,8 @@ public class SellerListingService : ISellerListingService
             listing.Seller?.Email,
             listing.Seller?.Phone,
             primary,
-            images);
+            images,
+            attributes);
     }
 
     public async Task<ListingDetail> CreateAsync(ClaimsPrincipal sellerPrincipal, CreateSellerListingRequest request, CancellationToken cancellationToken = default)
@@ -177,6 +198,14 @@ public class SellerListingService : ISellerListingService
         await _uow.ListingImages.AddRangeAsync(listingImages, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
 
+        var attributeRequests = request.Attributes ?? Array.Empty<ListingAttributeRequest>();
+        var listingAttributes = BuildListingAttributes(listing.ListingId, attributeRequests);
+        if (listingAttributes.Count > 0)
+        {
+            await _uow.ListingAttributes.AddRangeAsync(listingAttributes, cancellationToken);
+            await _uow.SaveChangesAsync(cancellationToken);
+        }
+
         return await GetMyListingByIdAsync(sellerPrincipal, listing.ListingId, cancellationToken)
                ?? throw new InvalidOperationException("Listing not found after create.");
     }
@@ -217,6 +246,24 @@ public class SellerListingService : ISellerListingService
 
         _uow.Listings.Update(listing);
         await _uow.SaveChangesAsync(cancellationToken);
+
+        if (request.Attributes != null)
+        {
+            var existing = await _uow.ListingAttributes.Query()
+                .Where(a => a.ListingId == listingId)
+                .ToListAsync(cancellationToken);
+            if (existing.Count > 0)
+            {
+                _uow.ListingAttributes.RemoveRange(existing);
+            }
+
+            var newAttributes = BuildListingAttributes(listingId, request.Attributes);
+            if (newAttributes.Count > 0)
+            {
+                await _uow.ListingAttributes.AddRangeAsync(newAttributes, cancellationToken);
+            }
+            await _uow.SaveChangesAsync(cancellationToken);
+        }
 
         return await GetMyListingByIdAsync(sellerPrincipal, listingId, cancellationToken);
     }
@@ -287,6 +334,25 @@ public class SellerListingService : ISellerListingService
         _uow.Listings.Update(listing);
         await _uow.SaveChangesAsync(cancellationToken);
         return new BasicResponse(true, "Listing archived.");
+    }
+
+    public async Task<BasicResponse> DeleteAsync(ClaimsPrincipal sellerPrincipal, long listingId, CancellationToken cancellationToken = default)
+    {
+        var sellerId = GetUserId(sellerPrincipal);
+        var listing = await _uow.Listings.Query()
+            .FirstOrDefaultAsync(l => l.ListingId == listingId && l.SellerId == sellerId, cancellationToken);
+        if (listing == null) return new BasicResponse(false, "Listing not found.");
+
+        if (string.Equals(listing.Status, ListingStatuses.Deleted, StringComparison.OrdinalIgnoreCase))
+        {
+            return new BasicResponse(true, "Listing already deleted.");
+        }
+
+        listing.Status = ListingStatuses.Deleted;
+        listing.UpdatedAt = DateTime.UtcNow;
+        _uow.Listings.Update(listing);
+        await _uow.SaveChangesAsync(cancellationToken);
+        return new BasicResponse(true, "Listing deleted (soft).");
     }
 
     public async Task<BasicResponse> UpdateImagesAsync(ClaimsPrincipal sellerPrincipal, long listingId, UpdateListingImagesRequest request, CancellationToken cancellationToken = default)

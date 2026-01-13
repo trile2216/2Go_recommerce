@@ -39,6 +39,7 @@ public class ListingService : IListingService
             .Include(l => l.Ward)
             .ThenInclude(w => w.District)
             .ThenInclude(d => d.City)
+            .Include(l => l.ListingAttributes)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -148,6 +149,12 @@ public class ListingService : IListingService
             .ToList();
         var primary = images.FirstOrDefault();
 
+        var attributes = listing.ListingAttributes
+            .OrderBy(a => a.AttributeId)
+            .Where(a => !string.IsNullOrWhiteSpace(a.Name))
+            .Select(a => new ListingAttributeItem(a.Name ?? string.Empty, a.Value ?? string.Empty))
+            .ToList();
+
         return new ListingDetail(
             listing.ListingId,
             listing.Title,
@@ -166,7 +173,8 @@ public class ListingService : IListingService
             listing.Seller?.Email,
             listing.Seller?.Phone,
             primary,
-            images);
+            images,
+            attributes);
     }
 
     private async Task TrackViewAsync(long listingId, long? viewerUserId, CancellationToken cancellationToken)

@@ -85,6 +85,14 @@ public class SellerListingsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpDelete("{id:long}")]
+    public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken = default)
+    {
+        var result = await _sellerListingService.DeleteAsync(User, id, cancellationToken);
+        if (!result.Success) return BadRequest(result.Message);
+        return Ok(result);
+    }
+
     [HttpPut("{id:long}/images")]
     public async Task<IActionResult> UpdateImages(long id, [FromBody] UpdateListingImagesRequest request, CancellationToken cancellationToken = default)
     {
