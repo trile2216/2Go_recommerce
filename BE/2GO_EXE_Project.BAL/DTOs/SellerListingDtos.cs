@@ -12,6 +12,7 @@ public record SellerListingListItem(
 public record SellerListingListResponse(int Total, IReadOnlyList<SellerListingListItem> Items);
 
 public record ListingImageRequest(string ImageUrl, bool IsPrimary);
+public record ListingAttributeRequest(string Name, string Value);
 
 public record CreateSellerListingRequest(
     string Title,
@@ -24,7 +25,8 @@ public record CreateSellerListingRequest(
     string? Brand,
     string? Dimensions,
     double? Weight,
-    IReadOnlyList<ListingImageRequest>? Images);
+    IReadOnlyList<ListingImageRequest>? Images,
+    IReadOnlyList<ListingAttributeRequest>? Attributes);
 
 public record UpdateSellerListingRequest(
     string? Title,
@@ -36,6 +38,7 @@ public record UpdateSellerListingRequest(
     string? Condition,
     string? Brand,
     string? Dimensions,
-    double? Weight);
+    double? Weight,
+    IReadOnlyList<ListingAttributeRequest>? Attributes);
 
 public record UpdateListingImagesRequest(IReadOnlyList<ListingImageRequest> Images);

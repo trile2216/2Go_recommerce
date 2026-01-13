@@ -67,6 +67,7 @@ public class ModeratorListingService : IModeratorListingService
             .Include(l => l.SubCategory)
             .ThenInclude(sc => sc.Category)
             .Include(l => l.ListingImages)
+            .Include(l => l.ListingAttributes)
             .Include(l => l.Seller)
             .FirstOrDefaultAsync(l => l.ListingId == listingId, cancellationToken);
         if (listing == null) return null;
@@ -77,6 +78,12 @@ public class ModeratorListingService : IModeratorListingService
             .Select(i => i.ImageUrl ?? string.Empty)
             .ToList();
         var primary = images.FirstOrDefault();
+
+        var attributes = listing.ListingAttributes
+            .OrderBy(a => a.AttributeId)
+            .Where(a => !string.IsNullOrWhiteSpace(a.Name))
+            .Select(a => new ListingAttributeItem(a.Name ?? string.Empty, a.Value ?? string.Empty))
+            .ToList();
 
         return new ListingDetail(
             listing.ListingId,
@@ -96,7 +103,8 @@ public class ModeratorListingService : IModeratorListingService
             listing.Seller?.Email,
             listing.Seller?.Phone,
             primary,
-            images);
+            images,
+            attributes);
     }
 
     public async Task<BasicResponse> ApproveAsync(ClaimsPrincipal modPrincipal, long listingId, CancellationToken cancellationToken = default)

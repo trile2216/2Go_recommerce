@@ -81,6 +81,7 @@ public class AdminListingService : IAdminListingService
             .Include(l => l.SubCategory)
             .ThenInclude(sc => sc.Category)
             .Include(l => l.ListingImages)
+            .Include(l => l.ListingAttributes)
             .Include(l => l.Seller)
             .Where(l => l.ListingId == listingId);
 
@@ -93,6 +94,12 @@ public class AdminListingService : IAdminListingService
             .Select(i => i.ImageUrl ?? string.Empty)
             .ToList();
         var primary = images.FirstOrDefault();
+
+        var attributes = listing.ListingAttributes
+            .OrderBy(a => a.AttributeId)
+            .Where(a => !string.IsNullOrWhiteSpace(a.Name))
+            .Select(a => new ListingAttributeItem(a.Name ?? string.Empty, a.Value ?? string.Empty))
+            .ToList();
 
         return new ListingDetail(
             listing.ListingId,
@@ -112,7 +119,8 @@ public class AdminListingService : IAdminListingService
             listing.Seller?.Email,
             listing.Seller?.Phone,
             primary,
-            images);
+            images,
+            attributes);
     }
 
     public async Task<BasicResponse> UpdateStatusAsync(ClaimsPrincipal adminPrincipal, long listingId, UpdateListingStatusRequest request, CancellationToken cancellationToken = default)
