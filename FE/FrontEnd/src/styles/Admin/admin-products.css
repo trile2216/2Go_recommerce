@@ -1,0 +1,221 @@
+/* Admin Products Page Styles */
+
+.admin-products-page {
+  width: 100%;
+}
+
+/* Filters Section */
+.admin-filters-section {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.admin-search-wrapper {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  align-items: center;
+  background-color: white;
+  border-radius: 6px;
+  padding: 0 1rem;
+  border: 1px solid var(--admin-border);
+}
+
+.admin-search-icon {
+  color: var(--admin-text-light);
+  flex-shrink: 0;
+}
+
+.admin-search-field {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  padding: 0.75rem 0.5rem;
+  color: var(--admin-text);
+  font-size: 0.9rem;
+}
+
+.admin-search-field::placeholder {
+  color: var(--admin-text-light);
+}
+
+/* Filter Group */
+.admin-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: white;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--admin-border);
+}
+
+.admin-filter-select {
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--admin-text);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+/* Card */
+.admin-card {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.admin-results-count {
+  color: var(--admin-text-light);
+  font-size: 0.85rem;
+}
+
+.admin-empty-state {
+  text-align: center;
+  padding: 3rem 1rem !important;
+  color: var(--admin-text-light);
+}
+
+/* Product Name */
+.admin-product-name {
+  color: var(--admin-dark);
+  font-weight: 600;
+}
+
+.admin-price {
+  color: var(--admin-success);
+  font-weight: 600;
+}
+
+.admin-stock {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  background-color: rgba(16, 185, 129, 0.1);
+  color: var(--admin-success);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.admin-stock.out-of-stock {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--admin-danger);
+}
+
+/* Actions */
+.admin-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.admin-action-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background-color: var(--admin-light);
+}
+
+.admin-action-icon.view {
+  color: var(--admin-info);
+}
+
+.admin-action-icon.view:hover {
+  background-color: rgba(6, 182, 212, 0.1);
+}
+
+.admin-action-icon.edit {
+  color: var(--admin-warning);
+}
+
+.admin-action-icon.edit:hover {
+  background-color: rgba(245, 158, 11, 0.1);
+}
+
+.admin-action-icon.delete {
+  color: var(--admin-danger);
+}
+
+.admin-action-icon.delete:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+/* Pagination */
+.admin-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-top: 1px solid var(--admin-border);
+}
+
+.admin-pagination-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--admin-border);
+  background-color: white;
+  color: var(--admin-text);
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.admin-pagination-btn:hover:not(.disabled) {
+  background-color: var(--admin-primary);
+  color: white;
+  border-color: var(--admin-primary);
+}
+
+.admin-pagination-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-pagination-info {
+  color: var(--admin-text);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .admin-filters-section {
+    flex-direction: column;
+  }
+
+  .admin-search-wrapper,
+  .admin-filter-group {
+    width: 100%;
+  }
+
+  .admin-table {
+    font-size: 0.8rem;
+  }
+
+  .admin-table th,
+  .admin-table td {
+    padding: 0.5rem;
+  }
+
+  .admin-actions {
+    gap: 0.25rem;
+  }
+
+  .admin-action-icon {
+    width: 30px;
+    height: 30px;
+    font-size: 0.85rem;
+  }
+}
