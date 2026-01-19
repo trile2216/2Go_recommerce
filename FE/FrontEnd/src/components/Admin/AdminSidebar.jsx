@@ -8,7 +8,8 @@ import {
   Settings,
   ChevronRight,
   Menu,
-  X
+  X,
+  List
 } from 'lucide-react';
 import '../../styles/Admin/admin-sidebar.css';
 
@@ -59,6 +60,17 @@ export default function AdminSidebar({ isOpen, onToggle }) {
         { label: 'Completed', path: '/admin/orders/completed' }
       ]
     },
+    {
+      id: 'listings',
+      label: 'Listings',
+      icon: <List size={20} />,
+      submenu: [
+        { label: 'All Listings', path: '/admin/listings' },
+        { label: 'Add Listing', path: '/admin/listings/create' }
+      ]
+    },
+    {
+    }
   ];
 
   return (

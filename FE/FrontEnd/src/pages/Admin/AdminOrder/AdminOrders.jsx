@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, Edit2, Trash2, Search, Filter } from 'lucide-react';
-import AdminLayout from '../../layouts/AdminLayout';
-import '../../styles/Admin/admin-orders.css';
-
+import AdminLayout from '../../../layouts/AdminLayout';
+import './admin-orders.css';
 export default function AdminOrders() {
   const [orders, setOrders] = useState([
     {

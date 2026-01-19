@@ -9,10 +9,11 @@ import ProductDetail from './pages/PostDetail/ProductDetail';
 import Compare from './pages/ComparePage/Compare';
 
 // Admin Pages
-import AdminDashboard from './pages/Admin/AdminDashboard';
-import AdminProducts from './pages/Admin/AdminProducts';
-import AdminCustomers from './pages/Admin/AdminCustomers';
-import AdminOrders from './pages/Admin/AdminOrders';
+import AdminDashboard from './pages/Admin/AdminDashboard/AdminDashboard';
+import AdminProducts from './pages/Admin/AdminProduct/AdminProducts';
+import AdminCustomers from './pages/Admin/AdminCustomer/AdminCustomers';
+import AdminOrders from './pages/Admin/AdminOrder/AdminOrders';
+import AdminListing from './pages/Admin/AdminListing/AdminListing';
 import ProtectedRoute from './components/Admin/ProtectedRoute';
 
 function App() {
@@ -31,9 +32,7 @@ function App() {
           <Route 
             path="/admin" 
             element={
-              <ProtectedRoute>
                 <AdminDashboard />
-              </ProtectedRoute>
             } 
           />
           <Route 
@@ -52,6 +51,12 @@ function App() {
             path="/admin/orders" 
             element={
                 <AdminOrders />
+            } 
+          />
+          <Route 
+            path="/admin/listings" 
+            element={
+                <AdminListing />
             } 
           />
         </Routes>

@@ -17,7 +17,6 @@ export default function AdminHeader({ onMenuToggle }) {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    // Add search functionality
     console.log('Search:', searchQuery);
   };
 

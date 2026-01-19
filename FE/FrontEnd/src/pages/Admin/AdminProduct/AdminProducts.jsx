@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Eye, Search, Filter } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import AdminLayout from '../../layouts/AdminLayout';
-import '../../styles/Admin/admin-products.css';
-
+import AdminLayout from '../../../layouts/AdminLayout';
+import './admin-products.css';
 export default function AdminProducts() {
   const [products, setProducts] = useState([
     {

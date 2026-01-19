@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, Users, ShoppingCart, ArrowUp, ArrowDown } from 'lucide-react';
-import AdminLayout from '../../layouts/AdminLayout';
-import '../../styles/Admin/admin-dashboard.css';
+import AdminLayout from '../../../layouts/AdminLayout';
+import './admin-dashboard.css'
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
