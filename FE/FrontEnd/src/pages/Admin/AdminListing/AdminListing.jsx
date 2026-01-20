@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Eye, Search, Filter, X, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../../layouts/AdminLayout';
-import { fetchListings, fetchListingById, deleteListingById, updateListingById } from '../../../service/api.listing';
+import { fetchListings, fetchListingById, deleteListingById, updateListingById } from '../../../service/admin/api.listing';
 import './AdminListing.css';
 
 export default function AdminListing() {

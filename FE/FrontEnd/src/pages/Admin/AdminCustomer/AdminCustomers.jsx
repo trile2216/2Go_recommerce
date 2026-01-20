@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Eye, Search, Filter, X, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../../layouts/AdminLayout';
-import { fetchCustomers, fetchCustomerById, deleteCustomerById, updateCustomerById } from '../../../service/api.customer';
+import { fetchCustomers, fetchCustomerById, deleteCustomerById, updateCustomerById } from '../../../service/admin/api.customer';
 import './admin-customers.css';
 
 export default function AdminCustomers() {

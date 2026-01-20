@@ -8,7 +8,7 @@ import {
   updateCategoryById,
   deleteCategoryById,
   fetchSubCategoriesByCategoryId,
-} from '../../../service/api.category';
+} from '../../../service/admin/api.category';
 import './admin-category.css';
 
 export default function AdminCategory() {
