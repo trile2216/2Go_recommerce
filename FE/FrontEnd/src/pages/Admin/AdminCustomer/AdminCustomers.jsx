@@ -85,7 +85,7 @@ export default function AdminCustomers() {
       const detailedCustomer = await fetchCustomerById(customer.userId);
       setSelectedCustomer(detailedCustomer);
       setShowDetailModal(true);
-    } catch (err) {
+    } catch (error) {
       setError('Failed to load customer details');
     }
   };

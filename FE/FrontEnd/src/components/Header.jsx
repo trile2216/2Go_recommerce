@@ -398,6 +398,14 @@ export default function Header() {
                     <div className="dropdown-divider"></div>
 
                     <div className="menu-section">
+                      <div className="menu-section-title">Tài khoản</div>
+                      <a href="/user/info" className="menu-item" onClick={(e) => { closeAllMenus(); }}>Hồ sơ cá nhân</a>
+                      <a href="#" className="menu-item" onClick={(e) => { e.preventDefault(); closeAllMenus(); }}>Cài đặt tài khoản</a>
+                    </div>
+
+                    <div className="dropdown-divider"></div>
+
+                    <div className="menu-section">
                       <div className="menu-section-title">Tiện ích</div>
                       <a href="#" className="menu-item" onClick={(e) => { e.preventDefault(); closeAllMenus(); }}>Tin đăng đã lưu</a>
                       <a href="#" className="menu-item" onClick={(e) => { e.preventDefault(); closeAllMenus(); }}>Lịch sử xem tin</a>
@@ -409,7 +417,6 @@ export default function Header() {
 
                     <div className="menu-section">
                       <div className="menu-section-title">Khác</div>
-                      <a href="#" className="menu-item" onClick={(e) => { e.preventDefault(); closeAllMenus(); }}>Cài đặt tài khoản</a>
                       <a href="#" className="menu-item" onClick={(e) => { e.preventDefault(); closeAllMenus(); }}>Trợ giúp</a>
                       <a href="#" className="menu-item" onClick={(e) => { e.preventDefault(); closeAllMenus(); }}>Đóng góp ý kiến</a>
                     </div>

@@ -14,6 +14,8 @@ import AdminProducts from './pages/Admin/AdminProduct/AdminProducts';
 import AdminCustomers from './pages/Admin/AdminCustomer/AdminCustomers';
 import AdminOrders from './pages/Admin/AdminOrder/AdminOrders';
 import AdminListing from './pages/Admin/AdminListing/AdminListing';
+import AdminCategory from './pages/Admin/AdminCategory/AdminCategory';
+import UserInfo from './pages/UserInfo/UserInfo';
 import ProtectedRoute from './components/Admin/ProtectedRoute';
 
 function App() {
@@ -27,6 +29,7 @@ function App() {
           <Route path="/compare" element={<Compare />} />
           <Route path="/auth/login" element={<Login />} />
           <Route path="/auth/register" element={<Register />} />
+          <Route path="/user/info" element={<UserInfo />} />
 
           {/* Admin Routes - Protected */}
           <Route 
@@ -57,6 +60,12 @@ function App() {
             path="/admin/listings" 
             element={
                 <AdminListing />
+            } 
+          />
+          <Route 
+            path="/admin/categories" 
+            element={
+                <AdminCategory />
             } 
           />
         </Routes>

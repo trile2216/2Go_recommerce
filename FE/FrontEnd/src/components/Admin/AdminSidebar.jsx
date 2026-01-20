@@ -9,7 +9,8 @@ import {
   ChevronRight,
   Menu,
   X,
-  List
+  List,
+  Shapes
 } from 'lucide-react';
 import '../../styles/Admin/admin-sidebar.css';
 
@@ -70,6 +71,13 @@ export default function AdminSidebar({ isOpen, onToggle }) {
       ]
     },
     {
+      id: 'categories',
+      label: 'Categories',
+      icon: <Shapes size={20} />,
+      submenu: [
+        { label: 'All Categories', path: '/admin/categories' },
+        { label: 'Add Category', path: '/admin/categories/create' }
+      ]
     }
   ];
 
