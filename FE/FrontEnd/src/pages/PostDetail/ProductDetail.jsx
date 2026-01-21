@@ -7,7 +7,7 @@ import ProductInfo from '../../components/ProductInfo';
 import ProductDescription from '../../components/ProductDescription';
 import RelatedProducts from '../../components/RelatedProducts';
 import './ProductDetail.css';
-import { fetchProductById } from '../../service/api.product';
+import { fetchProductById } from '../../service/home/api.product';
 
 export default function ProductDetail() {
   const { id } = useParams();

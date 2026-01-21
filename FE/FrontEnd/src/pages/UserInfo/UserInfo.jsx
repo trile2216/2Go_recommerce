@@ -5,7 +5,7 @@ import {
   getUserInfo, 
   updateUserProfile, 
   newPassword 
-} from '../../service/api.user';
+} from '../../service/home/api.user';
 import './userinfo.css';
 
 export default function UserInfo() {

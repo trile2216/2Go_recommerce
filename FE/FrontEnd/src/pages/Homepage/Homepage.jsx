@@ -4,7 +4,7 @@ import Header from '../../components/Header';
 import HeroBanner from '../../components/HeroBanner';
 import ProductGrid from '../../components/ProductGrid';
 import Footer from '../../components/Footer';
-import { fetchProducts } from '../../service/api.product';
+import { fetchProducts } from '../../service/home/api.product';
 
 export default function Homepage() {
   const [products, setProducts] = useState([]);
