@@ -31,10 +31,12 @@ builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"))
 builder.Services.Configure<GmailEmailSettings>(builder.Configuration.GetSection("Gmail"));
 builder.Services.Configure<_2GO_EXE_Project.BAL.Settings.PaymentGatewaySettings>(builder.Configuration.GetSection("PaymentGateway"));
 builder.Services.Configure<MomoSettings>(builder.Configuration.GetSection("Momo"));
+builder.Services.Configure<_2GO_EXE_Project.BAL.Settings.CloudinarySettings>(builder.Configuration.GetSection("Cloudinary"));
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 builder.Services.AddScoped<IModeratorService, ModeratorService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();

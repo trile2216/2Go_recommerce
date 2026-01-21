@@ -70,6 +70,11 @@ public class PaymentService : IPaymentService
             return new PaymentResponse(existing.PaymentId, existing.Amount, existing.Method, existing.Status, existing.ReferenceCode, existing.CreatedAt, existingPayUrl);
         }
 
+        if (!string.Equals(order.Status, OrderStatuses.Pending, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Payments can only be created when order status is Pending.");
+        }
+
         var payment = new Payment
         {
             UserId = userId,

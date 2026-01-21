@@ -363,6 +363,12 @@ public class SellerListingService : ISellerListingService
             .FirstOrDefaultAsync(l => l.ListingId == listingId && l.SellerId == sellerId, cancellationToken);
         if (listing == null) return new BasicResponse(false, "Listing not found.");
 
+        if (!string.Equals(listing.Status, ListingStatuses.Draft, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(listing.Status, ListingStatuses.Rejected, StringComparison.OrdinalIgnoreCase))
+        {
+            return new BasicResponse(false, "Images can only be updated when status is Draft or Rejected.");
+        }
+
         var existing = listing.ListingImages.ToList();
         if (existing.Count > 0)
         {

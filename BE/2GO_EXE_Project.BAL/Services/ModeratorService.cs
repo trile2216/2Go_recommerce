@@ -76,7 +76,7 @@ public class ModeratorService : IModeratorService
             return new BasicResponse(false, "User not found.");
         }
 
-        user.Status = "Banned";
+        user.Status = UserStatuses.Banned;
         if (request.DurationDays.HasValue)
         {
             user.BanUntil = DateTime.UtcNow.AddDays(request.DurationDays.Value);
@@ -106,7 +106,7 @@ public class ModeratorService : IModeratorService
             return new BasicResponse(false, "User not found.");
         }
 
-        user.Status = "Active";
+        user.Status = UserStatuses.Active;
         user.BanUntil = null;
         _uow.Users.Update(user);
         await _uow.SaveChangesAsync(cancellationToken);

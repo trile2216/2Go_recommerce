@@ -105,6 +105,11 @@ public class AdminUserService : IAdminUserService
         {
             throw new InvalidOperationException("Invalid role. Allowed: User, Manager, Admin.");
         }
+        var status = string.IsNullOrWhiteSpace(request.Status) ? UserStatuses.Active : request.Status;
+        if (!UserStatuses.All.Contains(status, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Invalid status. Allowed: Active, Banned, Deleted.");
+        }
         var normalizedRole = UserRoles.Normalize(request.Role);
         var exists = await _uow.Users.Query()
             .AnyAsync(u => (!string.IsNullOrEmpty(request.Email) && u.Email == request.Email) || (!string.IsNullOrEmpty(request.Phone) && u.Phone == request.Phone), cancellationToken);
@@ -131,7 +136,7 @@ public class AdminUserService : IAdminUserService
             PasswordHash = passwordHash,
             Salt = salt,
             Role = normalizedRole,
-            Status = request.Status,
+            Status = status,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -194,7 +199,14 @@ public class AdminUserService : IAdminUserService
 
         user.Email = request.Email ?? user.Email;
         user.Phone = request.Phone ?? user.Phone;
-        user.Status = request.Status ?? user.Status;
+        if (!string.IsNullOrWhiteSpace(request.Status))
+        {
+            if (!UserStatuses.All.Contains(request.Status, StringComparer.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Invalid status. Allowed: Active, Banned, Deleted.");
+            }
+            user.Status = request.Status;
+        }
 
         var profile = user.UserProfiles.FirstOrDefault();
         var isNew = profile == null;
@@ -266,11 +278,16 @@ public class AdminUserService : IAdminUserService
             return new BasicResponse(false, "User not found.");
         }
 
+        if (string.IsNullOrWhiteSpace(request.Status) || !UserStatuses.All.Contains(request.Status, StringComparer.OrdinalIgnoreCase))
+        {
+            return new BasicResponse(false, "Invalid status. Allowed: Active, Banned, Deleted.");
+        }
+
         user.Status = request.Status;
         _uow.Users.Update(user);
 
         // revoke refresh tokens when disabling or deleting
-        if (!string.Equals(request.Status, "Active", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(request.Status, UserStatuses.Active, StringComparison.OrdinalIgnoreCase))
         {
             var tokens = await _uow.RefreshTokens.Query()
                 .Where(t => t.UserId == userId && t.RevokedAt == null)
@@ -295,7 +312,7 @@ public class AdminUserService : IAdminUserService
             return new BasicResponse(false, "User not found.");
         }
 
-        user.Status = "Deleted";
+        user.Status = UserStatuses.Deleted;
         _uow.Users.Update(user);
 
         var tokens = await _uow.RefreshTokens.Query()
@@ -308,7 +325,7 @@ public class AdminUserService : IAdminUserService
         _uow.RefreshTokens.UpdateRange(tokens);
 
         await _uow.SaveChangesAsync(cancellationToken);
-        await LogAdminActionAsync(adminPrincipal, "DeleteUser", new { TargetUserId = userId, Status = "Deleted" }, cancellationToken);
+        await LogAdminActionAsync(adminPrincipal, "DeleteUser", new { TargetUserId = userId, Status = UserStatuses.Deleted }, cancellationToken);
         return new BasicResponse(true, "User deleted (soft).");
     }
 
