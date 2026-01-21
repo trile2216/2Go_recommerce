@@ -133,6 +133,16 @@ public class AdminListingService : IAdminListingService
             return new BasicResponse(false, "Invalid status value.");
         }
 
+        if (string.Equals(listing.Status, request.Status, StringComparison.OrdinalIgnoreCase))
+        {
+            return new BasicResponse(true, "Listing already in requested status.");
+        }
+
+        if (!IsStatusTransitionAllowed(listing.Status, request.Status))
+        {
+            return new BasicResponse(false, $"Invalid listing status transition: {listing.Status} -> {request.Status}.");
+        }
+
         listing.Status = request.Status;
         listing.UpdatedAt = DateTime.UtcNow;
         _uow.Listings.Update(listing);
@@ -140,6 +150,62 @@ public class AdminListingService : IAdminListingService
 
         await LogAdminActionAsync(adminPrincipal, "UpdateListingStatus", new { ListingId = listingId, request.Status }, cancellationToken);
         return new BasicResponse(true, "Listing status updated.");
+    }
+
+    private static bool IsStatusTransitionAllowed(string? current, string next)
+    {
+        if (string.IsNullOrWhiteSpace(current)) return true;
+
+        if (string.Equals(current, ListingStatuses.Draft, StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Equals(next, ListingStatuses.PendingReview, StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(next, ListingStatuses.Deleted, StringComparison.OrdinalIgnoreCase);
+        }
+        if (string.Equals(current, ListingStatuses.PendingReview, StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Equals(next, ListingStatuses.Active, StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(next, ListingStatuses.Rejected, StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(next, ListingStatuses.Deleted, StringComparison.OrdinalIgnoreCase);
+        }
+        if (string.Equals(current, ListingStatuses.Rejected, StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Equals(next, ListingStatuses.PendingReview, StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(next, ListingStatuses.Deleted, StringComparison.OrdinalIgnoreCase);
+        }
+        if (string.Equals(current, ListingStatuses.Active, StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Equals(next, ListingStatuses.Archived, StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(next, ListingStatuses.Flagged, StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(next, ListingStatuses.Reserved, StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(next, ListingStatuses.Sold, StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(next, ListingStatuses.Deleted, StringComparison.OrdinalIgnoreCase);
+        }
+        if (string.Equals(current, ListingStatuses.Archived, StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Equals(next, ListingStatuses.Active, StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(next, ListingStatuses.Deleted, StringComparison.OrdinalIgnoreCase);
+        }
+        if (string.Equals(current, ListingStatuses.Flagged, StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Equals(next, ListingStatuses.Active, StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(next, ListingStatuses.Deleted, StringComparison.OrdinalIgnoreCase);
+        }
+        if (string.Equals(current, ListingStatuses.Reserved, StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Equals(next, ListingStatuses.Active, StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(next, ListingStatuses.Sold, StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(next, ListingStatuses.Deleted, StringComparison.OrdinalIgnoreCase);
+        }
+        if (string.Equals(current, ListingStatuses.Sold, StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Equals(next, ListingStatuses.Deleted, StringComparison.OrdinalIgnoreCase);
+        }
+        if (string.Equals(current, ListingStatuses.Deleted, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return false;
     }
 
     public async Task<BasicResponse> DeleteAsync(ClaimsPrincipal adminPrincipal, long listingId, CancellationToken cancellationToken = default)

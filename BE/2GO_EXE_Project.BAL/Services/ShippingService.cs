@@ -45,6 +45,11 @@ public class ShippingService : IShippingService
             return new ShippingResponse(existing.ShipId, existing.OrderId ?? 0, existing.Provider, existing.TrackingCode, existing.PickupAddress, existing.DeliveryAddress, existing.Status, existing.CreatedAt);
         }
 
+        if (!string.Equals(order.Status, OrderStatuses.Confirmed, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Shipping can only be created when order status is Confirmed.");
+        }
+
         var ship = new ShippingRequest
         {
             OrderId = request.OrderId,

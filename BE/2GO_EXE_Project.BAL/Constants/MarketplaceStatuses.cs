@@ -77,3 +77,17 @@ public static class ReportStatuses
     public const string Resolved = "Resolved";
     public const string Rejected = "Rejected";
 }
+
+public static class UserStatuses
+{
+    public const string Active = "Active";
+    public const string Banned = "Banned";
+    public const string Deleted = "Deleted";
+
+    public static readonly IReadOnlyList<string> All = new[]
+    {
+        Active,
+        Banned,
+        Deleted
+    };
+}

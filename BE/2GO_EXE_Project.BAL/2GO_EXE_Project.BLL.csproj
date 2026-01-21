@@ -16,6 +16,7 @@
     <PackageReference Include="FirebaseAdmin" Version="3.4.0" />
 	  <PackageReference Include="Google.Apis.Auth" Version="1.69.0" />
 	  <PackageReference Include="Google.Apis.Gmail.v1" Version="1.69.0.3742" />
+    <PackageReference Include="CloudinaryDotNet" Version="1.27.0" />
   </ItemGroup>
 
   <ItemGroup>

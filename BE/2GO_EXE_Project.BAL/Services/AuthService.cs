@@ -75,7 +75,7 @@ public class AuthService : IAuthService
             PasswordHash = hash,
             Salt = salt,
             Role = UserRoles.User,
-            Status = "Active",
+            Status = UserStatuses.Active,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -112,7 +112,7 @@ public class AuthService : IAuthService
         }
 
         // FIX 3: Check user status before allowing login
-        if (user.Status != "Active")
+        if (!string.Equals(user.Status, UserStatuses.Active, StringComparison.OrdinalIgnoreCase))
         {
             throw new UnauthorizedAccessException("Account is not active.");
         }
@@ -176,7 +176,7 @@ public class AuthService : IAuthService
         var user = token.User;
 
         // FIX 3: Check user status when refreshing token
-        if (user.Status != "Active")
+        if (!string.Equals(user.Status, UserStatuses.Active, StringComparison.OrdinalIgnoreCase))
         {
             throw new UnauthorizedAccessException("Account is not active.");
         }
@@ -284,7 +284,7 @@ public class AuthService : IAuthService
                 Phone = phone,
                 Email = email,
                 Role = UserRoles.User,
-                Status = "Active",
+            Status = UserStatuses.Active,
                 CreatedAt = DateTime.UtcNow
             };
             await _uow.Users.AddAsync(user, cancellationToken);
@@ -293,7 +293,7 @@ public class AuthService : IAuthService
         else
         {
             
-            if (user.Status != "Active")
+            if (!string.Equals(user.Status, UserStatuses.Active, StringComparison.OrdinalIgnoreCase))
             {
                 throw new UnauthorizedAccessException("Account is not active.");
             }
@@ -366,9 +366,11 @@ public class AuthService : IAuthService
         }
 
         // auto unban if expired
-        if (user.Status == "Banned" && user.BanUntil != null && user.BanUntil <= DateTime.UtcNow)
+        if (string.Equals(user.Status, UserStatuses.Banned, StringComparison.OrdinalIgnoreCase) &&
+            user.BanUntil != null &&
+            user.BanUntil <= DateTime.UtcNow)
         {
-            user.Status = "Active";
+            user.Status = UserStatuses.Active;
             user.BanUntil = null;
             _uow.Users.Update(user);
             await _uow.SaveChangesAsync(cancellationToken);
