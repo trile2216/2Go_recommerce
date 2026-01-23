@@ -381,7 +381,7 @@ export default function Header() {
           <button 
             className="icon-btn messages-btn"
             onClick={() => {
-              navigate("/messages");
+              navigate("/chat");
               closeAllMenus();
             }}
           >
