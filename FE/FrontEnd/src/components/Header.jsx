@@ -3,17 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { Heart, MessageSquare, Bell, User, Search, ChevronDown, MapPin, Check, X, LogOut } from "lucide-react";
 import "./Header.css";
-
-const CATEGORIES = [
-  "Tất cả",
-  "Đồ điện tử",
-  "Đồ gia dụng",
-  "Thời trang Nam",
-  "Thời trang Nữ",
-  "Thú cưng",
-  "Xe cộ",
-  "Bất động sản",
-];
+import { fetchAllCategories } from "../service/home/api.category";
+import LocationPermissionPopup from "./LocationPermissionPopup";
 
 const DISTRICTS = [
   "Tất cả phường",
@@ -28,8 +19,10 @@ const DISTRICTS = [
 export default function Header() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Tất cả");
+  const [selectedCategory, setSelectedCategory] = useState(0);
+  const [categories, setCategories] = useState([{id: 0, name: "Tất cả"}]);
   const [selectedDistrict, setSelectedDistrict] = useState("Tất cả phường");
+  const [userAddress, setUserAddress] = useState(null);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [showFavoritesMenu, setShowFavoritesMenu] = useState(false);
   const [showNotificationsMenu, setShowNotificationsMenu] = useState(false);
@@ -100,6 +93,64 @@ export default function Header() {
     }
   }, []);
 
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await fetchAllCategories();
+        setCategories([{ id: 0, name: "Tất cả" }, ...data.items.map(cat => ({ id: cat.categoryId, name: cat.name }))]);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  // Listen for user location updates and set district automatically
+  useEffect(() => {
+    const updateUserLocation = () => {
+      const storedLocation = localStorage.getItem('userLocation');
+      if (storedLocation) {
+        try {
+          const locationData = JSON.parse(storedLocation);
+          setUserAddress(locationData);
+          
+          // Get suburb/neighbourhood from address
+          const suburb = locationData?.address?.address?.suburb || '';
+
+          if (suburb) {
+            // Check if suburb matches any district in the list
+            const matchingDistrict = DISTRICTS.find(district => 
+              district.toLowerCase().includes(suburb.toLowerCase()) ||
+              suburb.toLowerCase().includes(district.toLowerCase().replace('phường ', ''))
+            );
+            
+            if (matchingDistrict && matchingDistrict !== 'Tất cả phường') {
+              console.log('Auto-setting district to:', matchingDistrict);
+              setSelectedDistrict(matchingDistrict);
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing user location:', error);
+        }
+      }
+    };
+
+    // Update on mount
+    updateUserLocation();
+
+    // Listen for storage changes (when location is updated)
+    window.addEventListener('storage', updateUserLocation);
+    
+    // Also listen for custom event when location is updated in same tab
+    const handleLocationUpdate = () => updateUserLocation();
+    window.addEventListener('locationUpdated', handleLocationUpdate);
+    
+    return () => {
+      window.removeEventListener('storage', updateUserLocation);
+      window.removeEventListener('locationUpdated', handleLocationUpdate);
+    };
+  }, []);
+
   // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -118,13 +169,13 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSearch = () => {
-    navigate(`/search?q=${searchQuery}&category=${selectedCategory}&district=${selectedDistrict}`);
-  };
+  // const handleSearch = () => {
+  //   navigate(`/listings?search=${searchQuery}&categoryId=${selectedCategory}&district=${selectedDistrict}`);
+  // };
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
-      handleSearch();
+      // handleSearch();
     }
   };
 
@@ -170,11 +221,12 @@ export default function Header() {
             <select 
               className="category-select"
               value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
+              onChange={(e) => {
+                if(e.target.value != 0) setSelectedCategory(e.target.value)}}
             >
-              {CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
                 </option>
               ))}
             </select>
@@ -194,7 +246,12 @@ export default function Header() {
                   onClick={() => setShowLocationPicker(!showLocationPicker)}
                 >
                   <MapPin size={16} />
-                  <span className="location-label">Thủ Đức</span>
+                  <span className="location-label">
+                    {selectedDistrict !== 'Tất cả phường' 
+                      ? selectedDistrict.replace('Phường ', '') 
+                      : 'Thủ Đức'
+                    }
+                  </span>
                   <ChevronDown size={16} />
                 </button>
 
@@ -256,7 +313,7 @@ export default function Header() {
 
             <button 
               className="search-btn"
-              onClick={handleSearch}
+              // onClick={handleSearch}
             >
               <Search size={16} />
               <span className="search-btn-text">Tìm kiếm</span>
@@ -329,7 +386,7 @@ export default function Header() {
             }}
           >
             <MessageSquare size={20} />
-            <span className="icon-badge primary">5</span>
+            {/* <span className="icon-badge primary">5</span> */}
           </button>
 
           {/* Notifications */}
@@ -343,7 +400,7 @@ export default function Header() {
               }}
             >
               <Bell size={20} />
-              <span className="icon-badge warning">2</span>
+              {/* <span className="icon-badge warning">2</span> */}
             </button>
             {showNotificationsMenu && (
               <div className="dropdown-content notifications-menu">
@@ -471,6 +528,9 @@ export default function Header() {
           <button className="post-btn" onClick={closeAllMenus}>Đăng tin</button>
         </div>
       </div>
+
+      {/* Location Permission Popup */}
+      <LocationPermissionPopup />
     </header>
   );
 }
