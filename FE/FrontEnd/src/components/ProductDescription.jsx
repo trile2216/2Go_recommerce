@@ -17,12 +17,6 @@ export default function ProductDescription({ description, specifications }) {
             ))}
           </ul>
 
-          <h4 className="subsection-title">Thông tin người bán:</h4>
-          <ul className="feature-list">
-            {specifications.included.map((item, index) => (
-              <li key={index}>{item}</li>
-            ))}
-          </ul>
         </div>
 
         <div className="reviews-column">
