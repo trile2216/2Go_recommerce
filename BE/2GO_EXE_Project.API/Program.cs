@@ -54,6 +54,8 @@ builder.Services.AddHttpClient<IMomoPaymentGateway, MomoPaymentGateway>();
 builder.Services.AddScoped<IEscrowService, EscrowService>();
 builder.Services.AddScoped<IShippingService, ShippingService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IDistrictService, DistrictService>();
+builder.Services.AddScoped<IWardService, WardService>();
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 // builder.Services.AddDbContext<AppDbContext>(options =>
