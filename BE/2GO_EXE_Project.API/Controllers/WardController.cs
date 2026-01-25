@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace _2GO_EXE_Project.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/wards")]
     [ApiController]
     public class WardController : ControllerBase
     {
