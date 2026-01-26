@@ -1,12 +1,27 @@
 /* PostListing Page Styles */
 
-.post-listing {
-  display: flex;
-  flex-direction: column;
+.post-listing-container {
+  background-color: #f5f5f5;
   min-height: 100vh;
-  background-color: var(--background);
+  padding-bottom: 40px;
 }
 
-.post-listing main {
-  flex: 1;
+.upload-container .ant-upload-list-picture-card .ant-upload-list-item,
+.upload-container .ant-upload.ant-upload-select-picture-card {
+  width: 104px;
+  height: 104px;
+  border-radius: 8px;
+}
+
+.category-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.category-list::-webkit-scrollbar-thumb {
+  background-color: #ddd;
+  border-radius: 3px;
+}
+
+.category-list::-webkit-scrollbar-track {
+  background-color: transparent;
 }

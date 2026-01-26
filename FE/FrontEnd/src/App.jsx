@@ -1,12 +1,15 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import store from './store';
+import UserLayout from './layouts/UserLayout';
 import './App.css'
 import Homepage from './pages/Homepage/Homepage';
 import Login from './pages/Auth/Login/Login';
 import Register from './pages/Auth/Register/Register';
 import ProductDetail from './pages/PostDetail/ProductDetail';
 import Compare from './pages/ComparePage/Compare';
+import PostListing from './pages/PostListing/PostListing';
+import Chat from './pages/Chat/Chat';
 
 // Admin Pages
 import AdminDashboard from './pages/Admin/AdminDashboard/AdminDashboard';
@@ -30,43 +33,53 @@ function App() {
           <Route path="/auth/login" element={<Login />} />
           <Route path="/auth/register" element={<Register />} />
           <Route path="/user/info" element={<UserInfo />} />
+          <Route path="/post/listing" element={
+            <UserLayout>
+              <PostListing />
+            </UserLayout>
+          } />
+          <Route path="/chat" element={
+            <UserLayout>
+              <Chat />
+            </UserLayout>
+          } />
 
           {/* Admin Routes - Protected */}
-          <Route 
-            path="/admin" 
+          <Route
+            path="/admin"
             element={
-                <AdminDashboard />
-            } 
+              <AdminDashboard />
+            }
           />
-          <Route 
-            path="/admin/products" 
+          <Route
+            path="/admin/products"
             element={
-                <AdminProducts />
-            } 
+              <AdminProducts />
+            }
           />
-          <Route 
-            path="/admin/customers" 
+          <Route
+            path="/admin/customers"
             element={
-                <AdminCustomers />
-            } 
+              <AdminCustomers />
+            }
           />
-          <Route 
-            path="/admin/orders" 
+          <Route
+            path="/admin/orders"
             element={
-                <AdminOrders />
-            } 
+              <AdminOrders />
+            }
           />
-          <Route 
-            path="/admin/listings" 
+          <Route
+            path="/admin/listings"
             element={
-                <AdminListing />
-            } 
+              <AdminListing />
+            }
           />
-          <Route 
-            path="/admin/categories" 
+          <Route
+            path="/admin/categories"
             element={
-                <AdminCategory />
-            } 
+              <AdminCategory />
+            }
           />
         </Routes>
       </Router>

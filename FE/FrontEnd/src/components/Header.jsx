@@ -34,11 +34,11 @@ export default function Header() {
   const [showFavoritesMenu, setShowFavoritesMenu] = useState(false);
   const [showNotificationsMenu, setShowNotificationsMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  
+
   // Get favorites and compare from Redux
   const favorites = useSelector(state => state.favorites.items);
   const compareItems = useSelector(state => state.compare.items);
-  
+
   // Auth state - read from localStorage
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
@@ -78,7 +78,7 @@ export default function Header() {
     window.addEventListener('focus', checkAuth);
     // Check when storage changes (other tab logged in)
     window.addEventListener('storage', checkAuth);
-    
+
     return () => {
       window.removeEventListener('visibilitychange', checkAuth);
       window.removeEventListener('focus', checkAuth);
@@ -167,7 +167,7 @@ export default function Header() {
         {/* Search Bar */}
         <div className="header-search">
           <div className="search-controls">
-            <select 
+            <select
               className="category-select"
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
@@ -189,7 +189,7 @@ export default function Header() {
                 onKeyDown={handleKeyDown}
               />
               <div className="location-selector">
-                <button 
+                <button
                   className="location-btn"
                   onClick={() => setShowLocationPicker(!showLocationPicker)}
                 >
@@ -202,7 +202,7 @@ export default function Header() {
                   <div className="location-menu">
                     <div className="location-menu-header">
                       <span>Chọn khu vực</span>
-                      <button 
+                      <button
                         className="close-btn"
                         onClick={() => setShowLocationPicker(false)}
                       >
@@ -212,8 +212,8 @@ export default function Header() {
                     <div className="location-menu-body">
                       <div className="location-group">
                         <label className="location-group-label">Tỉnh/Thành phố</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           className="location-input"
                           defaultValue="Thành phố Thủ Đức"
                           disabled
@@ -221,7 +221,7 @@ export default function Header() {
                       </div>
                       <div className="location-group">
                         <label className="location-group-label">Phường/Xã</label>
-                        <select 
+                        <select
                           className="location-select"
                           value={selectedDistrict}
                           onChange={(e) => setSelectedDistrict(e.target.value)}
@@ -234,13 +234,13 @@ export default function Header() {
                         </select>
                       </div>
                       <div className="location-menu-actions">
-                        <button 
+                        <button
                           className="cancel-btn"
                           onClick={() => setShowLocationPicker(false)}
                         >
                           Hủy
                         </button>
-                        <button 
+                        <button
                           className="apply-location-btn"
                           onClick={() => setShowLocationPicker(false)}
                         >
@@ -254,7 +254,7 @@ export default function Header() {
               </div>
             </div>
 
-            <button 
+            <button
               className="search-btn"
               onClick={handleSearch}
             >
@@ -268,7 +268,7 @@ export default function Header() {
         <div className="header-actions">
           {/* Favorites */}
           <div className="action-dropdown" ref={favoritesRef}>
-            <button 
+            <button
               className="icon-btn favorites-btn"
               onClick={() => {
                 setShowFavoritesMenu(!showFavoritesMenu);
@@ -283,7 +283,7 @@ export default function Header() {
               <div className="dropdown-content favorites-menu">
                 <div className="dropdown-header">
                   <span>Yêu thích ({favorites.length})</span>
-                  <button 
+                  <button
                     className="close-btn"
                     onClick={() => setShowFavoritesMenu(false)}
                   >
@@ -306,7 +306,7 @@ export default function Header() {
                   <div className="dropdown-empty">Bạn chưa có sản phẩm yêu thích nào</div>
                 )}
                 {favorites.length > 0 && (
-                  <button 
+                  <button
                     className="view-all-btn"
                     onClick={() => {
                       navigate('/favorites');
@@ -321,7 +321,7 @@ export default function Header() {
           </div>
 
           {/* Messages */}
-          <button 
+          <button
             className="icon-btn messages-btn"
             onClick={() => {
               navigate("/chat");
@@ -334,7 +334,7 @@ export default function Header() {
 
           {/* Notifications */}
           <div className="action-dropdown" ref={notificationsRef}>
-            <button 
+            <button
               className="icon-btn notifications-btn"
               onClick={() => {
                 setShowNotificationsMenu(!showNotificationsMenu);
@@ -349,7 +349,7 @@ export default function Header() {
               <div className="dropdown-content notifications-menu">
                 <div className="dropdown-header">
                   <span>Thông báo</span>
-                  <button 
+                  <button
                     className="close-btn"
                     onClick={() => setShowNotificationsMenu(false)}
                   >
@@ -363,7 +363,7 @@ export default function Header() {
 
           {/* User Menu */}
           <div className="action-dropdown user-dropdown" ref={userMenuRef}>
-            <button 
+            <button
               className="icon-btn user-btn"
               onClick={() => {
                 setShowUserMenu(!showUserMenu);
@@ -387,7 +387,7 @@ export default function Header() {
                           <div className="user-email">{user.email}</div>
                         </div>
                       </div>
-                      <button 
+                      <button
                         className="close-btn"
                         onClick={() => setShowUserMenu(false)}
                       >
@@ -423,7 +423,7 @@ export default function Header() {
 
                     <div className="dropdown-divider"></div>
 
-                    <button 
+                    <button
                       className="menu-item logout"
                       onClick={handleLogout}
                       style={{ width: '100%', textAlign: 'left' }}
@@ -434,7 +434,7 @@ export default function Header() {
                   </>
                 ) : (
                   <div className="auth-menu">
-                    <button 
+                    <button
                       className="close-btn"
                       onClick={() => setShowUserMenu(false)}
                     >
@@ -442,7 +442,7 @@ export default function Header() {
                     </button>
                     <div className="auth-menu-content">
                       <p className="auth-menu-text">Bạn chưa đăng nhập</p>
-                      <button 
+                      <button
                         className="auth-btn login-btn"
                         onClick={() => {
                           navigate('/auth/login');
@@ -451,7 +451,7 @@ export default function Header() {
                       >
                         Đăng nhập
                       </button>
-                      <button 
+                      <button
                         className="auth-btn register-btn"
                         onClick={() => {
                           navigate('/auth/register');
@@ -468,7 +468,7 @@ export default function Header() {
           </div>
 
           {/* Post Button */}
-          <button className="post-btn" onClick={closeAllMenus}>Đăng tin</button>
+          <button className="post-btn" onClick={() => navigate('/post/listing')}>Đăng tin</button>
         </div>
       </div>
     </header>
