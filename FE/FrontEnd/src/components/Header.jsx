@@ -4,29 +4,25 @@ import { useSelector } from "react-redux";
 import { Heart, MessageSquare, Bell, User, Search, ChevronDown, MapPin, Check, X, LogOut } from "lucide-react";
 import "./Header.css";
 import { fetchAllCategories } from "../service/home/api.category";
+import { fetchAllDistricts } from "../service/home/api.district";
+import { fetchAllWards } from "../service/home/api.ward";
+
 import LocationPermissionPopup from "./LocationPermissionPopup";
 
-const DISTRICTS = [
-  "Tất cả phường",
-  "Phường Linh Xuân",
-  "Phường Bình Chiểu",
-  "Phường Hiệp Bình Phước",
-  "Phường Linh Trung",
-  "Phường Tam Bình",
-  "Phường Tam Phú",
-];
 
 export default function Header() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(0);
   const [categories, setCategories] = useState([{id: 0, name: "Tất cả"}]);
-  const [selectedDistrict, setSelectedDistrict] = useState("Tất cả phường");
+  const [selectedWard, setSelectedWard] = useState(0); // 0 = Tất cả phường (lưu id)
   const [userAddress, setUserAddress] = useState(null);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [showFavoritesMenu, setShowFavoritesMenu] = useState(false);
   const [showNotificationsMenu, setShowNotificationsMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [districts, setDistricts] = useState([]);
+  const [wards, setWards] = useState([{id: 0, name: "Tất cả phường"}]);
 
   // Get favorites and compare from Redux
   const favorites = useSelector(state => state.favorites.items);
@@ -105,7 +101,22 @@ export default function Header() {
     fetchCategories();
   }, []);
 
-  // Listen for user location updates and set district automatically
+  useEffect(() => {
+    const fetchDistrictsAndWards = async () => {
+      try {
+        const districtsData = await fetchAllDistricts();
+        setDistricts([{ id: 0, name: "Tất cả quận" }, ...districtsData.items.map(dist => ({id: dist.districtId, name: dist.name}))]);
+        
+        const wardsData = await fetchAllWards();
+        setWards([{ id: 0, name: "Tất cả phường" }, ...wardsData.items.map(ward  => ({id: ward.wardId, name: ward.name}))]);
+      }
+      catch (error) {
+        console.error('Error fetching districts or wards:', error);
+      }
+    };
+    fetchDistrictsAndWards();
+  }, []);
+  // Listen for user location updates and set ward automatically
   useEffect(() => {
     const updateUserLocation = () => {
       const storedLocation = localStorage.getItem('userLocation');
@@ -118,15 +129,15 @@ export default function Header() {
           const suburb = locationData?.address?.address?.suburb || '';
 
           if (suburb) {
-            // Check if suburb matches any district in the list
-            const matchingDistrict = DISTRICTS.find(district => 
-              district.toLowerCase().includes(suburb.toLowerCase()) ||
-              suburb.toLowerCase().includes(district.toLowerCase().replace('phường ', ''))
+            // Check if suburb matches any ward in the list
+            const matchingWard = wards.find(ward => 
+              ward.name.toLowerCase().includes(suburb.toLowerCase()) ||
+              suburb.toLowerCase().includes(ward.name.toLowerCase().replace('phường ', ''))
             );
             
-            if (matchingDistrict && matchingDistrict !== 'Tất cả phường') {
-              console.log('Auto-setting district to:', matchingDistrict);
-              setSelectedDistrict(matchingDistrict);
+            if (matchingWard && matchingWard.id !== 0) {
+              console.log('Auto-setting ward to:', matchingWard);
+              setSelectedWard(matchingWard.id); // Lưu id thay vì object
             }
           }
         } catch (error) {
@@ -149,7 +160,7 @@ export default function Header() {
       window.removeEventListener('storage', updateUserLocation);
       window.removeEventListener('locationUpdated', handleLocationUpdate);
     };
-  }, []);
+  }, [wards]); // Thêm dependency wards
 
   // Close menus when clicking outside
   useEffect(() => {
@@ -169,13 +180,29 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // const handleSearch = () => {
-  //   navigate(`/listings?search=${searchQuery}&categoryId=${selectedCategory}&district=${selectedDistrict}`);
-  // };
+  const handleSearch = () => {
+    // Build query params dynamically, only include non-zero values
+    const params = new URLSearchParams();
+    
+    if (searchQuery.trim()) {
+      params.append('search', searchQuery.trim());
+    }
+    
+    if (selectedCategory !== 0) {
+      params.append('categoryId', selectedCategory);
+    }
+    
+    if (selectedWard !== 0) {
+      params.append('ward', selectedWard);
+    }
+    
+    const queryString = params.toString();
+    navigate(`/listings${queryString ? `?${queryString}` : ''}`);
+  };
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
-      // handleSearch();
+      handleSearch();
     }
   };
 
@@ -222,7 +249,7 @@ export default function Header() {
               className="category-select"
               value={selectedCategory}
               onChange={(e) => {
-                if(e.target.value != 0) setSelectedCategory(e.target.value)}}
+                 setSelectedCategory(e.target.value)}}
             >
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.id}>
@@ -247,10 +274,13 @@ export default function Header() {
                 >
                   <MapPin size={16} />
                   <span className="location-label">
-                    {selectedDistrict !== 'Tất cả phường' 
-                      ? selectedDistrict.replace('Phường ', '') 
-                      : 'Thủ Đức'
-                    }
+                    {(() => {
+                      if (selectedWard !== 0) {
+                        const ward = wards.find(w => w.id === selectedWard);
+                        return ward ? ward.name.replace('Phường ', '') : 'Thủ Đức';
+                      }
+                      return 'Thủ Đức';
+                    })()}
                   </span>
                   <ChevronDown size={16} />
                 </button>
@@ -280,12 +310,12 @@ export default function Header() {
                         <label className="location-group-label">Phường/Xã</label>
                         <select
                           className="location-select"
-                          value={selectedDistrict}
-                          onChange={(e) => setSelectedDistrict(e.target.value)}
+                          value={selectedWard}
+                          onChange={(e) => setSelectedWard(Number(e.target.value))}
                         >
-                          {DISTRICTS.map((district) => (
-                            <option key={district} value={district}>
-                              {district}
+                          {wards.map((ward) => (
+                            <option key={ward.id} value={ward.id}>
+                              {ward.name}
                             </option>
                           ))}
                         </select>
@@ -313,7 +343,7 @@ export default function Header() {
 
             <button
               className="search-btn"
-              // onClick={handleSearch}
+              onClick={handleSearch}
             >
               <Search size={16} />
               <span className="search-btn-text">Tìm kiếm</span>
