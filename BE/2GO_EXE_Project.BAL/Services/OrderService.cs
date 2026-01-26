@@ -282,6 +282,7 @@ public class OrderService : IOrderService
         if (string.Equals(method, "COD", StringComparison.OrdinalIgnoreCase)) return "COD";
         if (string.Equals(method, "VNPAY", StringComparison.OrdinalIgnoreCase)) return "VNPAY";
         if (string.Equals(method, "MOMO", StringComparison.OrdinalIgnoreCase)) return "MOMO";
+        if (string.Equals(method, "PAYOS", StringComparison.OrdinalIgnoreCase)) return "PAYOS";
         throw new InvalidOperationException("Payment method not supported.");
     }
 

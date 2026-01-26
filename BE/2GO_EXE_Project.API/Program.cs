@@ -31,6 +31,7 @@ builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"))
 builder.Services.Configure<GmailEmailSettings>(builder.Configuration.GetSection("Gmail"));
 builder.Services.Configure<_2GO_EXE_Project.BAL.Settings.PaymentGatewaySettings>(builder.Configuration.GetSection("PaymentGateway"));
 builder.Services.Configure<MomoSettings>(builder.Configuration.GetSection("Momo"));
+builder.Services.Configure<PayosSettings>(builder.Configuration.GetSection("PayOS"));
 builder.Services.Configure<_2GO_EXE_Project.BAL.Settings.CloudinarySettings>(builder.Configuration.GetSection("Cloudinary"));
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
@@ -51,6 +52,7 @@ builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IPaymentGateway, HmacPaymentGateway>();
 builder.Services.AddHttpClient<IMomoPaymentGateway, MomoPaymentGateway>();
+builder.Services.AddHttpClient<IPayosPaymentGateway, PayosPaymentGateway>();
 builder.Services.AddScoped<IEscrowService, EscrowService>();
 builder.Services.AddScoped<IShippingService, ShippingService>();
 builder.Services.AddScoped<IReportService, ReportService>();

@@ -30,6 +30,16 @@ public partial class Payment
     [Unicode(false)]
     public string? ReferenceCode { get; set; }
 
+    public long? PayosOrderCode { get; set; }
+
+    [StringLength(255)]
+    [Unicode(false)]
+    public string? PayosPaymentLinkId { get; set; }
+
+    [StringLength(500)]
+    [Unicode(false)]
+    public string? PayosCheckoutUrl { get; set; }
+
     public DateTime? CreatedAt { get; set; }
 
     [InverseProperty("Payment")]

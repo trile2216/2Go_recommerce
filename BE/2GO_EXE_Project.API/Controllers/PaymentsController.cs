@@ -47,4 +47,13 @@ public class PaymentsController : ControllerBase
         if (!result.Success) return BadRequest(result.Message);
         return Ok(result);
     }
+
+    [HttpPost("payos/webhook")]
+    [AllowAnonymous]
+    public async Task<IActionResult> PayosWebhook([FromBody] PayosWebhookRequest request, CancellationToken cancellationToken = default)
+    {
+        var result = await _paymentService.HandlePayosWebhookAsync(request, cancellationToken);
+        if (!result.Success) return BadRequest(result.Message);
+        return Ok(result);
+    }
 }
