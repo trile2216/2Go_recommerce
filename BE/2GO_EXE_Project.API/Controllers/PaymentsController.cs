@@ -51,19 +51,24 @@ public class PaymentsController : ControllerBase
 
     [HttpPost("payos/webhook")]
     [AllowAnonymous]
-    public async Task<IActionResult> PayOSWebhook([FromBody] Webhook webhook, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> PayOSWebhook(Webhook webhook, CancellationToken cancellationToken = default)
     {
         if (webhook == null)
         {
-            return Ok(new { error = "Webhook data is required", message = "Invalid request" });
+            return BadRequest("Webhook data is required");
         }
 
         try
-        {   
+        {
+            var webhookData = await _paymentService.VerifyWebhookSignatureAsync(webhook, cancellationToken);
+            
+            // Handle PayOS test webhook for dashboard configuration
             if (webhookData.OrderCode == 123 && webhookData.Description == "VQRIO123" && webhookData.AccountNumber == "12345678")
-                {
-                    return Ok(new { message = "Webhook processed successfully" });
-                }
+            {
+                return Ok(new { message = "Webhook processed successfully" });
+            }
+            
+            // Process real webhook
             var result = await _paymentService.HandlePayOSWebhookAsync(webhook, cancellationToken);
             
             if (!result.Success)
@@ -76,7 +81,7 @@ public class PaymentsController : ControllerBase
         catch (Exception ex)
         {
             Console.WriteLine($"[PayOS Webhook Error] {ex.Message}");
-            return Ok(new { error = ex.Message, message = "Webhook received but error occurred" });
+            return Problem(ex.Message);
         }
     }
 }
