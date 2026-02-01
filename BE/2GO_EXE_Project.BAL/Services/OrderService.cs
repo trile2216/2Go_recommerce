@@ -7,6 +7,7 @@ using _2GO_EXE_Project.BAL.DTOs.Orders;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
+using System.Threading.Tasks;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -111,7 +112,21 @@ public class OrderService : IOrderService
 
         await LogOrderActionAsync(buyerId, "OrderCreated", new { order.OrderId, order.ListingId, order.Status }, cancellationToken);
 
-        return new OrderResponse(order.OrderId, listing.ListingId, buyerId, listing.SellerId.Value, order.TotalAmount, order.PaymentMethod, payment.Status, order.Status, order.CreatedAt);
+        return new OrderResponse(
+            order.OrderId, 
+            listing.ListingId, 
+            buyerId, 
+            listing.SellerId.Value, 
+            order.EscrowId,
+            order.OrderCode,
+            order.PaymentLinkId,
+            order.TotalAmount, 
+            order.PaymentMethod, 
+            order.Status,
+            order.CheckoutUrl,
+            order.QrCodeUrl,
+            order.PaymentExpiredAt,
+            order.CreatedAt);
     }
 
     public async Task<OrderListResponse> GetMyOrdersAsync(ClaimsPrincipal userPrincipal, int skip, int take, CancellationToken cancellationToken = default)
@@ -131,10 +146,14 @@ public class OrderService : IOrderService
                 o.ListingId ?? 0,
                 o.BuyerId ?? 0,
                 o.SellerId ?? 0,
+                o.OrderCode,
+                o.PaymentLinkId,
                 o.TotalAmount,
                 o.PaymentMethod,
-                _uow.Payments.Query().Where(p => p.OrderId == o.OrderId).Select(p => p.Status).FirstOrDefault(),
                 o.Status,
+                o.CheckoutUrl,
+                o.QrCodeUrl,
+                o.PaymentExpiredAt,
                 o.CreatedAt,
                 o.Listing != null ? o.Listing.Title : null,
                 o.Listing != null ? o.Listing.Price : null))
@@ -162,10 +181,15 @@ public class OrderService : IOrderService
             order.ListingId ?? 0,
             order.BuyerId ?? 0,
             order.SellerId ?? 0,
+            order.EscrowId,
+            order.OrderCode,
+            order.PaymentLinkId,
             order.TotalAmount,
             order.PaymentMethod,
-            await _uow.Payments.Query().Where(p => p.OrderId == order.OrderId).Select(p => p.Status).FirstOrDefaultAsync(cancellationToken),
             order.Status,
+            order.CheckoutUrl,
+            order.QrCodeUrl,
+            order.PaymentExpiredAt,
             order.CreatedAt,
             order.Listing?.Title,
             order.Listing?.Price,
@@ -282,6 +306,7 @@ public class OrderService : IOrderService
         if (string.Equals(method, "COD", StringComparison.OrdinalIgnoreCase)) return "COD";
         if (string.Equals(method, "VNPAY", StringComparison.OrdinalIgnoreCase)) return "VNPAY";
         if (string.Equals(method, "MOMO", StringComparison.OrdinalIgnoreCase)) return "MOMO";
+        if (string.Equals(method, "PAYOS", StringComparison.OrdinalIgnoreCase)) return "PAYOS";
         throw new InvalidOperationException("Payment method not supported.");
     }
 
@@ -343,5 +368,50 @@ public class OrderService : IOrderService
         {
             // ignore logging failures
         }
+    }
+
+    public async Task<OrderDetailResponse?> GetOrderByOrderCode(long orderCode, CancellationToken cancellationToken = default)
+    {
+        var order = await _uow.Orders.Query()
+            .Include(o => o.Listing)
+            .Include(o => o.Buyer)
+            .Include(o => o.Seller)
+            .FirstOrDefaultAsync(o => o.OrderCode == orderCode);
+
+        if (order == null)
+        {
+            return null;
+        }
+        return new OrderDetailResponse(
+            order.OrderId,
+            order.ListingId ?? 0,
+            order.BuyerId ?? 0,
+            order.SellerId ?? 0,
+            order.EscrowId,
+            order.OrderCode,
+            order.PaymentLinkId,
+            order.TotalAmount,
+            order.PaymentMethod,
+            order.Status,
+            order.CheckoutUrl,
+            order.QrCodeUrl,
+            order.PaymentExpiredAt,
+            order.CreatedAt,
+            order.Listing?.Title,
+            order.Listing?.Price,
+            order.Buyer?.Email,
+            order.Buyer?.Phone,
+            order.Seller?.Email,
+            order.Seller?.Phone);
+    
+    }
+
+    public async Task<Order?> GetByOrderCodeAsync(long orderCode, CancellationToken cancellationToken = default)
+    {
+        return await _uow.Orders.Query()
+            .Include(o => o.Listing)
+            .Include(o => o.Buyer)
+            .Include(o => o.Seller)
+            .FirstOrDefaultAsync(o => o.OrderCode == orderCode, cancellationToken);
     }
 }
