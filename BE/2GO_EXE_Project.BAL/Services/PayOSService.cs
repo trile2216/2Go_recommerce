@@ -113,60 +113,18 @@ public class PayOSService : IPayOSService
         }
     }
 
-    public async Task<PayOSWebhookData?> VerifyWebhookSignatureAsync(PayOSWebhookRequest webhookRequest, CancellationToken cancellationToken = default)
+    public async Task<WebhookData?> VerifyWebhookSignatureAsync(Webhook webhook, CancellationToken cancellationToken = default)
     {
-        if (webhookRequest == null || webhookRequest.Data == null)
+        if (webhook == null || webhook.Data == null)
         {
-            throw new ArgumentException("Webhook request or data is null.");
+            throw new ArgumentException("Webhook or webhook data is null.");
         }
 
         try
         {
-            // Convert our DTO to PayOS SDK webhook model
-            var webhook = new Webhook
-            {
-                Success = webhookRequest.Success,
-                Data = new WebhookData
-                {
-                    OrderCode = webhookRequest.Data.OrderCode,
-                    Amount = webhookRequest.Data.Amount,
-                    Description = webhookRequest.Data.Description,
-                    AccountNumber = webhookRequest.Data.AccountNumber,
-                    Reference = webhookRequest.Data.Reference,
-                    TransactionDateTime = webhookRequest.Data.TransactionDateTime,
-                    PaymentLinkId = webhookRequest.Data.PaymentLinkId,
-                    CounterAccountBankId = webhookRequest.Data.CounterAccountBankId,
-                    CounterAccountBankName = webhookRequest.Data.CounterAccountBankName,
-                    CounterAccountName = webhookRequest.Data.CounterAccountName,
-                    CounterAccountNumber = webhookRequest.Data.CounterAccountNumber,
-                    VirtualAccountName = webhookRequest.Data.VirtualAccountName,
-                    VirtualAccountNumber = webhookRequest.Data.VirtualAccountNumber,
-                    Currency = webhookRequest.Data.Currency
-                },
-                Signature = webhookRequest.Signature
-            };
-
-            // Verify signature using PayOS SDK
+            // Verify signature using PayOS SDK and return verified data directly
             var verifiedData = await _client.Webhooks.VerifyAsync(webhook);
-
-            // Convert back to our DTO
-            return new PayOSWebhookData(
-                verifiedData.OrderCode,
-                verifiedData.Amount,
-                verifiedData.Description,
-                verifiedData.AccountNumber,
-                verifiedData.Reference,
-                verifiedData.TransactionDateTime,
-                verifiedData.PaymentLinkId,
-                verifiedData.Code,
-                null, // Desc is not available in WebhookData
-                verifiedData.CounterAccountBankId,
-                verifiedData.CounterAccountBankName,
-                verifiedData.CounterAccountName,
-                verifiedData.CounterAccountNumber,
-                verifiedData.VirtualAccountName,
-                verifiedData.VirtualAccountNumber,
-                verifiedData.Currency);
+            return verifiedData;
         }
         catch (Exception ex)
         {
