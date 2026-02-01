@@ -420,8 +420,3 @@ FodyWeavers.xsd
 appsettings.json
 appsettings.Development.json
 appsettings.*.json
-.vs/
-
-# Firebase service account keys
-**/*firebase-adminsdk*.json
-**/configs/*.json

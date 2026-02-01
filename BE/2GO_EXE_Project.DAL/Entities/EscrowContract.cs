@@ -45,9 +45,7 @@ public partial class EscrowContract
     [ForeignKey("ListingId")]
     [InverseProperty("EscrowContracts")]
     public virtual Listing? Listing { get; set; }
-
-    [ForeignKey("OrderId")]
-    [InverseProperty("EscrowContracts")]
+    
     public virtual Order? Order { get; set; }
 
     [ForeignKey("PaymentId")]
@@ -56,7 +54,4 @@ public partial class EscrowContract
     [ForeignKey("SellerId")]
     [InverseProperty("EscrowContractSellers")]
     public virtual User? Seller { get; set; }
-
-    [InverseProperty("Escrow")]
-    public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 }

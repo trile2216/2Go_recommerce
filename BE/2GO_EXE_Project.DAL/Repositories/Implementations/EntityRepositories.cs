@@ -25,6 +25,8 @@ public class ListingViewRepository : GenericRepository<ListingView>, IListingVie
 public class MessageRepository : GenericRepository<Message>, IMessageRepository { public MessageRepository(AppDbContext ctx) : base(ctx) { } }
 public class OrderRepository : GenericRepository<Order>, IOrderRepository { public OrderRepository(AppDbContext ctx) : base(ctx) { } }
 public class OrderItemRepository : GenericRepository<OrderItem>, IOrderItemRepository { public OrderItemRepository(AppDbContext ctx) : base(ctx) { } }
+public class OrderTransactionRepository : GenericRepository<OrderTransaction>, IOrderTransactionRepository { public OrderTransactionRepository(AppDbContext ctx) : base(ctx) { } }
+public class OrderInvoiceRepository : GenericRepository<OrderInvoice>, IOrderInvoiceRepository { public OrderInvoiceRepository(AppDbContext ctx) : base(ctx) { } }
 public class PaymentRepository : GenericRepository<Payment>, IPaymentRepository { public PaymentRepository(AppDbContext ctx) : base(ctx) { } }
 public class PaymentLogRepository : GenericRepository<PaymentLog>, IPaymentLogRepository { public PaymentLogRepository(AppDbContext ctx) : base(ctx) { } }
 public class PointTransactionRepository : GenericRepository<PointTransaction>, IPointTransactionRepository { public PointTransactionRepository(AppDbContext ctx) : base(ctx) { } }
@@ -73,6 +75,8 @@ public class UnitOfWork : IUnitOfWork
         Messages = new MessageRepository(_context);
         Orders = new OrderRepository(_context);
         OrderItems = new OrderItemRepository(_context);
+        OrderTransactions = new OrderTransactionRepository(_context);
+        OrderInvoices = new OrderInvoiceRepository(_context);
         Payments = new PaymentRepository(_context);
         PaymentLogs = new PaymentLogRepository(_context);
         PointTransactions = new PointTransactionRepository(_context);
@@ -114,6 +118,8 @@ public class UnitOfWork : IUnitOfWork
     public IMessageRepository Messages { get; }
     public IOrderRepository Orders { get; }
     public IOrderItemRepository OrderItems { get; }
+    public IOrderTransactionRepository OrderTransactions { get; }
+    public IOrderInvoiceRepository OrderInvoices { get; }
     public IPaymentRepository Payments { get; }
     public IPaymentLogRepository PaymentLogs { get; }
     public IPointTransactionRepository PointTransactions { get; }
