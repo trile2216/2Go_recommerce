@@ -275,6 +275,11 @@ public class PaymentService : IPaymentService
         return new BasicResponse(true, "Payment updated.");
     }
 
+    public async Task<WebhookData> VerifyWebhookSignatureAsync(Webhook webhook, CancellationToken cancellationToken = default)
+    {
+        return await _payosService.VerifyWebhookSignatureAsync(webhook, cancellationToken);
+    }
+
     public async Task<BasicResponse> HandlePayOSWebhookAsync(Webhook webhook, CancellationToken cancellationToken = default)
     {
         if (webhook == null || webhook.Data == null)
