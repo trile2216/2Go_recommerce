@@ -7,6 +7,7 @@ using _2GO_EXE_Project.BAL.DTOs.Payments;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
+using PayOS.Models.Webhooks;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -274,9 +275,9 @@ public class PaymentService : IPaymentService
         return new BasicResponse(true, "Payment updated.");
     }
 
-    public async Task<BasicResponse> HandlePayOSWebhookAsync(PayOSWebhookRequest request, CancellationToken cancellationToken = default)
+    public async Task<BasicResponse> HandlePayOSWebhookAsync(Webhook webhook, CancellationToken cancellationToken = default)
     {
-        if (request == null || request.Data == null)
+        if (webhook == null || webhook.Data == null)
         {
             return new BasicResponse(false, "Webhook data is required.");
         }
@@ -284,7 +285,7 @@ public class PaymentService : IPaymentService
         try
         {
             // Verify webhook signature using PayOS service
-            var webhookData = await _payosService.VerifyWebhookSignatureAsync(request, cancellationToken);
+            var webhookData = await _payosService.VerifyWebhookSignatureAsync(webhook, cancellationToken);
             
             if (webhookData == null)
             {

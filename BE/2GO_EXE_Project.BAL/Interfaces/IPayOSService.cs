@@ -1,5 +1,5 @@
+using PayOS.Models.Webhooks;
 using _2GO_EXE_Project.BAL.DTOs.Auth;
-using _2GO_EXE_Project.BAL.DTOs.Payments;
 
 namespace _2GO_EXE_Project.BAL.Interfaces;
 
@@ -28,7 +28,7 @@ public interface IPayOSService
     Task<object?> GetPaymentLinkInfoAsync(long orderCode, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Verify webhook signature from PayOS
+    /// Verify webhook signature from PayOS and return verified webhook data
     /// </summary>
-    Task<PayOSWebhookData?> VerifyWebhookSignatureAsync(PayOSWebhookRequest webhookRequest, CancellationToken cancellationToken = default);
+    Task<WebhookData?> VerifyWebhookSignatureAsync(Webhook webhook, CancellationToken cancellationToken = default);
 }
