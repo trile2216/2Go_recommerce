@@ -17,14 +17,16 @@ public class PaymentService : IPaymentService
     private readonly IPaymentGateway _gateway;
     private readonly IEscrowService _escrowService;
     private readonly IMomoPaymentGateway _momoGateway;
+    private readonly IPayosPaymentGateway _payosGateway;
     private readonly IPayOSService _payosService;
 
-    public PaymentService(IUnitOfWork uow, IPaymentGateway gateway, IEscrowService escrowService, IMomoPaymentGateway momoGateway, IPayOSService payosService)
+    public PaymentService(IUnitOfWork uow, IPaymentGateway gateway, IEscrowService escrowService, IMomoPaymentGateway momoGateway, IPayosPaymentGateway payosGateway, IPayOSService payosService)
     {
         _uow = uow;
         _gateway = gateway;
         _escrowService = escrowService;
         _momoGateway = momoGateway;
+        _payosGateway = payosGateway;
         _payosService = payosService;
     }
 
@@ -559,5 +561,16 @@ public class PaymentService : IPaymentService
         {
             return null;
         }
+    }
+
+    private static string? MapPayosStatus(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status)) return null;
+        if (string.Equals(status, "PAID", StringComparison.OrdinalIgnoreCase)) return PaymentStatuses.Paid;
+        if (string.Equals(status, "PENDING", StringComparison.OrdinalIgnoreCase)) return PaymentStatuses.Pending;
+        if (string.Equals(status, "CANCELLED", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(status, "CANCELED", StringComparison.OrdinalIgnoreCase)) return PaymentStatuses.Cancelled;
+        if (string.Equals(status, "FAILED", StringComparison.OrdinalIgnoreCase)) return PaymentStatuses.Failed;
+        return null;
     }
 }

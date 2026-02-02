@@ -13,12 +13,12 @@ namespace _2GO_EXE_Project.BAL.Services;
 public class PayosPaymentGateway : IPayosPaymentGateway
 {
     private readonly HttpClient _httpClient;
-    private readonly PayosSettings _settings;
+    private readonly PayOSSettings _settings;
 
-    public PayosPaymentGateway(HttpClient httpClient, IOptions<PayosSettings> options)
+    public PayosPaymentGateway(HttpClient httpClient, IOptions<PayOSSettings> options)
     {
         _httpClient = httpClient;
-        _settings = options.Value ?? new PayosSettings();
+        _settings = options.Value ?? new PayOSSettings();
     }
 
     public async Task<PayosCreatePaymentResponse> CreatePaymentAsync(PayosCreatePaymentRequest request, CancellationToken cancellationToken = default)

@@ -1,6 +1,6 @@
 namespace _2GO_EXE_Project.BAL.Settings;
 
-public class PayosSettings
+public class PayOSSettings
 {
     public string? ClientId { get; set; }
     public string? ApiKey { get; set; }
