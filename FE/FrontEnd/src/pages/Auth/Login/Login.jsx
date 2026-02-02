@@ -141,16 +141,7 @@ const Login = () => {
                 />
               </div>
 
-              <div className="form-group checkbox-group">
-                <label className="checkbox-label">
-                  <input
-                    id="customCheckLogin"
-                    type="checkbox"
-                    className="form-checkbox"
-                  />
-                  <span className="checkbox-text">Remember me</span>
-                </label>
-              </div>
+              
 
               <button type="submit" className="submit-btn" disabled={loading}>
                 {loading ? 'Loading...' : 'Sign In'}

@@ -20,6 +20,8 @@ import AdminListing from './pages/Admin/AdminListing/AdminListing';
 import AdminCategory from './pages/Admin/AdminCategory/AdminCategory';
 import UserInfo from './pages/UserInfo/UserInfo';
 import ProtectedRoute from './components/Admin/ProtectedRoute';
+import Orders from './pages/Order/Order';
+import OrderDetail from './pages/OrderDetail/OrderDetail';
 
 function App() {
   return (
@@ -33,6 +35,10 @@ function App() {
           <Route path="/auth/login" element={<Login />} />
           <Route path="/auth/register" element={<Register />} />
           <Route path="/user/info" element={<UserInfo />} />
+          <Route path="/orders" element={<Orders />} />
+          <Route path="/order/:orderId" element={
+              <OrderDetail />
+          } />
           <Route path="/post/listing" element={
             <UserLayout>
               <PostListing />

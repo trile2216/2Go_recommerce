@@ -147,22 +147,7 @@ const Register = () => {
                 />
               </div>
 
-              <div className="form-group checkbox-group">
-                <label className="checkbox-label">
-                  <input
-                    id="customCheckRegister"
-                    type="checkbox"
-                    className="form-checkbox"
-                    required
-                  />
-                  <span className="checkbox-text">
-                    I agree with the{' '}
-                    <a href="#pablo" onClick={(e) => e.preventDefault()} className="privacy-link">
-                      Privacy Policy
-                    </a>
-                  </span>
-                </label>
-              </div>
+              
 
               <button type="submit" className="submit-btn" disabled={loading}>
                 {loading ? 'Loading...' : 'Create Account'}
