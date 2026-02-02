@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { Heart, MessageSquare, Bell, User, Search, ChevronDown, MapPin, Check, X, LogOut } from "lucide-react";
 import "./Header.css";
+import logo from "../assets/logo.jpg";
 import { fetchAllCategories } from "../service/home/api.category";
 import { fetchAllDistricts } from "../service/home/api.district";
 import { fetchAllWards } from "../service/home/api.ward";
@@ -235,9 +236,9 @@ export default function Header() {
       <div className="header-wrapper">
         {/* Logo */}
         <Link to="/" className="header-logo" onClick={closeAllMenus}>
-          <div className="logo-badge">R</div>
+          <img src={logo} alt="2GO Logo" className="logo-badge" />
           <div className="logo-text">
-            <h1 className="logo-title">ReCommerce</h1>
+            <h1 className="logo-title">2GO</h1>
             <p className="logo-subtitle">Thủ Đức</p>
           </div>
         </Link>
