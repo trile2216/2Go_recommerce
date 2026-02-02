@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using PayOS.Models.Webhooks;
 using _2GO_EXE_Project.BAL.Interfaces;
@@ -8,6 +9,7 @@ namespace _2GO_EXE_Project.API.Controllers;
 [ApiController]
 [Route("api/payos/webhook")]
 [AllowAnonymous]
+[EnableCors("WebhookPolicy")]
 public class PayOSWebhookController : ControllerBase
 {
     private readonly IPaymentService _paymentService;

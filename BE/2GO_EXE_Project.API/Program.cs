@@ -28,6 +28,14 @@ builder.Services.AddCors(p => p.AddPolicy(name: corsName, policy =>
         .AllowAnyHeader();
 }));
 
+// CORS policy for webhooks (no credentials needed)
+builder.Services.AddCors(p => p.AddPolicy("WebhookPolicy", policy =>
+{
+    policy.AllowAnyOrigin()
+        .AllowAnyMethod()
+        .AllowAnyHeader();
+}));
+
 // Add services to the container.
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 builder.Services.Configure<GmailEmailSettings>(builder.Configuration.GetSection("Gmail"));
