@@ -33,6 +33,18 @@ public partial class ShippingRequest
     [Unicode(false)]
     public string? Status { get; set; }
 
+    [StringLength(500)]
+    [Unicode(false)]
+    public string? LabelA5Url { get; set; }
+
+    [StringLength(500)]
+    [Unicode(false)]
+    public string? Label80x80Url { get; set; }
+
+    [StringLength(500)]
+    [Unicode(false)]
+    public string? Label52x70Url { get; set; }
+
     public DateTime? CreatedAt { get; set; }
 
     [ForeignKey("OrderId")]
