@@ -14,6 +14,8 @@ using _2GO_EXE_Project.DAL.Repositories.Implementations;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using PayOS;
+using PayOS.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 var corsName = "AllowAll";
@@ -26,12 +28,20 @@ builder.Services.AddCors(p => p.AddPolicy(name: corsName, policy =>
         .AllowAnyHeader();
 }));
 
+// CORS policy for webhooks (no credentials needed)
+builder.Services.AddCors(p => p.AddPolicy("WebhookPolicy", policy =>
+{
+    policy.AllowAnyOrigin()
+        .AllowAnyMethod()
+        .AllowAnyHeader();
+}));
+
 // Add services to the container.
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 builder.Services.Configure<GmailEmailSettings>(builder.Configuration.GetSection("Gmail"));
 builder.Services.Configure<_2GO_EXE_Project.BAL.Settings.PaymentGatewaySettings>(builder.Configuration.GetSection("PaymentGateway"));
 builder.Services.Configure<MomoSettings>(builder.Configuration.GetSection("Momo"));
-builder.Services.Configure<PayosSettings>(builder.Configuration.GetSection("PayOS"));
+builder.Services.Configure<PayOSSettings>(builder.Configuration.GetSection("PayOS"));
 builder.Services.Configure<_2GO_EXE_Project.BAL.Settings.CloudinarySettings>(builder.Configuration.GetSection("Cloudinary"));
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
@@ -49,6 +59,7 @@ builder.Services.AddScoped<IModeratorListingService, ModeratorListingService>();
 builder.Services.AddScoped<ISavedListingService, SavedListingService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IOrderTransactionService, OrderTransactionService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IPaymentGateway, HmacPaymentGateway>();
 builder.Services.AddHttpClient<IMomoPaymentGateway, MomoPaymentGateway>();
@@ -56,6 +67,20 @@ builder.Services.AddHttpClient<IPayosPaymentGateway, PayosPaymentGateway>();
 builder.Services.AddScoped<IEscrowService, EscrowService>();
 builder.Services.AddScoped<IShippingService, ShippingService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IDistrictService, DistrictService>();
+builder.Services.AddScoped<IWardService, WardService>();
+// Configure PayOS
+builder.Services.AddKeyedSingleton("OrderClient", (serviceProvider, key) =>
+{
+    var config = serviceProvider.GetRequiredService<IConfiguration>();
+    return new PayOSClient(new PayOSOptions
+    {
+        ClientId = config["PayOS:ClientId"] ?? Environment.GetEnvironmentVariable("PAYOS_CLIENT_ID"),
+        ApiKey = config["PayOS:ApiKey"] ?? Environment.GetEnvironmentVariable("PAYOS_API_KEY"),
+        ChecksumKey = config["PayOS:ChecksumKey"] ?? Environment.GetEnvironmentVariable("PAYOS_CHECKSUM_KEY"),
+    });
+});
+builder.Services.AddScoped<IPayOSService, PayOSService>();
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 // builder.Services.AddDbContext<AppDbContext>(options =>
@@ -72,15 +97,18 @@ builder.Services.AddAuthentication(options =>
 }).AddJwtBearer(options =>
 {
     var jwtSection = builder.Configuration.GetSection("Jwt").Get<JwtSettings>() ?? new JwtSettings();
+    var JwtIssuer = jwtSection.Issuer ?? builder.Configuration.GetValue<string>("Jwt__Issuer");
+    var JwtAudience = jwtSection.Audience ?? builder.Configuration.GetValue<string>("Jwt__Audience");
+    var JwtSecret = jwtSection.Secret ?? builder.Configuration.GetValue<string>("Jwt__Secret");
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSection.Issuer,
-        ValidAudience = jwtSection.Audience,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSection.Secret)),
+        ValidIssuer = JwtIssuer,
+        ValidAudience = JwtAudience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtSecret)),
         ClockSkew = TimeSpan.Zero,
         NameClaimType = JwtRegisteredClaimNames.Sub,
         RoleClaimType = ClaimTypes.Role

@@ -23,6 +23,8 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     IMessageRepository Messages { get; }
     IOrderRepository Orders { get; }
     IOrderItemRepository OrderItems { get; }
+    IOrderTransactionRepository OrderTransactions { get; }
+    IOrderInvoiceRepository OrderInvoices { get; }
     IPaymentRepository Payments { get; }
     IPaymentLogRepository PaymentLogs { get; }
     IPointTransactionRepository PointTransactions { get; }

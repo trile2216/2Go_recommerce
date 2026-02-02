@@ -280,7 +280,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.Buyer).WithMany(p => p.OrderBuyers).HasConstraintName("FK_Orders_Buyer");
 
-            entity.HasOne(d => d.Escrow).WithMany(p => p.Orders).HasConstraintName("FK_Orders_Escrow");
+            entity.HasOne(d => d.Escrow).WithOne(p => p.Order).HasConstraintName("FK_Orders_Escrow");
 
             entity.HasOne(d => d.Listing).WithMany(p => p.Orders).HasConstraintName("FK_Orders_Listing");
 

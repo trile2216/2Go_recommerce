@@ -23,6 +23,8 @@ public interface IListingViewRepository : IGenericRepository<ListingView> { }
 public interface IMessageRepository : IGenericRepository<Message> { }
 public interface IOrderRepository : IGenericRepository<Order> { }
 public interface IOrderItemRepository : IGenericRepository<OrderItem> { }
+public interface IOrderTransactionRepository : IGenericRepository<OrderTransaction> { }
+public interface IOrderInvoiceRepository : IGenericRepository<OrderInvoice> { }
 public interface IPaymentRepository : IGenericRepository<Payment> { }
 public interface IPaymentLogRepository : IGenericRepository<PaymentLog> { }
 public interface IPointTransactionRepository : IGenericRepository<PointTransaction> { }

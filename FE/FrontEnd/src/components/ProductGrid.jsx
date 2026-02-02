@@ -4,9 +4,13 @@ export default function ProductGrid({ products }) {
   return (
     <main className="main-content">
       <div className="products-grid">
-        {products.map(product => (
-          <ProductCard key={product.id} product={product} />
-        ))}
+        {products && products.length > 0 ? (
+          products.map(product => (
+            <ProductCard key={product.listingId} product={product} />
+          ))
+        ) : (
+          <p>Không có sản phẩm nào</p>
+        )}
       </div>
 
       <div className="load-more-wrapper">

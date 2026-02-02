@@ -15,8 +15,8 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://0.0.0.0:8080
       - ConnectionStrings__PostgreSqlConnection=${ConnectionStrings__PostgreSqlConnection}
-      - JWT__Issuer=${API__BaseUrl}
-      - JWT__Audience=${API__BaseUrl}
+      - JWT__Issuer=2GO_EXE
+      - JWT__Audience=2GO_EXE
       - JWT__Secret=${JWT__Secret}
       - Firebase__CredentialsPath=/app/configs/firebase-credentials.json
       - Firebase__ProjectId=${Firebase__ProjectId}

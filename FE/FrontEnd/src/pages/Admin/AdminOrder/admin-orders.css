@@ -1,0 +1,19 @@
+/* Admin Orders Page Styles */
+
+.admin-orders-page {
+  width: 100%;
+}
+
+.admin-quantity {
+  text-align: center;
+  font-weight: 600;
+  color: var(--admin-text);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .admin-table th:nth-child(n+7),
+  .admin-table td:nth-child(n+7) {
+    display: none;
+  }
+}

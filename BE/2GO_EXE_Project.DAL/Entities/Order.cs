@@ -11,13 +11,19 @@ public partial class Order
     [Key]
     public long OrderId { get; set; }
 
-    public long? EscrowId { get; set; }
-
     public long? BuyerId { get; set; }
 
     public long? SellerId { get; set; }
 
     public long? ListingId { get; set; }
+
+    public long? EscrowId { get; set; }
+
+    public long OrderCode { get; set; }
+
+    [StringLength(255)]
+    [Unicode(false)]
+    public string PaymentLinkId { get; set; } = "";
 
     [Column(TypeName = "decimal(15, 2)")]
     public decimal? TotalAmount { get; set; }
@@ -30,6 +36,12 @@ public partial class Order
     [Unicode(false)]
     public string? Status { get; set; }
 
+    public string? CheckoutUrl { get; set; }
+
+    public string? QrCodeUrl { get; set; }
+
+    public DateTime? PaymentExpiredAt { get; set; }
+
     public DateTime? CreatedAt { get; set; }
 
     [ForeignKey("BuyerId")]
@@ -37,7 +49,7 @@ public partial class Order
     public virtual User? Buyer { get; set; }
 
     [ForeignKey("EscrowId")]
-    [InverseProperty("Orders")]
+    [InverseProperty("Order")]
     public virtual EscrowContract? Escrow { get; set; }
 
     [ForeignKey("ListingId")]
@@ -58,5 +70,8 @@ public partial class Order
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
 
     [InverseProperty("Order")]
-    public virtual ICollection<EscrowContract> EscrowContracts { get; set; } = new List<EscrowContract>();
+    public virtual ICollection<OrderTransaction> OrderTransactions { get; set; } = new List<OrderTransaction>();
+
+    [InverseProperty("Order")]
+    public virtual ICollection<OrderInvoice> OrderInvoices { get; set; } = new List<OrderInvoice>();
 }

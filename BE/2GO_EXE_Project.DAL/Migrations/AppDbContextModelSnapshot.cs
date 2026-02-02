@@ -348,8 +348,6 @@ namespace _2GO_EXE_Project.DAL.Migrations
 
                     b.HasIndex("ListingId");
 
-                    b.HasIndex("OrderId");
-
                     b.HasIndex("PaymentId");
 
                     b.HasIndex("SellerId");
@@ -706,6 +704,9 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.Property<long?>("BuyerId")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("CheckoutUrl")
+                        .HasColumnType("text");
+
                     b.Property<DateTime?>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -717,10 +718,25 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.Property<long?>("ListingId")
                         .HasColumnType("bigint");
 
+                    b.Property<long>("OrderCode")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("PaymentExpiredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PaymentLinkId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(255)");
+
                     b.Property<string>("PaymentMethod")
                         .HasMaxLength(50)
                         .IsUnicode(false)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<string>("QrCodeUrl")
+                        .HasColumnType("text");
 
                     b.Property<long?>("SellerId")
                         .HasColumnType("bigint");
@@ -738,13 +754,63 @@ namespace _2GO_EXE_Project.DAL.Migrations
 
                     b.HasIndex("BuyerId");
 
-                    b.HasIndex("EscrowId");
+                    b.HasIndex("EscrowId")
+                        .IsUnique();
 
                     b.HasIndex("ListingId");
 
                     b.HasIndex("SellerId");
 
                     b.ToTable("Orders");
+                });
+
+            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.OrderInvoice", b =>
+                {
+                    b.Property<int>("InvoiceId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("InvoiceId"));
+
+                    b.Property<string>("CodeOfTax")
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("InvoiceNumber")
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("IssuedDatetime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("IssuedTimestamp")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("OrderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("PaymentId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ReservationCode")
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("TransactionId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("InvoiceId");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("PaymentId");
+
+                    b.HasIndex("TransactionId");
+
+                    b.ToTable("OrderInvoice");
                 });
 
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.OrderItem", b =>
@@ -774,6 +840,82 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.ToTable("OrderItems");
                 });
 
+            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.OrderTransaction", b =>
+                {
+                    b.Property<int>("TransactionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("TransactionId"));
+
+                    b.Property<string>("AccountNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<long>("Amount")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("CounterAccountBankId")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("CounterAccountBankName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("CounterAccountName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("CounterAccountNumber")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<long>("OrderCode")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("OrderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("PaymentLinkId")
+                        .HasMaxLength(255)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Reference")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<DateTimeOffset>("TransactionDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("VirtualAccountName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("VirtualAccountNumber")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("TransactionId");
+
+                    b.HasIndex("OrderId");
+
+                    b.ToTable("OrderTransaction");
+                });
+
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.Payment", b =>
                 {
                     b.Property<long>("PaymentId")
@@ -798,18 +940,9 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.Property<long?>("OrderId")
                         .HasColumnType("bigint");
 
-                    b.Property<string>("PayosCheckoutUrl")
-                        .HasMaxLength(500)
-                        .IsUnicode(false)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<long?>("PayosOrderCode")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("PayosPaymentLinkId")
-                        .HasMaxLength(255)
-                        .IsUnicode(false)
-                        .HasColumnType("character varying(255)");
+                    b.Property<string>("PaymentType")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("ReferenceCode")
                         .HasMaxLength(255)
@@ -1571,10 +1704,6 @@ namespace _2GO_EXE_Project.DAL.Migrations
                         .HasForeignKey("ListingId")
                         .HasConstraintName("FK_Escrow_Listing");
 
-                    b.HasOne("_2GO_EXE_Project.DAL.Entities.Order", "Order")
-                        .WithMany("EscrowContracts")
-                        .HasForeignKey("OrderId");
-
                     b.HasOne("_2GO_EXE_Project.DAL.Entities.Payment", "Payment")
                         .WithMany("EscrowContracts")
                         .HasForeignKey("PaymentId");
@@ -1587,8 +1716,6 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.Navigation("Buyer");
 
                     b.Navigation("Listing");
-
-                    b.Navigation("Order");
 
                     b.Navigation("Payment");
 
@@ -1732,8 +1859,8 @@ namespace _2GO_EXE_Project.DAL.Migrations
                         .HasConstraintName("FK_Orders_Buyer");
 
                     b.HasOne("_2GO_EXE_Project.DAL.Entities.EscrowContract", "Escrow")
-                        .WithMany("Orders")
-                        .HasForeignKey("EscrowId")
+                        .WithOne("Order")
+                        .HasForeignKey("_2GO_EXE_Project.DAL.Entities.Order", "EscrowId")
                         .HasConstraintName("FK_Orders_Escrow");
 
                     b.HasOne("_2GO_EXE_Project.DAL.Entities.Listing", "Listing")
@@ -1755,6 +1882,29 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.Navigation("Seller");
                 });
 
+            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.OrderInvoice", b =>
+                {
+                    b.HasOne("_2GO_EXE_Project.DAL.Entities.Order", "Order")
+                        .WithMany("OrderInvoices")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("_2GO_EXE_Project.DAL.Entities.Payment", "Payment")
+                        .WithMany("OrderInvoices")
+                        .HasForeignKey("PaymentId");
+
+                    b.HasOne("_2GO_EXE_Project.DAL.Entities.OrderTransaction", "Transaction")
+                        .WithMany("OrderInvoices")
+                        .HasForeignKey("TransactionId");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Payment");
+
+                    b.Navigation("Transaction");
+                });
+
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.OrderItem", b =>
                 {
                     b.HasOne("_2GO_EXE_Project.DAL.Entities.Listing", "Listing")
@@ -1768,6 +1918,17 @@ namespace _2GO_EXE_Project.DAL.Migrations
                         .HasConstraintName("FK_OrderItems_Orders");
 
                     b.Navigation("Listing");
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.OrderTransaction", b =>
+                {
+                    b.HasOne("_2GO_EXE_Project.DAL.Entities.Order", "Order")
+                        .WithMany("OrderTransactions")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Order");
                 });
@@ -2010,7 +2171,7 @@ namespace _2GO_EXE_Project.DAL.Migrations
                 {
                     b.Navigation("EscrowTransactions");
 
-                    b.Navigation("Orders");
+                    b.Navigation("Order");
                 });
 
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.FixerRequest", b =>
@@ -2050,18 +2211,27 @@ namespace _2GO_EXE_Project.DAL.Migrations
 
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.Order", b =>
                 {
-                    b.Navigation("EscrowContracts");
+                    b.Navigation("OrderInvoices");
 
                     b.Navigation("OrderItems");
+
+                    b.Navigation("OrderTransactions");
 
                     b.Navigation("Payments");
 
                     b.Navigation("ShippingRequests");
                 });
 
+            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.OrderTransaction", b =>
+                {
+                    b.Navigation("OrderInvoices");
+                });
+
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.Payment", b =>
                 {
                     b.Navigation("EscrowContracts");
+
+                    b.Navigation("OrderInvoices");
 
                     b.Navigation("PaymentLogs");
                 });

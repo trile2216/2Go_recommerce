@@ -26,6 +26,9 @@ public partial class Payment
     [Unicode(false)]
     public string? Status { get; set; }
 
+    [StringLength(50)]
+    public string? PaymentType { get; set; }  // "DEPOSIT", "FULL", "REMAINING"
+
     [StringLength(255)]
     [Unicode(false)]
     public string? ReferenceCode { get; set; }
@@ -55,4 +58,7 @@ public partial class Payment
 
     [InverseProperty("Payment")]
     public virtual ICollection<EscrowContract> EscrowContracts { get; set; } = new List<EscrowContract>();
+
+    [InverseProperty("Payment")]
+    public virtual ICollection<OrderInvoice> OrderInvoices { get; set; } = new List<OrderInvoice>();
 }

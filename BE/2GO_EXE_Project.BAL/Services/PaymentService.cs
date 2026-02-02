@@ -7,6 +7,7 @@ using _2GO_EXE_Project.BAL.DTOs.Payments;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
+using PayOS.Models.Webhooks;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -16,15 +17,15 @@ public class PaymentService : IPaymentService
     private readonly IPaymentGateway _gateway;
     private readonly IEscrowService _escrowService;
     private readonly IMomoPaymentGateway _momoGateway;
-    private readonly IPayosPaymentGateway _payosGateway;
+    private readonly IPayOSService _payosService;
 
-    public PaymentService(IUnitOfWork uow, IPaymentGateway gateway, IEscrowService escrowService, IMomoPaymentGateway momoGateway, IPayosPaymentGateway payosGateway)
+    public PaymentService(IUnitOfWork uow, IPaymentGateway gateway, IEscrowService escrowService, IMomoPaymentGateway momoGateway, IPayOSService payosService)
     {
         _uow = uow;
         _gateway = gateway;
         _escrowService = escrowService;
         _momoGateway = momoGateway;
-        _payosGateway = payosGateway;
+        _payosService = payosService;
     }
 
     private static long GetUserId(ClaimsPrincipal principal)
@@ -75,7 +76,7 @@ public class PaymentService : IPaymentService
                     .Where(l => l.PaymentId == existing.PaymentId && l.RawResponse != null)
                     .OrderByDescending(l => l.LogId)
                     .FirstOrDefaultAsync(cancellationToken);
-                existingPayUrl = ExtractPayosCheckoutUrl(log?.RawResponse) ?? existing.PayosCheckoutUrl;
+                existingPayUrl = ExtractCheckoutUrl(log?.RawResponse);
             }
             return new PaymentResponse(existing.PaymentId, existing.Amount, existing.Method, existing.Status, existing.ReferenceCode, existing.CreatedAt, existingPayUrl);
         }
@@ -125,32 +126,42 @@ public class PaymentService : IPaymentService
         }
         else if (string.Equals(payment.Method, "PAYOS", StringComparison.OrdinalIgnoreCase))
         {
-            var payosAmount = Convert.ToInt64(decimal.Round(payment.Amount ?? 0, 0));
-            var payosResponse = await _payosGateway.CreatePaymentAsync(
-                new PayosCreatePaymentRequest(payment.PaymentId, payosAmount, $"Payment for order {payment.OrderId}"),
-                cancellationToken);
-
-            if (string.IsNullOrWhiteSpace(payosResponse.CheckoutUrl))
+            try
             {
-                throw new InvalidOperationException("PayOS payment creation failed: missing checkoutUrl.");
+                var payosAmount = Convert.ToInt64(decimal.Round(payment.Amount ?? 0, 0));
+                var (checkoutUrl, orderCodeStr) = await _payosService.CreatePaymentLinkAsync(
+                    payment.PaymentId,
+                    payment.ReferenceCode!,
+                    payosAmount,
+                    $"Payment for order {payment.OrderId}",
+                    null,
+                    null,
+                    cancellationToken);
+
+                // Parse orderCode back to long
+                if (long.TryParse(orderCodeStr, out var orderCode))
+                {
+                    order.OrderCode = orderCode;
+                }
+                order.CheckoutUrl = checkoutUrl;
+                
+                _uow.Orders.Update(order);
+                await _uow.SaveChangesAsync(cancellationToken);
+
+                payUrl = checkoutUrl;
+
+                await _uow.PaymentLogs.AddAsync(new PaymentLog
+                {
+                    PaymentId = payment.PaymentId,
+                    RawResponse = System.Text.Json.JsonSerializer.Serialize(new { checkoutUrl, orderCode = orderCodeStr }),
+                    CreatedAt = DateTime.UtcNow
+                }, cancellationToken);
+                await _uow.SaveChangesAsync(cancellationToken);
             }
-
-            payUrl = payosResponse.CheckoutUrl;
-            payment.PayosOrderCode = payosResponse.OrderCode ?? payment.PaymentId;
-            payment.PayosPaymentLinkId = payosResponse.PaymentLinkId;
-            payment.PayosCheckoutUrl = payosResponse.CheckoutUrl;
-            _uow.Payments.Update(payment);
-            await _uow.SaveChangesAsync(cancellationToken);
-
-            await _uow.PaymentLogs.AddAsync(new PaymentLog
+            catch (Exception ex)
             {
-                PaymentId = payment.PaymentId,
-                Provider = "PAYOS",
-                Event = "Create",
-                RawResponse = payosResponse.RawResponse,
-                CreatedAt = DateTime.UtcNow
-            }, cancellationToken);
-            await _uow.SaveChangesAsync(cancellationToken);
+                throw new InvalidOperationException($"PayOS payment creation failed: {ex.Message}");
+            }
         }
 
         await LogPaymentActionAsync(userId, "PaymentCreated", new { payment.PaymentId, payment.Amount, payment.Status }, cancellationToken);
@@ -339,6 +350,116 @@ public class PaymentService : IPaymentService
         return new BasicResponse(true, "Payment updated.");
     }
 
+    public async Task<WebhookData> VerifyWebhookSignatureAsync(Webhook webhook, CancellationToken cancellationToken = default)
+    {
+        return await _payosService.VerifyWebhookSignatureAsync(webhook, cancellationToken);
+    }
+
+    public async Task<BasicResponse> HandlePayOSWebhookAsync(Webhook webhook, CancellationToken cancellationToken = default)
+    {
+        if (webhook == null || webhook.Data == null)
+        {
+            return new BasicResponse(false, "Webhook data is required.");
+        }
+
+        try
+        {
+            // Verify webhook signature using PayOS service
+            var webhookData = await _payosService.VerifyWebhookSignatureAsync(webhook, cancellationToken);
+            
+            if (webhookData == null)
+            {
+                return new BasicResponse(false, "Webhook signature verification failed.");
+            }
+
+            // Find payment by OrderCode (stored in PaymentLog or Order)
+            // First, try to find by checking PaymentLog for PayOS orderCode
+            var payments = await _uow.Payments.Query()
+                .Where(p => p.Method == "PAYOS" && p.Status == PaymentStatuses.Pending)
+                .ToListAsync(cancellationToken);
+
+            Payment? payment = null;
+            foreach (var p in payments)
+            {
+                var logs = await _uow.PaymentLogs.Query()
+                    .Where(l => l.PaymentId == p.PaymentId)
+                    .ToListAsync(cancellationToken);
+                
+                foreach (var log in logs)
+                {
+                    if (!string.IsNullOrWhiteSpace(log.RawResponse) && log.RawResponse.Contains(webhookData.OrderCode.ToString()))
+                    {
+                        payment = p;
+                        break;
+                    }
+                }
+                if (payment != null) break;
+            }
+
+            if (payment == null)
+            {
+                return new BasicResponse(false, $"Payment not found for PayOS OrderCode: {webhookData.OrderCode}");
+            }
+
+            // Verify amount
+            var expectedAmount = Convert.ToInt64(decimal.Round(payment.Amount ?? 0, 0));
+            if (webhookData.Amount != expectedAmount)
+            {
+                return new BasicResponse(false, "Amount mismatch.");
+            }
+
+            // Determine payment status based on webhook code
+            string nextStatus;
+            if (string.Equals(webhookData.Code, "00", StringComparison.OrdinalIgnoreCase))
+            {
+                nextStatus = PaymentStatuses.Paid;
+            }
+            else if (string.Equals(webhookData.Code, "CANCELLED", StringComparison.OrdinalIgnoreCase))
+            {
+                nextStatus = PaymentStatuses.Cancelled;
+            }
+            else
+            {
+                nextStatus = PaymentStatuses.Failed;
+            }
+
+            if (string.Equals(payment.Status, nextStatus, StringComparison.OrdinalIgnoreCase))
+            {
+                return new BasicResponse(true, "Payment already in requested status.");
+            }
+
+            if (!IsPaymentTransitionAllowed(payment.Status, nextStatus))
+            {
+                return new BasicResponse(false, $"Invalid payment status transition: {payment.Status} -> {nextStatus}.");
+            }
+
+            payment.Status = nextStatus;
+            _uow.Payments.Update(payment);
+            await _uow.SaveChangesAsync(cancellationToken);
+
+            // Log webhook data
+            await _uow.PaymentLogs.AddAsync(new PaymentLog
+            {
+                PaymentId = payment.PaymentId,
+                RawResponse = JsonSerializer.Serialize(webhookData),
+                CreatedAt = DateTime.UtcNow
+            }, cancellationToken);
+            await _uow.SaveChangesAsync(cancellationToken);
+
+            // Update order status
+            await UpdateOrderByPaymentAsync(payment, cancellationToken);
+
+            // Log activity
+            await LogPaymentActionAsync(payment.UserId ?? 0, "PayOSWebhookReceived", new { payment.PaymentId, webhookData.OrderCode, Status = nextStatus }, cancellationToken);
+
+            return new BasicResponse(true, "Payment updated successfully.");
+        }
+        catch (Exception ex)
+        {
+            return new BasicResponse(false, $"Webhook processing failed: {ex.Message}");
+        }
+    }
+
     private static bool IsPaymentTransitionAllowed(string? current, string next)
     {
         if (string.IsNullOrWhiteSpace(current))
@@ -426,37 +547,17 @@ public class PaymentService : IPaymentService
         }
     }
 
-    private static string? ExtractPayosCheckoutUrl(string? rawResponse)
+    private static string? ExtractCheckoutUrl(string? rawResponse)
     {
         if (string.IsNullOrWhiteSpace(rawResponse)) return null;
         try
         {
             using var doc = JsonDocument.Parse(rawResponse);
-            var root = doc.RootElement;
-            if (root.TryGetProperty("data", out var data))
-            {
-                return data.TryGetProperty("checkoutUrl", out var checkoutUrlProp) ? checkoutUrlProp.GetString() : null;
-            }
-            return root.TryGetProperty("checkoutUrl", out var directProp) ? directProp.GetString() : null;
+            return doc.RootElement.TryGetProperty("checkoutUrl", out var checkoutUrlProp) ? checkoutUrlProp.GetString() : null;
         }
         catch (JsonException)
         {
             return null;
         }
-    }
-
-    private static string? MapPayosStatus(string? status)
-    {
-        if (string.IsNullOrWhiteSpace(status)) return null;
-        if (string.Equals(status, "PAID", StringComparison.OrdinalIgnoreCase)) return PaymentStatuses.Paid;
-        if (string.Equals(status, "PENDING", StringComparison.OrdinalIgnoreCase)) return PaymentStatuses.Pending;
-        if (string.Equals(status, "CANCELLED", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(status, "CANCELED", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(status, "EXPIRED", StringComparison.OrdinalIgnoreCase))
-        {
-            return PaymentStatuses.Cancelled;
-        }
-        if (string.Equals(status, "FAILED", StringComparison.OrdinalIgnoreCase)) return PaymentStatuses.Failed;
-        return null;
     }
 }

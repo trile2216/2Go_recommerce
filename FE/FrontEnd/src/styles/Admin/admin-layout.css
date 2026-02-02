@@ -1,0 +1,83 @@
+/* Admin Layout Styles */
+
+:root {
+  --admin-primary: #3b82f6;
+  --admin-success: #10b981;
+  --admin-warning: #f59e0b;
+  --admin-danger: #ef4444;
+  --admin-info: #06b6d4;
+  --admin-light: #f9fafb;
+  --admin-dark: #1f2937;
+  --admin-border: #e5e7eb;
+  --admin-text: #374151;
+  --admin-text-light: #6b7280;
+}
+
+.admin-layout {
+  display: flex;
+  height: 100vh;
+  background-color: var(--admin-light);
+}
+
+.admin-main-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.admin-main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+  background-color: var(--admin-light);
+}
+
+.admin-footer {
+  background-color: white;
+  border-top: 1px solid var(--admin-border);
+  padding: 1.5rem 2rem;
+  margin-top: auto;
+}
+
+.admin-footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.admin-footer-text {
+  color: var(--admin-text-light);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.admin-footer-links {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.admin-footer-links a {
+  color: var(--admin-text-light);
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: color 0.3s ease;
+}
+
+.admin-footer-links a:hover {
+  color: var(--admin-primary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .admin-main-content {
+    padding: 1rem;
+  }
+
+  .admin-footer-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
