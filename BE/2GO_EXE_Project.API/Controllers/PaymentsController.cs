@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using PayOS.Models.Webhooks;
 using _2GO_EXE_Project.BAL.DTOs.Payments;
 using _2GO_EXE_Project.BAL.Interfaces;
 
@@ -47,41 +46,5 @@ public class PaymentsController : ControllerBase
         var result = await _paymentService.HandleMomoIpnAsync(request, cancellationToken);
         if (!result.Success) return BadRequest(result.Message);
         return Ok(result);
-    }
-
-    [HttpPost("payos/webhook")]
-    [AllowAnonymous]
-    public async Task<IActionResult> PayOSWebhook(Webhook webhook, CancellationToken cancellationToken = default)
-    {
-        if (webhook == null)
-        {
-            return BadRequest("Webhook data is required");
-        }
-
-        try
-        {
-            var webhookData = await _paymentService.VerifyWebhookSignatureAsync(webhook, cancellationToken);
-            
-            // Handle PayOS test webhook for dashboard configuration
-            if (webhookData.OrderCode == 123 && webhookData.Description == "VQRIO123" && webhookData.AccountNumber == "12345678")
-            {
-                return Ok(new { message = "Webhook processed successfully" });
-            }
-            
-            // Process real webhook
-            var result = await _paymentService.HandlePayOSWebhookAsync(webhook, cancellationToken);
-            
-            if (!result.Success)
-            {
-                return Ok(new { error = result.Message, message = "Webhook received but processing failed" });
-            }
-
-            return Ok(new { message = "Webhook processed successfully" });
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[PayOS Webhook Error] {ex.Message}");
-            return Problem(ex.Message);
-        }
     }
 }
