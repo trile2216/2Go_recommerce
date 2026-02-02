@@ -192,6 +192,110 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.ToTable("Categories");
                 });
 
+            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.Cart", b =>
+                {
+                    b.Property<long>("CartId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("CartId"));
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("ACTIVE");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("CartId")
+                        .HasName("PK__Carts__51BCD7B7E05DE5F4");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Carts");
+                });
+
+            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.CartItem", b =>
+                {
+                    b.Property<long>("CartItemId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("CartItemId"));
+
+                    b.Property<long?>("CartId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("Currency")
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<bool?>("IsSelected")
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<long?>("ListingId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal?>("OriginalPrice")
+                        .HasColumnType("decimal(15, 2)");
+
+                    b.Property<decimal?>("PriceSnapshot")
+                        .HasColumnType("decimal(15, 2)");
+
+                    b.Property<int?>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<long?>("SellerId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("AVAILABLE");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("VariantId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("VariantSnapshot")
+                        .HasColumnType("text");
+
+                    b.HasKey("CartItemId")
+                        .HasName("PK__CartIte__488B0B0A3F05C2DE");
+
+                    b.HasIndex("CartId");
+
+                    b.HasIndex("ListingId");
+
+                    b.HasIndex("SellerId");
+
+                    b.ToTable("CartItems");
+                });
+
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.Chat", b =>
                 {
                     b.Property<long>("ChatId")
@@ -528,6 +632,17 @@ namespace _2GO_EXE_Project.DAL.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
+
+                    b.Property<int?>("AvailableQuantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<string>("ListingType")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("SINGLE");
 
                     b.Property<decimal?>("Price")
                         .HasColumnType("decimal(15, 2)");
@@ -1672,6 +1787,40 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.Navigation("User2");
                 });
 
+            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.Cart", b =>
+                {
+                    b.HasOne("_2GO_EXE_Project.DAL.Entities.User", "User")
+                        .WithMany("Carts")
+                        .HasForeignKey("UserId")
+                        .HasConstraintName("FK_Carts_Users");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.CartItem", b =>
+                {
+                    b.HasOne("_2GO_EXE_Project.DAL.Entities.Cart", "Cart")
+                        .WithMany("CartItems")
+                        .HasForeignKey("CartId")
+                        .HasConstraintName("FK_CartItems_Carts");
+
+                    b.HasOne("_2GO_EXE_Project.DAL.Entities.Listing", "Listing")
+                        .WithMany("CartItems")
+                        .HasForeignKey("ListingId")
+                        .HasConstraintName("FK_CartItems_Listings");
+
+                    b.HasOne("_2GO_EXE_Project.DAL.Entities.User", "Seller")
+                        .WithMany("CartItemsAsSeller")
+                        .HasForeignKey("SellerId")
+                        .HasConstraintName("FK_CartItems_Sellers");
+
+                    b.Navigation("Cart");
+
+                    b.Navigation("Listing");
+
+                    b.Navigation("Seller");
+                });
+
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.DeviceLog", b =>
                 {
                     b.HasOne("_2GO_EXE_Project.DAL.Entities.User", "User")
@@ -2190,6 +2339,8 @@ namespace _2GO_EXE_Project.DAL.Migrations
 
                     b.Navigation("AiScanResults");
 
+                    b.Navigation("CartItems");
+
                     b.Navigation("EscrowContracts");
 
                     b.Navigation("FixerRequests");
@@ -2244,6 +2395,10 @@ namespace _2GO_EXE_Project.DAL.Migrations
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.User", b =>
                 {
                     b.Navigation("ActivityLogs");
+
+                    b.Navigation("Carts");
+
+                    b.Navigation("CartItemsAsSeller");
 
                     b.Navigation("ChatUser1s");
 

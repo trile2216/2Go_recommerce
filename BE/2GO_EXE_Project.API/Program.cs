@@ -60,6 +60,7 @@ builder.Services.AddScoped<ISavedListingService, SavedListingService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IOrderTransactionService, OrderTransactionService>();
+builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IPaymentGateway, HmacPaymentGateway>();
 builder.Services.AddHttpClient<IMomoPaymentGateway, MomoPaymentGateway>();

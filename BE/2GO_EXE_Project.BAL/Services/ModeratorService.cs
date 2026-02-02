@@ -44,6 +44,10 @@ public class ModeratorService : IModeratorService
 
         if (!string.IsNullOrWhiteSpace(status))
         {
+            if (!UserStatuses.All.Contains(status, StringComparer.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"Invalid user status. Allowed: {string.Join(", ", UserStatuses.All)}.");
+            }
             query = query.Where(u => u.Status == status);
         }
 
@@ -120,6 +124,10 @@ public class ModeratorService : IModeratorService
         var query = _uow.Reports.Query().AsQueryable();
         if (!string.IsNullOrWhiteSpace(status))
         {
+            if (!ReportStatuses.All.Contains(status, StringComparer.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"Invalid report status. Allowed: {string.Join(", ", ReportStatuses.All)}.");
+            }
             query = query.Where(r => r.Status == status);
         }
 
@@ -157,6 +165,10 @@ public class ModeratorService : IModeratorService
         }
 
         var nextStatus = request.Status.Trim();
+        if (!ReportStatuses.All.Contains(nextStatus, StringComparer.OrdinalIgnoreCase))
+        {
+            return new BasicResponse(false, $"Invalid report status. Allowed: {string.Join(", ", ReportStatuses.All)}.");
+        }
         if (!IsTransitionAllowed(currentStatus, nextStatus))
         {
             return new BasicResponse(false, $"Invalid report status transition: {currentStatus} -> {nextStatus}.");
@@ -288,9 +300,14 @@ public class ModeratorService : IModeratorService
                 if (listing != null && string.Equals(listing.Status, ListingStatuses.Reserved, StringComparison.OrdinalIgnoreCase))
                 {
                     listing.Status = ListingStatuses.Active;
+                    listing.AvailableQuantity = 1;
                     listing.UpdatedAt = DateTime.UtcNow;
                     _uow.Listings.Update(listing);
                 }
+            }
+            else
+            {
+                await RestoreListingsForOrderAsync(order, cancellationToken);
             }
             await _uow.SaveChangesAsync(cancellationToken);
             return;
@@ -316,9 +333,14 @@ public class ModeratorService : IModeratorService
                 if (listing != null)
                 {
                     listing.Status = ListingStatuses.Sold;
+                    listing.AvailableQuantity = 0;
                     listing.UpdatedAt = DateTime.UtcNow;
                     _uow.Listings.Update(listing);
                 }
+            }
+            else
+            {
+                await MarkListingsSoldAsync(order, cancellationToken);
             }
 
             await _uow.SaveChangesAsync(cancellationToken);
@@ -364,6 +386,61 @@ public class ModeratorService : IModeratorService
         }
 
         await _uow.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task RestoreListingsForOrderAsync(Order order, CancellationToken cancellationToken)
+    {
+        var listingIds = new List<long>();
+        if (order.ListingId.HasValue) listingIds.Add(order.ListingId.Value);
+
+        if (listingIds.Count == 0)
+        {
+            var items = await _uow.OrderItems.Query()
+                .Where(oi => oi.OrderId == order.OrderId && oi.ListingId.HasValue)
+                .ToListAsync(cancellationToken);
+            listingIds.AddRange(items.Select(oi => oi.ListingId!.Value));
+        }
+
+        var listings = await _uow.Listings.Query()
+            .Where(l => listingIds.Contains(l.ListingId))
+            .ToListAsync(cancellationToken);
+
+        foreach (var listing in listings)
+        {
+            if (string.Equals(listing.Status, ListingStatuses.Reserved, StringComparison.OrdinalIgnoreCase))
+            {
+                listing.Status = ListingStatuses.Active;
+                listing.AvailableQuantity = 1;
+                listing.UpdatedAt = DateTime.UtcNow;
+                _uow.Listings.Update(listing);
+            }
+        }
+    }
+
+    private async Task MarkListingsSoldAsync(Order order, CancellationToken cancellationToken)
+    {
+        var listingIds = new List<long>();
+        if (order.ListingId.HasValue) listingIds.Add(order.ListingId.Value);
+
+        if (listingIds.Count == 0)
+        {
+            var items = await _uow.OrderItems.Query()
+                .Where(oi => oi.OrderId == order.OrderId && oi.ListingId.HasValue)
+                .ToListAsync(cancellationToken);
+            listingIds.AddRange(items.Select(oi => oi.ListingId!.Value));
+        }
+
+        var listings = await _uow.Listings.Query()
+            .Where(l => listingIds.Contains(l.ListingId))
+            .ToListAsync(cancellationToken);
+
+        foreach (var listing in listings)
+        {
+            listing.Status = ListingStatuses.Sold;
+            listing.AvailableQuantity = 0;
+            listing.UpdatedAt = DateTime.UtcNow;
+            _uow.Listings.Update(listing);
+        }
     }
 
     private async Task LogModActionAsync(ClaimsPrincipal principal, string action, object details, CancellationToken cancellationToken)

@@ -44,6 +44,12 @@ public partial class User
     [InverseProperty("User")]
     public virtual ICollection<ActivityLog> ActivityLogs { get; set; } = new List<ActivityLog>();
 
+    [InverseProperty("User")]
+    public virtual ICollection<Cart> Carts { get; set; } = new List<Cart>();
+
+    [InverseProperty("Seller")]
+    public virtual ICollection<CartItem> CartItemsAsSeller { get; set; } = new List<CartItem>();
+
     [InverseProperty("User1")]
     public virtual ICollection<Chat> ChatUser1s { get; set; } = new List<Chat>();
 

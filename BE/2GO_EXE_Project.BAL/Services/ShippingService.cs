@@ -93,6 +93,10 @@ public class ShippingService : IShippingService
         {
             return new BasicResponse(false, "Status is required.");
         }
+        if (!ShippingStatuses.All.Contains(request.Status, StringComparer.OrdinalIgnoreCase))
+        {
+            return new BasicResponse(false, $"Invalid shipping status. Allowed: {string.Join(", ", ShippingStatuses.All)}.");
+        }
 
         if (string.Equals(ship.Status, request.Status, StringComparison.OrdinalIgnoreCase))
         {

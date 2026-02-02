@@ -75,6 +75,10 @@ public class SellerListingService : ISellerListingService
 
         if (!string.IsNullOrWhiteSpace(status))
         {
+            if (!ListingStatuses.All.Contains(status, StringComparer.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"Invalid listing status. Allowed: {string.Join(", ", ListingStatuses.All)}.");
+            }
             query = query.Where(l => l.Status == status);
         }
 
@@ -129,6 +133,8 @@ public class SellerListingService : ISellerListingService
             listing.Description,
             listing.Price,
             listing.HasNegotiation,
+            listing.ListingType,
+            listing.AvailableQuantity,
             listing.Condition,
             listing.Brand,
             listing.Status,
@@ -176,6 +182,8 @@ public class SellerListingService : ISellerListingService
             Condition = request.Condition,
             Price = request.Price,
             HasNegotiation = request.HasNegotiation,
+            ListingType = ListingTypes.Single,
+            AvailableQuantity = 1,
             Dimensions = request.Dimensions,
             Weight = request.Weight,
             Brand = request.Brand,
@@ -238,6 +246,18 @@ public class SellerListingService : ISellerListingService
         listing.WardId = request.WardId ?? listing.WardId;
         listing.Price = request.Price ?? listing.Price;
         listing.HasNegotiation = request.HasNegotiation ?? listing.HasNegotiation;
+        // Force SINGLE for thanh-ly model
+        if (!string.IsNullOrWhiteSpace(request.ListingType) &&
+            !string.Equals(request.ListingType, ListingTypes.Single, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("ListingType only supports SINGLE for this marketplace.");
+        }
+        if (request.AvailableQuantity.HasValue && request.AvailableQuantity.Value != 1)
+        {
+            throw new InvalidOperationException("AvailableQuantity must be 1 for SINGLE listings.");
+        }
+        listing.ListingType = ListingTypes.Single;
+        listing.AvailableQuantity = 1;
         listing.Condition = request.Condition ?? listing.Condition;
         listing.Brand = request.Brand ?? listing.Brand;
         listing.Dimensions = request.Dimensions ?? listing.Dimensions;
@@ -410,5 +430,12 @@ public class SellerListingService : ISellerListingService
             .CountAsync(o => o.ListingId == listingId, cancellationToken);
 
         return new ListingStatsResponse(listingId, views, saves, inquiries);
+    }
+
+    private static string NormalizeListingType(string? listingType)
+    {
+        if (string.IsNullOrWhiteSpace(listingType)) return ListingTypes.Single;
+        if (string.Equals(listingType, ListingTypes.Single, StringComparison.OrdinalIgnoreCase)) return ListingTypes.Single;
+        throw new InvalidOperationException("ListingType only supports SINGLE for this marketplace.");
     }
 }

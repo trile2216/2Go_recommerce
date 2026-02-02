@@ -45,6 +45,10 @@ public class AdminUserService : IAdminUserService
 
         if (!string.IsNullOrWhiteSpace(status))
         {
+            if (!UserStatuses.All.Contains(status, StringComparer.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"Invalid user status. Allowed: {string.Join(", ", UserStatuses.All)}.");
+            }
             query = query.Where(u => u.Status == status);
         }
 

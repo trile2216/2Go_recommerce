@@ -20,6 +20,8 @@ public record ListingDetail(
     string? Description,
     decimal? Price,
     bool? HasNegotiation,
+    string? ListingType,
+    int? AvailableQuantity,
     string? Condition,
     string? Brand,
     string? Status,

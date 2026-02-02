@@ -39,6 +39,10 @@ public class AdminListingService : IAdminListingService
 
         if (!string.IsNullOrWhiteSpace(status))
         {
+            if (!AllowedStatuses.Contains(status))
+            {
+                throw new InvalidOperationException($"Invalid listing status. Allowed: {string.Join(", ", ListingStatuses.All)}.");
+            }
             query = query.Where(l => l.Status == status);
         }
         if (sellerId.HasValue)
@@ -107,6 +111,8 @@ public class AdminListingService : IAdminListingService
             listing.Description,
             listing.Price,
             listing.HasNegotiation,
+            listing.ListingType,
+            listing.AvailableQuantity,
             listing.Condition,
             listing.Brand,
             listing.Status,

@@ -64,6 +64,10 @@ public class ListingService : IListingService
         }
         if (!string.IsNullOrWhiteSpace(status))
         {
+            if (!ListingStatuses.All.Contains(status, StringComparer.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"Invalid listing status. Allowed: {string.Join(", ", ListingStatuses.All)}.");
+            }
             query = query.Where(l => l.Status == status);
         }
         else
@@ -161,6 +165,8 @@ public class ListingService : IListingService
             listing.Description,
             listing.Price,
             listing.HasNegotiation,
+            listing.ListingType,
+            listing.AvailableQuantity,
             listing.Condition,
             listing.Brand,
             listing.Status,

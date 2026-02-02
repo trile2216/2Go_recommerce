@@ -502,18 +502,40 @@ public class PaymentService : IPaymentService
             await _uow.SaveChangesAsync(cancellationToken);
             await _escrowService.RefundForOrderAsync(order.OrderId, cancellationToken);
 
-            if (order.ListingId.HasValue)
+            await RestoreListingsForOrderAsync(order, cancellationToken);
+        }
+    }
+
+    private async Task RestoreListingsForOrderAsync(Order order, CancellationToken cancellationToken)
+    {
+        var listingIds = new List<long>();
+        if (order.ListingId.HasValue) listingIds.Add(order.ListingId.Value);
+
+        if (listingIds.Count == 0)
+        {
+            var items = await _uow.OrderItems.Query()
+                .Where(oi => oi.OrderId == order.OrderId && oi.ListingId.HasValue)
+                .ToListAsync(cancellationToken);
+            listingIds.AddRange(items.Select(oi => oi.ListingId!.Value));
+        }
+
+        if (listingIds.Count == 0) return;
+
+        var listings = await _uow.Listings.Query()
+            .Where(l => listingIds.Contains(l.ListingId))
+            .ToListAsync(cancellationToken);
+
+        foreach (var listing in listings)
+        {
+            if (string.Equals(listing.Status, ListingStatuses.Reserved, StringComparison.OrdinalIgnoreCase))
             {
-                var listing = await _uow.Listings.GetByIdAsync(order.ListingId.Value);
-                if (listing != null && string.Equals(listing.Status, ListingStatuses.Reserved, StringComparison.OrdinalIgnoreCase))
-                {
-                    listing.Status = ListingStatuses.Active;
-                    listing.UpdatedAt = DateTime.UtcNow;
-                    _uow.Listings.Update(listing);
-                    await _uow.SaveChangesAsync(cancellationToken);
-                }
+                listing.Status = ListingStatuses.Active;
+                listing.AvailableQuantity = 1;
+                listing.UpdatedAt = DateTime.UtcNow;
+                _uow.Listings.Update(listing);
             }
         }
+        await _uow.SaveChangesAsync(cancellationToken);
     }
 
     private async Task LogPaymentActionAsync(long userId, string action, object details, CancellationToken cancellationToken)
