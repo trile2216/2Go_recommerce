@@ -34,8 +34,16 @@ public class UploadsController : ControllerBase
             return BadRequest("Only image files are allowed.");
         }
 
-        await using var stream = file.OpenReadStream();
-        var result = await _cloudinaryService.UploadImageAsync(stream, file.FileName, cancellationToken);
-        return Ok(result);
+        try
+        {
+            await using var stream = file.OpenReadStream();
+            var result = await _cloudinaryService.UploadImageAsync(stream, file.FileName, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.ToString());
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
     }
 }
