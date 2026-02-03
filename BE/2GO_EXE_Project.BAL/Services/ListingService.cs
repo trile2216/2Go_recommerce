@@ -34,11 +34,11 @@ public class ListingService : IListingService
     {
         var query = _uow.Listings.Query()
             .Include(l => l.SubCategory)
-            .ThenInclude(sc => sc.Category)
+            .ThenInclude(sc => sc!.Category)
             .Include(l => l.ListingImages)
             .Include(l => l.Ward)
-            .ThenInclude(w => w.District)
-            .ThenInclude(d => d.City)
+            .ThenInclude(w => w!.District)
+            .ThenInclude(d => d!.City)
             .Include(l => l.ListingAttributes)
             .AsQueryable();
 
@@ -131,7 +131,7 @@ public class ListingService : IListingService
     {
         var query = _uow.Listings.Query()
             .Include(l => l.SubCategory)
-            .ThenInclude(sc => sc.Category)
+            .ThenInclude(sc => sc!.Category)
             .Include(l => l.ListingImages)
             .Include(l => l.Seller)
             .Where(l => l.ListingId == listingId);

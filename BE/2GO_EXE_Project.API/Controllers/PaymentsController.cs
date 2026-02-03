@@ -31,6 +31,20 @@ public class PaymentsController : ControllerBase
         }
     }
 
+    [HttpPost("subscription")]
+    public async Task<IActionResult> CreateSubscription([FromBody] CreateSubscriptionPaymentRequest request, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await _paymentService.CreateSubscriptionAsync(User, request, cancellationToken);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
     [HttpPut("{paymentId:long}/verify")]
     public async Task<IActionResult> Verify(long paymentId, [FromBody] VerifyPaymentRequest request, CancellationToken cancellationToken = default)
     {

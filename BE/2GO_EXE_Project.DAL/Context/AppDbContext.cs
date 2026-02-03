@@ -332,6 +332,8 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.PaymentId).HasName("PK__Payments__9B556A383AF28E0A");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+            entity.Property(e => e.CommissionRate).HasPrecision(5, 2);
+            entity.Property(e => e.CommissionBaseAmount).HasPrecision(15, 2);
 
             entity.HasOne(d => d.User).WithMany(p => p.Payments).HasConstraintName("FK_Payments_Users");
         });
@@ -417,6 +419,7 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.UserId).HasName("PK__Users__1788CC4C13494ED7");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+            entity.Property(e => e.FreeListingUsed).HasDefaultValue(0);
         });
 
         modelBuilder.Entity<UserDevice>(entity =>

@@ -121,7 +121,7 @@ public class EmailService : IEmailService
         };
 
         var credential = new UserCredential(flow, _settings.UserEmail, token);
-        if (credential.Token.IsExpired(SystemClock.Default))
+        if (credential.Token.IsStale)
         {
             await credential.RefreshTokenAsync(cancellationToken);
         }

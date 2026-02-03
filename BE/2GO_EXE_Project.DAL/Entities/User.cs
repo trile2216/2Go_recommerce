@@ -41,6 +41,10 @@ public partial class User
 
     public DateTime? LastLoginAt { get; set; }
 
+    public int FreeListingUsed { get; set; }
+
+    public DateTime? SubscriptionUntil { get; set; }
+
     [InverseProperty("User")]
     public virtual ICollection<ActivityLog> ActivityLogs { get; set; } = new List<ActivityLog>();
 

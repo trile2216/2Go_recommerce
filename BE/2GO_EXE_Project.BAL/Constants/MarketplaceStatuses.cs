@@ -84,6 +84,18 @@ public static class PaymentMethods
     };
 }
 
+public static class PaymentTypes
+{
+    public const string Commission = "COMMISSION";
+    public const string Subscription = "SUBSCRIPTION";
+
+    public static readonly IReadOnlyList<string> All = new[]
+    {
+        Commission,
+        Subscription
+    };
+}
+
 public static class EscrowStatuses
 {
     public const string Pending = "Pending";

@@ -33,7 +33,7 @@ public class AdminListingService : IAdminListingService
     {
         var query = _uow.Listings.Query()
             .Include(l => l.SubCategory)
-            .ThenInclude(sc => sc.Category)
+            .ThenInclude(sc => sc!.Category)
             .Include(l => l.ListingImages)
             .AsQueryable();
 
@@ -83,7 +83,7 @@ public class AdminListingService : IAdminListingService
     {
         var query = _uow.Listings.Query()
             .Include(l => l.SubCategory)
-            .ThenInclude(sc => sc.Category)
+            .ThenInclude(sc => sc!.Category)
             .Include(l => l.ListingImages)
             .Include(l => l.ListingAttributes)
             .Include(l => l.Seller)

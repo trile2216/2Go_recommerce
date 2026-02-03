@@ -66,9 +66,9 @@ public class AdminUserService : IAdminUserService
                 u.Status,
                 u.CreatedAt,
                 u.LastLoginAt,
-                u.UserVerifications.FirstOrDefault().EmailVerified ?? false,
-                u.UserVerifications.FirstOrDefault().PhoneVerified ?? false,
-                u.UserProfiles.FirstOrDefault().FullName))
+                u.UserVerifications.Select(v => v.EmailVerified).FirstOrDefault() ?? false,
+                u.UserVerifications.Select(v => v.PhoneVerified).FirstOrDefault() ?? false,
+                u.UserProfiles.Select(p => p.FullName).FirstOrDefault()))
             .ToListAsync(cancellationToken);
 
         return new AdminUserListResponse(total, users);

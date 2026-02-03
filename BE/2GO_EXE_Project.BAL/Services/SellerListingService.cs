@@ -12,6 +12,7 @@ namespace _2GO_EXE_Project.BAL.Services;
 public class SellerListingService : ISellerListingService
 {
     private readonly IUnitOfWork _uow;
+    private const int FreeListingLimit = 2;
     public SellerListingService(IUnitOfWork uow)
     {
         _uow = uow;
@@ -105,7 +106,7 @@ public class SellerListingService : ISellerListingService
         var sellerId = GetUserId(sellerPrincipal);
         var listing = await _uow.Listings.Query()
             .Include(l => l.SubCategory)
-            .ThenInclude(sc => sc.Category)
+            .ThenInclude(sc => sc!.Category)
             .Include(l => l.ListingImages)
             .Include(l => l.ListingAttributes)
             .Where(l => l.ListingId == listingId && l.SellerId == sellerId)
@@ -330,8 +331,24 @@ public class SellerListingService : ISellerListingService
             _uow.ListingImages.Update(images[0]);
         }
 
+        var user = await _uow.Users.Query()
+            .FirstOrDefaultAsync(u => u.UserId == sellerId, cancellationToken);
+        if (user == null) return new BasicResponse(false, "User not found.");
+
+        var now = DateTime.UtcNow;
+        var hasActiveSubscription = user.SubscriptionUntil.HasValue && user.SubscriptionUntil.Value > now;
+        if (!hasActiveSubscription)
+        {
+            if (user.FreeListingUsed >= FreeListingLimit)
+            {
+                return new BasicResponse(false, "Free publish limit reached. Please purchase a subscription to continue.");
+            }
+            user.FreeListingUsed += 1;
+            _uow.Users.Update(user);
+        }
+
         listing.Status = ListingStatuses.PendingReview;
-        listing.UpdatedAt = DateTime.UtcNow;
+        listing.UpdatedAt = now;
         _uow.Listings.Update(listing);
         await _uow.SaveChangesAsync(cancellationToken);
         return new BasicResponse(true, "Listing submitted for review.");

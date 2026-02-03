@@ -2,6 +2,8 @@ namespace _2GO_EXE_Project.BAL.DTOs.Payments;
 
 public record CreatePaymentRequest(long OrderId, string Method);
 
+public record CreateSubscriptionPaymentRequest(string Method, int? Days);
+
 public record VerifyPaymentRequest(string Status, string? RawResponse, string? Signature);
 
 public record PaymentResponse(

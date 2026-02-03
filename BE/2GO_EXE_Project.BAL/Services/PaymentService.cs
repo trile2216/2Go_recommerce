@@ -19,6 +19,9 @@ public class PaymentService : IPaymentService
     private readonly IMomoPaymentGateway _momoGateway;
     private readonly IPayosPaymentGateway _payosGateway;
     private readonly IPayOSService _payosService;
+    private const decimal CommissionRateValue = 0.07m;
+    private const int SubscriptionDaysDefault = 30;
+    private const decimal SubscriptionAmountDefault = 33000m;
 
     public PaymentService(IUnitOfWork uow, IPaymentGateway gateway, IEscrowService escrowService, IMomoPaymentGateway momoGateway, IPayosPaymentGateway payosGateway, IPayOSService payosService)
     {
@@ -95,6 +98,9 @@ public class PaymentService : IPaymentService
             Amount = order.TotalAmount,
             Method = order.PaymentMethod,
             Status = PaymentStatuses.Pending,
+            PaymentType = PaymentTypes.Commission,
+            CommissionRate = CommissionRateValue,
+            CommissionBaseAmount = order.TotalAmount,
             ReferenceCode = Guid.NewGuid().ToString("N"),
             CreatedAt = DateTime.UtcNow
         };
@@ -171,6 +177,109 @@ public class PaymentService : IPaymentService
         return new PaymentResponse(payment.PaymentId, payment.Amount, payment.Method, payment.Status, payment.ReferenceCode, payment.CreatedAt, payUrl);
     }
 
+    public async Task<PaymentResponse> CreateSubscriptionAsync(ClaimsPrincipal userPrincipal, CreateSubscriptionPaymentRequest request, CancellationToken cancellationToken = default)
+    {
+        var userId = GetUserId(userPrincipal);
+        if (string.IsNullOrWhiteSpace(request.Method))
+        {
+            throw new InvalidOperationException("Payment method is required.");
+        }
+        if (!PaymentMethods.All.Contains(request.Method, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Invalid payment method.");
+        }
+        if (string.Equals(request.Method, PaymentMethods.COD, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("COD is not supported for subscription.");
+        }
+
+        var days = request.Days ?? SubscriptionDaysDefault;
+        if (days != SubscriptionDaysDefault)
+        {
+            throw new InvalidOperationException("Only 30-day subscriptions are supported.");
+        }
+
+        var payment = new Payment
+        {
+            UserId = userId,
+            Amount = SubscriptionAmountDefault,
+            Method = request.Method,
+            Status = PaymentStatuses.Pending,
+            PaymentType = PaymentTypes.Subscription,
+            SubscriptionDays = days,
+            ReferenceCode = Guid.NewGuid().ToString("N"),
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _uow.Payments.AddAsync(payment, cancellationToken);
+        await _uow.SaveChangesAsync(cancellationToken);
+
+        string? payUrl = null;
+        if (string.Equals(payment.Method, PaymentMethods.MOMO, StringComparison.OrdinalIgnoreCase))
+        {
+            var momoAmount = Convert.ToInt64(decimal.Round(payment.Amount ?? 0, 0));
+            var momoResponse = await _momoGateway.CreatePaymentAsync(
+                new MomoCreatePaymentRequest(payment.ReferenceCode!, momoAmount, "Subscription package (30 days)"),
+                cancellationToken);
+
+            if (momoResponse.ResultCode != 0 || string.IsNullOrWhiteSpace(momoResponse.PayUrl))
+            {
+                throw new InvalidOperationException($"MoMo payment creation failed: {momoResponse.Message ?? "Unknown error"}");
+            }
+
+            payUrl = momoResponse.PayUrl;
+            await _uow.PaymentLogs.AddAsync(new PaymentLog
+            {
+                PaymentId = payment.PaymentId,
+                Provider = "MOMO",
+                Event = "Create",
+                RawResponse = momoResponse.RawResponse,
+                CreatedAt = DateTime.UtcNow
+            }, cancellationToken);
+            await _uow.SaveChangesAsync(cancellationToken);
+        }
+        else if (string.Equals(payment.Method, PaymentMethods.PAYOS, StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                var payosAmount = Convert.ToInt64(decimal.Round(payment.Amount ?? 0, 0));
+                var (checkoutUrl, orderCodeStr) = await _payosService.CreatePaymentLinkAsync(
+                    payment.PaymentId,
+                    payment.ReferenceCode!,
+                    payosAmount,
+                    "Subscription package (30 days)",
+                    null,
+                    null,
+                    cancellationToken);
+
+                if (long.TryParse(orderCodeStr, out var orderCode))
+                {
+                    payment.PayosOrderCode = orderCode;
+                }
+                payment.PayosCheckoutUrl = checkoutUrl;
+                _uow.Payments.Update(payment);
+                await _uow.SaveChangesAsync(cancellationToken);
+
+                payUrl = checkoutUrl;
+
+                await _uow.PaymentLogs.AddAsync(new PaymentLog
+                {
+                    PaymentId = payment.PaymentId,
+                    RawResponse = System.Text.Json.JsonSerializer.Serialize(new { checkoutUrl, orderCode = orderCodeStr }),
+                    CreatedAt = DateTime.UtcNow
+                }, cancellationToken);
+                await _uow.SaveChangesAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"PayOS payment creation failed: {ex.Message}");
+            }
+        }
+
+        await LogPaymentActionAsync(userId, "SubscriptionPaymentCreated", new { payment.PaymentId, payment.Amount, payment.Status }, cancellationToken);
+        return new PaymentResponse(payment.PaymentId, payment.Amount, payment.Method, payment.Status, payment.ReferenceCode, payment.CreatedAt, payUrl);
+    }
+
     public async Task<BasicResponse> VerifyAsync(ClaimsPrincipal userPrincipal, long paymentId, VerifyPaymentRequest request, CancellationToken cancellationToken = default)
     {
         var userId = GetUserId(userPrincipal);
@@ -225,6 +334,7 @@ public class PaymentService : IPaymentService
 
         await LogPaymentActionAsync(userId, "PaymentVerified", new { payment.PaymentId, payment.Status }, cancellationToken);
         await UpdateOrderByPaymentAsync(payment, cancellationToken);
+        await ApplySubscriptionIfPaidAsync(payment, cancellationToken);
 
         return new BasicResponse(true, "Payment updated.");
     }
@@ -279,6 +389,7 @@ public class PaymentService : IPaymentService
         await _uow.SaveChangesAsync(cancellationToken);
 
         await UpdateOrderByPaymentAsync(payment, cancellationToken);
+        await ApplySubscriptionIfPaidAsync(payment, cancellationToken);
 
         return new BasicResponse(true, "Payment updated.");
     }
@@ -348,13 +459,15 @@ public class PaymentService : IPaymentService
         await _uow.SaveChangesAsync(cancellationToken);
 
         await UpdateOrderByPaymentAsync(payment, cancellationToken);
+        await ApplySubscriptionIfPaidAsync(payment, cancellationToken);
 
         return new BasicResponse(true, "Payment updated.");
     }
 
     public async Task<WebhookData> VerifyWebhookSignatureAsync(Webhook webhook, CancellationToken cancellationToken = default)
     {
-        return await _payosService.VerifyWebhookSignatureAsync(webhook, cancellationToken);
+        var data = await _payosService.VerifyWebhookSignatureAsync(webhook, cancellationToken);
+        return data ?? throw new InvalidOperationException("Webhook signature verification failed.");
     }
 
     public async Task<BasicResponse> HandlePayOSWebhookAsync(Webhook webhook, CancellationToken cancellationToken = default)
@@ -450,6 +563,7 @@ public class PaymentService : IPaymentService
 
             // Update order status
             await UpdateOrderByPaymentAsync(payment, cancellationToken);
+            await ApplySubscriptionIfPaidAsync(payment, cancellationToken);
 
             // Log activity
             await LogPaymentActionAsync(payment.UserId ?? 0, "PayOSWebhookReceived", new { payment.PaymentId, webhookData.OrderCode, Status = nextStatus }, cancellationToken);
@@ -504,6 +618,44 @@ public class PaymentService : IPaymentService
 
             await RestoreListingsForOrderAsync(order, cancellationToken);
         }
+    }
+
+    private async Task ApplySubscriptionIfPaidAsync(Payment payment, CancellationToken cancellationToken)
+    {
+        if (!string.Equals(payment.PaymentType, PaymentTypes.Subscription, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+        if (!string.Equals(payment.Status, PaymentStatuses.Paid, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+        if (!payment.SubscriptionDays.HasValue || payment.SubscriptionDays.Value <= 0)
+        {
+            return;
+        }
+        if (payment.SubscriptionValidUntil.HasValue)
+        {
+            return;
+        }
+
+        var userId = payment.UserId ?? 0;
+        var user = await _uow.Users.GetByIdAsync(userId);
+        if (user == null) return;
+
+        var now = DateTime.UtcNow;
+        var start = user.SubscriptionUntil.HasValue && user.SubscriptionUntil.Value > now
+            ? user.SubscriptionUntil.Value
+            : now;
+        var until = start.AddDays(payment.SubscriptionDays.Value);
+
+        payment.SubscriptionValidFrom = start;
+        payment.SubscriptionValidUntil = until;
+        user.SubscriptionUntil = until;
+
+        _uow.Payments.Update(payment);
+        _uow.Users.Update(user);
+        await _uow.SaveChangesAsync(cancellationToken);
     }
 
     private async Task RestoreListingsForOrderAsync(Order order, CancellationToken cancellationToken)
