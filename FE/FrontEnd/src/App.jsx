@@ -22,6 +22,7 @@ import UserInfo from './pages/UserInfo/UserInfo';
 import ProtectedRoute from './components/Admin/ProtectedRoute';
 import Orders from './pages/Order/Order';
 import OrderDetail from './pages/OrderDetail/OrderDetail';
+import Checkout from './pages/Checkout/Checkout';
 
 function App() {
   return (
@@ -38,6 +39,9 @@ function App() {
           <Route path="/orders" element={<Orders />} />
           <Route path="/order/:orderId" element={
               <OrderDetail />
+          } />
+          <Route path="/checkout" element={
+              <Checkout />
           } />
           <Route path="/post/listing" element={
             <UserLayout>
