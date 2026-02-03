@@ -20,9 +20,15 @@ using PayOS.Models;
 var builder = WebApplication.CreateBuilder(args);
 var corsName = "AllowAll";
 
+var corsOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? Array.Empty<string>();
+if (corsOrigins.Length == 0)
+{
+    corsOrigins = new[] { "http://localhost:5173" };
+}
+
 builder.Services.AddCors(p => p.AddPolicy(name: corsName, policy =>
 {
-    policy.WithOrigins("http://localhost:5173")
+    policy.WithOrigins(corsOrigins)
         .AllowCredentials()
         .AllowAnyMethod()
         .AllowAnyHeader();
@@ -202,3 +208,4 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
