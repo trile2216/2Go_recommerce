@@ -56,7 +56,7 @@ const getStatusColor = (status) => {
   return colors[status] || "status-default";
 };
 
-function OrderCard({ order, type }) {
+function OrderCard({ order }) {
   const navigate = useNavigate();
 
   return (
