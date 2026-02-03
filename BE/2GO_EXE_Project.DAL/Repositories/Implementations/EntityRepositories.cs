@@ -9,6 +9,8 @@ public class AiModerationLogRepository : GenericRepository<AiModerationLog>, IAi
 public class AiScanResultRepository : GenericRepository<AiScanResult>, IAiScanResultRepository { public AiScanResultRepository(AppDbContext ctx) : base(ctx) { } }
 public class ApiLogRepository : GenericRepository<ApiLog>, IApiLogRepository { public ApiLogRepository(AppDbContext ctx) : base(ctx) { } }
 public class CategoryRepository : GenericRepository<Category>, ICategoryRepository { public CategoryRepository(AppDbContext ctx) : base(ctx) { } }
+public class CartRepository : GenericRepository<Cart>, ICartRepository { public CartRepository(AppDbContext ctx) : base(ctx) { } }
+public class CartItemRepository : GenericRepository<CartItem>, ICartItemRepository { public CartItemRepository(AppDbContext ctx) : base(ctx) { } }
 public class ChatRepository : GenericRepository<Chat>, IChatRepository { public ChatRepository(AppDbContext ctx) : base(ctx) { } }
 public class CityRepository : GenericRepository<City>, ICityRepository { public CityRepository(AppDbContext ctx) : base(ctx) { } }
 public class DeviceLogRepository : GenericRepository<DeviceLog>, IDeviceLogRepository { public DeviceLogRepository(AppDbContext ctx) : base(ctx) { } }
@@ -59,6 +61,8 @@ public class UnitOfWork : IUnitOfWork
         AiScanResults = new AiScanResultRepository(_context);
         ApiLogs = new ApiLogRepository(_context);
         Categories = new CategoryRepository(_context);
+        Carts = new CartRepository(_context);
+        CartItems = new CartItemRepository(_context);
         Chats = new ChatRepository(_context);
         Cities = new CityRepository(_context);
         DeviceLogs = new DeviceLogRepository(_context);
@@ -102,6 +106,8 @@ public class UnitOfWork : IUnitOfWork
     public IAiScanResultRepository AiScanResults { get; }
     public IApiLogRepository ApiLogs { get; }
     public ICategoryRepository Categories { get; }
+    public ICartRepository Carts { get; }
+    public ICartItemRepository CartItems { get; }
     public IChatRepository Chats { get; }
     public ICityRepository Cities { get; }
     public IDeviceLogRepository DeviceLogs { get; }

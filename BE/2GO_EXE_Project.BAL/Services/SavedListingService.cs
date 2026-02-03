@@ -35,7 +35,7 @@ public class SavedListingService : ISavedListingService
         var userId = GetUserId(userPrincipal);
         var query = _uow.SavedListings.Query()
             .Include(s => s.Listing)
-            .ThenInclude(l => l.ListingImages)
+            .ThenInclude(l => l!.ListingImages)
             .Where(s => s.UserId == userId);
 
         var total = await query.CountAsync(cancellationToken);

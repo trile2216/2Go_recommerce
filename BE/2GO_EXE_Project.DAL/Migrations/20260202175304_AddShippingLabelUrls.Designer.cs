@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using _2GO_EXE_Project.DAL.Context;
@@ -11,9 +12,11 @@ using _2GO_EXE_Project.DAL.Context;
 namespace _2GO_EXE_Project.DAL.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260202175304_AddShippingLabelUrls")]
+    partial class AddShippingLabelUrls
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1046,14 +1049,6 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.Property<decimal?>("Amount")
                         .HasColumnType("decimal(15, 2)");
 
-                    b.Property<decimal?>("CommissionBaseAmount")
-                        .HasPrecision(15, 2)
-                        .HasColumnType("decimal(15, 2)");
-
-                    b.Property<decimal?>("CommissionRate")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5, 2)");
-
                     b.Property<DateTime?>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -1093,15 +1088,6 @@ namespace _2GO_EXE_Project.DAL.Migrations
                         .HasMaxLength(50)
                         .IsUnicode(false)
                         .HasColumnType("character varying(50)");
-
-                    b.Property<int?>("SubscriptionDays")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("SubscriptionValidFrom")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("SubscriptionValidUntil")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long?>("UserId")
                         .HasColumnType("bigint");
@@ -1485,11 +1471,6 @@ namespace _2GO_EXE_Project.DAL.Migrations
                         .IsUnicode(false)
                         .HasColumnType("character varying(255)");
 
-                    b.Property<int>("FreeListingUsed")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
                     b.Property<DateTime?>("LastLoginAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1517,9 +1498,6 @@ namespace _2GO_EXE_Project.DAL.Migrations
                         .HasMaxLength(50)
                         .IsUnicode(false)
                         .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime?>("SubscriptionUntil")
-                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("UserId")
                         .HasName("PK__Users__1788CC4C13494ED7");

@@ -29,9 +29,31 @@ public partial class Payment
     [StringLength(50)]
     public string? PaymentType { get; set; }  // "DEPOSIT", "FULL", "REMAINING"
 
+    [Column(TypeName = "decimal(5, 2)")]
+    public decimal? CommissionRate { get; set; }
+
+    [Column(TypeName = "decimal(15, 2)")]
+    public decimal? CommissionBaseAmount { get; set; }
+
+    public int? SubscriptionDays { get; set; }
+
+    public DateTime? SubscriptionValidFrom { get; set; }
+
+    public DateTime? SubscriptionValidUntil { get; set; }
+
     [StringLength(255)]
     [Unicode(false)]
     public string? ReferenceCode { get; set; }
+
+    public long? PayosOrderCode { get; set; }
+
+    [StringLength(255)]
+    [Unicode(false)]
+    public string? PayosPaymentLinkId { get; set; }
+
+    [StringLength(500)]
+    [Unicode(false)]
+    public string? PayosCheckoutUrl { get; set; }
 
     public DateTime? CreatedAt { get; set; }
 
