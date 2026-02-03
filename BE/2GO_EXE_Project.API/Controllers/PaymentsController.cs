@@ -53,15 +53,6 @@ public class PaymentsController : ControllerBase
         return Ok(result);
     }
 
-    [HttpPost("momo/ipn")]
-    [AllowAnonymous]
-    public async Task<IActionResult> MomoIpn([FromBody] MomoIpnRequest request, CancellationToken cancellationToken = default)
-    {
-        var result = await _paymentService.HandleMomoIpnAsync(request, cancellationToken);
-        if (!result.Success) return BadRequest(result.Message);
-        return Ok(result);
-    }
-
     [HttpPost("payos/webhook")]
     [AllowAnonymous]
     public async Task<IActionResult> PayosWebhook([FromBody] PayosWebhookRequest request, CancellationToken cancellationToken = default)

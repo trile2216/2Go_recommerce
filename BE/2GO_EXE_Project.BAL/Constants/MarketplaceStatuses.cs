@@ -71,15 +71,11 @@ public static class PaymentStatuses
 public static class PaymentMethods
 {
     public const string COD = "COD";
-    public const string VNPAY = "VNPAY";
-    public const string MOMO = "MOMO";
     public const string PAYOS = "PAYOS";
 
     public static readonly IReadOnlyList<string> All = new[]
     {
         COD,
-        VNPAY,
-        MOMO,
         PAYOS
     };
 }
