@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, MapPin, Calendar, Shield, Eye, EyeOff, Upload } from 'lucide-react';
 import UserLayout from '../../layouts/UserLayout';
+import ErrorPage from '../ErrorPage/ErrorPage';
 import { 
   getUserInfo, 
   updateUserProfile, 
   newPassword 
 } from '../../service/home/api.user';
+import '../../styles/loader.css';
 import './userinfo.css';
 
 export default function UserInfo() {
@@ -130,10 +132,17 @@ export default function UserInfo() {
     return (
       <UserLayout>
         <div className="userinfo-container">
-          <div className="loading-state">Loading user information...</div>
+          <div className="loading-state">
+            <div className="loader"></div>
+            <div className="loading-state-text">Đang tải thông tin...</div>
+          </div>
         </div>
       </UserLayout>
     );
+  }
+
+  if (error) {
+    return <ErrorPage error={error} />;
   }
 
   return (
