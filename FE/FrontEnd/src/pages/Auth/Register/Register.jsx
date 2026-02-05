@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { register } from '../../../service/auth/api.auth';
+import { loginWithOAuth, register } from '../../../service/auth/api.auth';
 import './Register.css';
+import { signInWithPopup } from 'firebase/auth';
+import { auth, googleProvider } from '../../../config/firebase';
 
 const Register = () => {
   const [userInfo, setUserInfo] = useState({
@@ -28,20 +30,78 @@ const Register = () => {
     setLoading(true);
 
     try {
+      // Validate input
+      if (!userInfo.email || !userInfo.phone || !userInfo.password || !userInfo.fullName) {
+        setError('Vui lòng điền đầy đủ tất cả các trường');
+        setLoading(false);
+        return;
+      }
+
       const response = await register(userInfo);
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      
+      if (response.token) {
+        localStorage.setItem('token', response.token);
+      }
+      
+      if (response.user) {
+        localStorage.setItem('user', JSON.stringify(response.user));
+      }
+      
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      console.error('Registration error:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Đăng ký thất bại. Vui lòng thử lại.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOAuthClick = (provider) => {
-    console.log(`${provider} signup clicked`);
-    // TODO: Implement OAuth signup
+  const handleOAuthClick = async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      
+      // Get Firebase ID Token
+      const idToken = await user.getIdToken();
+      console.log('Firebase ID Token obtained:', idToken);
+      
+      // Send ID Token to backend
+      const response = await loginWithOAuth({ idToken });
+      console.log('OAuth login response:', response);
+      
+      const { accessToken, refreshToken, userId, email, phone } = response;
+      
+      if (accessToken && userId) {
+        const userData = {
+          userId,
+          email: email || user.email,
+          phone,
+          fullName: user.displayName || email.split('@')[0]
+        };
+        
+        localStorage.setItem('token', accessToken);
+        localStorage.setItem('refreshToken', refreshToken);
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        console.log('Successfully stored OAuth user:', userData);
+        
+        setTimeout(() => {
+          navigate('/');
+        }, 100);
+      } else {
+        setError('Invalid OAuth response - missing required fields');
+        console.error('Missing required fields:', { accessToken, userId });
+      }
+    } catch (error) {
+      console.error('OAuth login error:', error);
+      setError(error.response?.data?.message || 'OAuth login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

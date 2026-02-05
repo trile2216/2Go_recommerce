@@ -64,7 +64,7 @@ export default function Footer() {
                 </svg>
                 <div>
                   <div className="contact-label">Email</div>
-                  <div className="contact-value">support@recommerce.vn</div>
+                  <div className="contact-value">support@2GO.vn</div>
                 </div>
               </div>
             </div>
@@ -72,7 +72,7 @@ export default function Footer() {
         </div>
 
         <div className="footer-bottom">
-          <p>© 2024 ReCommerce Thủ Đức. All rights reserved.</p>
+          <p>© 2026 @GO Thủ Đức. All rights reserved.</p>
         </div>
       </div>
     </footer>

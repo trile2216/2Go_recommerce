@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import "./PostListing.css";
 import Header from "../../components/Header";
+import { uploadImageAndGetUrl } from "../../service/upload/api.upload";
+import { createListing } from "../../service/home/api.lishting";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -135,25 +137,72 @@ export default function PostListing() {
         }
     };
 
-    const onFinish = (values) => {
+    const onFinish = async (values) => {
         if (fileList.length === 0) {
             message.error("Vui lòng tải lên ít nhất 1 hình ảnh!");
             return;
         }
 
-        // Logic to prepare form data for API...
-        console.log("Form values:", {
-            ...values,
-            images: fileList,
-            video: videoFile,
-            category: selectedCategory?.id,
-            subcategory: selectedSubcategory?.id
-        });
+        if (!selectedSubcategory) {
+            message.error("Vui lòng chọn danh mục sản phẩm!");
+            return;
+        }
 
-        message.success("Tin của bạn đã được đăng tải thành công!");
-        setTimeout(() => {
-            navigate("/");
-        }, 1500);
+        // Show loading message
+        const hideLoadingMsg = message.loading("Đang xử lý tin đăng của bạn...", 0);
+
+        try {
+            // Upload all images and get URLs
+            const uploadedFiles = fileList.map(file => file.originFileObj || file).filter(f => f instanceof File);
+            const imageUrls = await uploadImageAndGetUrl(uploadedFiles);
+
+            // Format images data with primary image
+            const imagesData = imageUrls.map((url, index) => ({
+                imageUrl: url,
+                isPrimary: index === 0 // First image is primary
+            }));
+
+            // Prepare request body
+            const requestData = {
+                title: values.title,
+                description: values.description,
+                subCategoryId: selectedSubcategory.id,
+                wardId: 0, // Default ward ID
+                price: values.isFree ? 0 : parseInt(values.price) || 0,
+                listingType: "SELLING", // Default listing type
+                availableQuantity: 1,
+                hasNegotiation: true,
+                condition: values.condition,
+                brand: values.brand || "",
+                dimensions: "",
+                weight: 0,
+                images: imagesData,
+                attributes: [
+                    { name: "Màu sắc", value: values.color || "" },
+                    { name: "Dung lượng", value: values.capacity || "" },
+                    { name: "Bảo hành", value: values.warranty || "" },
+                    { name: "Xuất xứ", value: values.origin || "" }
+                ].filter(attr => attr.value) // Remove empty attributes
+            };
+
+            // Call API to create listing
+            const response = await createListing(requestData);
+
+            hideLoadingMsg();
+            message.success("Tin của bạn đã được đăng tải thành công!");
+            console.log("Listing created:", response);
+
+            setTimeout(() => {
+                navigate("/");
+            }, 1500);
+        } catch (error) {
+            hideLoadingMsg();
+            console.error("Error creating listing:", error);
+            message.error(
+                error.response?.data?.message || 
+                "Có lỗi xảy ra khi đăng tin. Vui lòng thử lại!"
+            );
+        }
     };
 
     return (
@@ -175,42 +224,21 @@ export default function PostListing() {
                         <Row gutter={24}>
                             <Col span={24}>
                                 <Form.Item label="Hình ảnh" tooltip="Đăng tin có hình ảnh để bán nhanh hơn">
-                                    <div className="upload-container">
-                                        <Upload
-                                            listType="picture-card"
-                                            fileList={fileList}
-                                            onChange={handleImageChange}
-                                            beforeUpload={() => false}
-                                            multiple
-                                            accept="image/*"
-                                        >
-                                            {fileList.length >= 8 ? null : (
-                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                                                    <UploadIcon size={24} style={{ color: '#999', marginBottom: 8 }} />
-                                                    <div style={{ marginTop: 8, color: '#666' }}>Thêm ảnh</div>
-                                                </div>
-                                            )}
-                                        </Upload>
-                                    </div>
-                                    {fileList.length === 0 && (
-                                        <div
-                                            onClick={() => document.querySelector('.ant-upload-select-picture-card')?.click()}
-                                            style={{
-                                                border: '2px dashed #d9d9d9',
-                                                borderRadius: 8,
-                                                padding: 40,
-                                                textAlign: 'center',
-                                                cursor: 'pointer',
-                                                backgroundColor: '#fafafa',
-                                                transition: 'border-color 0.3s'
-                                            }}
-                                            className="upload-placeholder hover:border-blue-500"
-                                        >
-                                            <UploadIcon size={48} style={{ color: '#bdbdbd', margin: '0 auto 16px' }} />
-                                            <Text strong style={{ display: 'block', fontSize: 16 }}>Bấm để chọn ảnh từ máy</Text>
-                                            <Text type="secondary">Đăng tin có hình ảnh để bán nhanh</Text>
-                                        </div>
-                                    )}
+                                    <Upload
+                                        listType="picture-card"
+                                        fileList={fileList}
+                                        onChange={handleImageChange}
+                                        beforeUpload={() => false}
+                                        multiple
+                                        accept="image/*"
+                                    >
+                                        {fileList.length >= 8 ? null : (
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                                                <UploadIcon size={24} style={{ color: '#999', marginBottom: 8 }} />
+                                                <div style={{ marginTop: 8, color: '#666' }}>Thêm ảnh</div>
+                                            </div>
+                                        )}
+                                    </Upload>
                                 </Form.Item>
                             </Col>
 
@@ -225,21 +253,6 @@ export default function PostListing() {
                                     >
                                         <Button icon={<Video size={16} />}>Chọn video</Button>
                                     </Upload>
-                                    {!videoFile && (
-                                        <div
-                                            style={{
-                                                border: '2px dashed #d9d9d9',
-                                                borderRadius: 8,
-                                                padding: 24,
-                                                textAlign: 'center',
-                                                marginTop: 8,
-                                                backgroundColor: '#fafafa'
-                                            }}
-                                        >
-                                            <Video size={32} style={{ color: '#bdbdbd', margin: '0 auto 8px' }} />
-                                            <Text type="secondary" style={{ display: 'block' }}>Đăng video để bán nhanh hơn</Text>
-                                        </div>
-                                    )}
                                 </Form.Item>
                             </Col>
                         </Row>

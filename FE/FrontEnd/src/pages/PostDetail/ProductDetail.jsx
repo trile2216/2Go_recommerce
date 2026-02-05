@@ -6,6 +6,8 @@ import ProductGallery from '../../components/ProductGallery';
 import ProductInfo from '../../components/ProductInfo';
 import ProductDescription from '../../components/ProductDescription';
 import RelatedProducts from '../../components/RelatedProducts';
+import ErrorPage from '../ErrorPage/ErrorPage';
+import '../../styles/loader.css';
 import './ProductDetail.css';
 import { fetchProductById } from '../../service/home/api.product';
 
@@ -46,7 +48,10 @@ export default function ProductDetail() {
       <div className="product-detail-page">
         <Header />
         <main className="product-detail-main">
-          <p>Đang tải chi tiết sản phẩm...</p>
+          <div className="loading-state">
+            <div className="loader"></div>
+            <div className="loading-state-text">Đang tải chi tiết sản phẩm...</div>
+          </div>
         </main>
         <Footer />
       </div>
@@ -54,15 +59,7 @@ export default function ProductDetail() {
   }
 
   if (error || !product) {
-    return (
-      <div className="product-detail-page">
-        <Header />
-        <main className="product-detail-main">
-          <p style={{ color: 'red' }}>Lỗi: {error || 'Không tìm thấy sản phẩm'}</p>
-        </main>
-        <Footer />
-      </div>
-    );
+    return <ErrorPage error={error || 'Không tìm thấy sản phẩm'} />;
   }
 
   const productData = {

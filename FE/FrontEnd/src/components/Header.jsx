@@ -7,12 +7,14 @@ import logo from "../assets/logo.jpg";
 import { fetchAllCategories } from "../service/home/api.category";
 import { fetchAllDistricts } from "../service/home/api.district";
 import { fetchAllWards } from "../service/home/api.ward";
+import { useAuth } from "../hooks/useAuth";
 
 import LocationPermissionPopup from "./LocationPermissionPopup";
 
 
 export default function Header() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(0);
   const [categories, setCategories] = useState([{id: 0, name: "Tất cả"}]);
@@ -207,11 +209,8 @@ export default function Header() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    setUser(null);
-    setIsLoggedIn(false);
+  const handleLogout = async () => {
+    await logout();
     setShowUserMenu(false);
     navigate('/');
   };

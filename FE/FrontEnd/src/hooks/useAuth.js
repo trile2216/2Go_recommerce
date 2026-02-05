@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { logout as logoutAPI } from '../service/auth/api.auth';
 
 export const useAuth = () => {
   const [user, setUser] = useState(() => {
@@ -39,12 +40,22 @@ export const useAuth = () => {
     };
   }, []);
 
-  const logout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    setUser(null);
-    setIsLoggedIn(false);
-    window.dispatchEvent(new Event('authChange'));
+  const logout = async () => {
+    try {
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (refreshToken) {
+        await logoutAPI(refreshToken);
+      }
+    } catch (error) {
+      console.error('Error during logout API call:', error);
+    } finally {
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      setUser(null);
+      setIsLoggedIn(false);
+      window.dispatchEvent(new Event('authChange'));
+    }
   };
 
   return { user, isLoggedIn, logout };
