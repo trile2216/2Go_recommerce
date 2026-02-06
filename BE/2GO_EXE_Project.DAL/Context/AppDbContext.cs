@@ -25,6 +25,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<ApiLog> ApiLogs { get; set; }
 
+    public virtual DbSet<AiAnalysisLog> AiAnalysisLogs { get; set; }
+
     public virtual DbSet<Category> Categories { get; set; }
 
     public virtual DbSet<Cart> Carts { get; set; }
@@ -58,6 +60,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<ListingView> ListingViews { get; set; }
 
     public virtual DbSet<Message> Messages { get; set; }
+
+    public virtual DbSet<MarketPriceCache> MarketPriceCaches { get; set; }
+
+    public virtual DbSet<ManualReviewQueue> ManualReviewQueues { get; set; }
 
     public virtual DbSet<Order> Orders { get; set; }
 
@@ -133,6 +139,12 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.ApiId).HasName("PK__ApiLogs__024B3BB3924051E4");
 
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+        });
+
+        modelBuilder.Entity<AiAnalysisLog>(entity =>
+        {
+            entity.HasKey(e => e.LogId).HasName("PK_AIAnalysisLog");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
         });
 
@@ -301,6 +313,18 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Chat).WithMany(p => p.Messages).HasConstraintName("FK_Messages_Chat");
 
             entity.HasOne(d => d.Sender).WithMany(p => p.Messages).HasConstraintName("FK_Messages_Sender");
+        });
+
+        modelBuilder.Entity<MarketPriceCache>(entity =>
+        {
+            entity.HasKey(e => e.ProductKey).HasName("PK_MarketPriceCache");
+            entity.Property(e => e.LastUpdated).HasDefaultValueSql("NOW()");
+        });
+
+        modelBuilder.Entity<ManualReviewQueue>(entity =>
+        {
+            entity.HasKey(e => e.QueueId).HasName("PK_ManualReviewQueue");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
         });
 
         modelBuilder.Entity<Order>(entity =>
