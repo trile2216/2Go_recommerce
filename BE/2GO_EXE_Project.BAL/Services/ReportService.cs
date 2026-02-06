@@ -1,9 +1,10 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using _2GO_EXE_Project.BAL.Constants;
 using _2GO_EXE_Project.BAL.DTOs.Auth;
 using _2GO_EXE_Project.BAL.DTOs.Reports;
+using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
@@ -14,10 +15,12 @@ namespace _2GO_EXE_Project.BAL.Services;
 public class ReportService : IReportService
 {
     private readonly IUnitOfWork _uow;
+    private readonly INotificationService _notificationService;
 
-    public ReportService(IUnitOfWork uow)
+    public ReportService(IUnitOfWork uow, INotificationService notificationService)
     {
         _uow = uow;
+        _notificationService = notificationService;
     }
 
     private static long GetUserId(ClaimsPrincipal principal)
@@ -104,6 +107,12 @@ public class ReportService : IReportService
 
         await _uow.SaveChangesAsync(cancellationToken);
 
+        if (targetUserId.HasValue)
+        {
+            await NotifyAsync(targetUserId.Value, "REPORT", "Bạn bị báo cáo", $"Một báo cáo mới đã được tạo (ID #{report.ReportId}).", $"/reports/{report.ReportId}", cancellationToken);
+        }
+        await NotifyAdminsAsync("REPORT", "Có báo cáo mới", $"Có báo cáo mới (ID #{report.ReportId}).", $"/admin/reports/{report.ReportId}", cancellationToken);
+
         return new ReportResponse(report.ReportId, report.OrderId ?? 0, report.ReporterId, report.TargetUserId, report.Reason, report.Status, report.WaitingForUserId, report.CreatedAt);
     }
 
@@ -160,6 +169,12 @@ public class ReportService : IReportService
 
         await _uow.SaveChangesAsync(cancellationToken);
 
+        var otherUserId = report.ReporterId == userId ? report.TargetUserId : report.ReporterId;
+        if (otherUserId.HasValue)
+        {
+            await NotifyAsync(otherUserId.Value, "REPORT", "Có phản hồi báo cáo", $"Báo cáo #{report.ReportId} đã có phản hồi mới.", $"/reports/{report.ReportId}", cancellationToken);
+        }
+
         return new BasicResponse(true, "Reply submitted.");
     }
 
@@ -168,5 +183,47 @@ public class ReportService : IReportService
         return string.Equals(status, ReportStatuses.Open, StringComparison.OrdinalIgnoreCase) ||
                string.Equals(status, ReportStatuses.InReview, StringComparison.OrdinalIgnoreCase) ||
                string.Equals(status, ReportStatuses.WaitingOtherParty, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task NotifyAsync(long userId, string type, string title, string message, string? link, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _notificationService.CreateAsync(new CreateNotificationRequest(
+                userId,
+                title,
+                message,
+                type,
+                link), cancellationToken);
+        }
+        catch
+        {
+            // ignore notification failures
+        }
+    }
+
+    private async Task NotifyAdminsAsync(string type, string title, string message, string? link, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var adminIds = await _uow.Users.Query()
+                .Where(u => u.Role == UserRoles.Admin || u.Role == UserRoles.Manager)
+                .Select(u => u.UserId)
+                .ToListAsync(cancellationToken);
+
+            foreach (var id in adminIds)
+            {
+                await _notificationService.CreateAsync(new CreateNotificationRequest(
+                    id,
+                    title,
+                    message,
+                    type,
+                    link), cancellationToken);
+            }
+        }
+        catch
+        {
+            // ignore notification failures
+        }
     }
 }

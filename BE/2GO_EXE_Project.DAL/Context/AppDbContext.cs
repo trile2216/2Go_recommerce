@@ -104,6 +104,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
 
+    public virtual DbSet<Notification> Notifications { get; set; }
+
     public virtual DbSet<VerificationCode> VerificationCodes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -510,6 +512,14 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
             entity.Property(e => e.Purpose).HasMaxLength(50).IsUnicode(false);
             entity.HasOne(d => d.User).WithMany(p => p.VerificationCodes).HasForeignKey(d => d.UserId).HasConstraintName("FK_VerificationCodes_Users");
+        });
+
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(e => e.NotificationId).HasName("PK_Notifications");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+            entity.Property(e => e.IsRead).HasDefaultValue(false);
+            entity.HasOne(d => d.User).WithMany(p => p.Notifications).HasForeignKey(d => d.UserId).HasConstraintName("FK_Notifications_Users");
         });
 
         modelBuilder.Entity<Ward>(entity =>

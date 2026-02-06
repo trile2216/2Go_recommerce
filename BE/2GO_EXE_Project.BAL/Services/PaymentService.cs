@@ -4,6 +4,7 @@ using System.Text.Json;
 using _2GO_EXE_Project.BAL.Constants;
 using _2GO_EXE_Project.BAL.DTOs.Auth;
 using _2GO_EXE_Project.BAL.DTOs.Payments;
+using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
@@ -18,17 +19,19 @@ public class PaymentService : IPaymentService
     private readonly IEscrowService _escrowService;
     private readonly IPayosPaymentGateway _payosGateway;
     private readonly IPayOSService _payosService;
+    private readonly INotificationService _notificationService;
     private const decimal CommissionRateValue = 0.07m;
     private const int SubscriptionDaysDefault = 30;
     private const decimal SubscriptionAmountDefault = 33000m;
 
-    public PaymentService(IUnitOfWork uow, IPaymentGateway gateway, IEscrowService escrowService, IPayosPaymentGateway payosGateway, IPayOSService payosService)
+    public PaymentService(IUnitOfWork uow, IPaymentGateway gateway, IEscrowService escrowService, IPayosPaymentGateway payosGateway, IPayOSService payosService, INotificationService notificationService)
     {
         _uow = uow;
         _gateway = gateway;
         _escrowService = escrowService;
         _payosGateway = payosGateway;
         _payosService = payosService;
+        _notificationService = notificationService;
     }
 
     private static long GetUserId(ClaimsPrincipal principal)
@@ -497,6 +500,10 @@ public class PaymentService : IPaymentService
             _uow.Orders.Update(order);
             await _uow.SaveChangesAsync(cancellationToken);
             await _escrowService.FundForOrderAsync(order.OrderId, payment.PaymentId, cancellationToken);
+            if (order.BuyerId.HasValue)
+            {
+                await NotifyAsync(order.BuyerId.Value, "PAYMENT", "Thanh toán thành công", $"Đơn hàng #{order.OrderId} đã được thanh toán.", $"/orders/{order.OrderId}", cancellationToken);
+            }
         }
         else if (string.Equals(payment.Status, PaymentStatuses.Failed, StringComparison.OrdinalIgnoreCase) ||
                  string.Equals(payment.Status, PaymentStatuses.Cancelled, StringComparison.OrdinalIgnoreCase))
@@ -507,6 +514,10 @@ public class PaymentService : IPaymentService
             await _escrowService.RefundForOrderAsync(order.OrderId, cancellationToken);
 
             await RestoreListingsForOrderAsync(order, cancellationToken);
+            if (order.BuyerId.HasValue)
+            {
+                await NotifyAsync(order.BuyerId.Value, "PAYMENT", "Thanh toán thất bại", $"Thanh toán cho đơn hàng #{order.OrderId} không thành công.", $"/orders/{order.OrderId}", cancellationToken);
+            }
         }
     }
 
@@ -622,5 +633,22 @@ public class PaymentService : IPaymentService
             string.Equals(status, "CANCELED", StringComparison.OrdinalIgnoreCase)) return PaymentStatuses.Cancelled;
         if (string.Equals(status, "FAILED", StringComparison.OrdinalIgnoreCase)) return PaymentStatuses.Failed;
         return null;
+    }
+
+    private async Task NotifyAsync(long userId, string type, string title, string message, string? link, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _notificationService.CreateAsync(new CreateNotificationRequest(
+                userId,
+                title,
+                message,
+                type,
+                link), cancellationToken);
+        }
+        catch
+        {
+            // ignore notification failures
+        }
     }
 }

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using _2GO_EXE_Project.BAL.Constants;
 using _2GO_EXE_Project.BAL.DTOs.Listings;
 using _2GO_EXE_Project.BAL.DTOs.Auth;
+using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
@@ -13,11 +14,13 @@ namespace _2GO_EXE_Project.BAL.Services;
 public class AdminListingService : IAdminListingService
 {
     private readonly IUnitOfWork _uow;
+    private readonly INotificationService _notificationService;
     private static readonly HashSet<string> AllowedStatuses = new(ListingStatuses.All, StringComparer.OrdinalIgnoreCase);
 
-    public AdminListingService(IUnitOfWork uow)
+    public AdminListingService(IUnitOfWork uow, INotificationService notificationService)
     {
         _uow = uow;
+        _notificationService = notificationService;
     }
 
     private static long? GetUserId(ClaimsPrincipal principal)
@@ -154,6 +157,10 @@ public class AdminListingService : IAdminListingService
         _uow.Listings.Update(listing);
         await _uow.SaveChangesAsync(cancellationToken);
 
+        if (listing.SellerId.HasValue)
+        {
+            await NotifyAsync(listing.SellerId.Value, "LISTING", "Trạng thái bài đăng thay đổi", $"Bài đăng #{listingId} đã chuyển sang trạng thái {request.Status}.", $"/listings/{listingId}", cancellationToken);
+        }
         await LogAdminActionAsync(adminPrincipal, "UpdateListingStatus", new { ListingId = listingId, request.Status }, cancellationToken);
         return new BasicResponse(true, "Listing status updated.");
     }
@@ -224,6 +231,10 @@ public class AdminListingService : IAdminListingService
         _uow.Listings.Update(listing);
         await _uow.SaveChangesAsync(cancellationToken);
 
+        if (listing.SellerId.HasValue)
+        {
+            await NotifyAsync(listing.SellerId.Value, "LISTING", "Bài đăng bị xóa", $"Bài đăng #{listingId} đã bị xóa bởi quản trị viên.", $"/listings/{listingId}", cancellationToken);
+        }
         await LogAdminActionAsync(adminPrincipal, "DeleteListing", new { ListingId = listingId }, cancellationToken);
         return new BasicResponse(true, "Listing deleted (soft).");
     }
@@ -246,6 +257,23 @@ public class AdminListingService : IAdminListingService
         catch
         {
             // ignore logging failures
+        }
+    }
+
+    private async Task NotifyAsync(long userId, string type, string title, string message, string? link, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _notificationService.CreateAsync(new CreateNotificationRequest(
+                userId,
+                title,
+                message,
+                type,
+                link), cancellationToken);
+        }
+        catch
+        {
+            // ignore notification failures
         }
     }
 }

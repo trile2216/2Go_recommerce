@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using _2GO_EXE_Project.BAL.Constants;
 using _2GO_EXE_Project.BAL.DTOs.Ai;
+using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Context;
 using _2GO_EXE_Project.DAL.Entities;
@@ -17,6 +18,7 @@ public class AiListingService : IAiListingService
     private readonly IPricingService _pricingService;
     private readonly IUserPrecheckService _precheckService;
     private readonly INoteGenerationService _noteGenerationService;
+    private readonly INotificationService _notificationService;
     private readonly AppDbContext _db;
 
     public AiListingService(
@@ -25,6 +27,7 @@ public class AiListingService : IAiListingService
         IPricingService pricingService,
         IUserPrecheckService precheckService,
         INoteGenerationService noteGenerationService,
+        INotificationService notificationService,
         AppDbContext db)
     {
         _qualityCheckService = qualityCheckService;
@@ -32,6 +35,7 @@ public class AiListingService : IAiListingService
         _pricingService = pricingService;
         _precheckService = precheckService;
         _noteGenerationService = noteGenerationService;
+        _notificationService = notificationService;
         _db = db;
     }
 
@@ -254,5 +258,37 @@ public class AiListingService : IAiListingService
 
         _db.ManualReviewQueues.Add(queue);
         await _db.SaveChangesAsync(cancellationToken);
+
+        await NotifyAdminsAsync(
+            "RISK",
+            "Bài đăng cần kiểm tra",
+            $"Listing #{request.ListingId} cần kiểm tra thủ công.",
+            $"/admin/listings/{request.ListingId}",
+            cancellationToken);
+    }
+
+    private async Task NotifyAdminsAsync(string type, string title, string message, string? link, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var adminIds = await _db.Users
+                .Where(u => u.Role == UserRoles.Admin || u.Role == UserRoles.Manager)
+                .Select(u => u.UserId)
+                .ToListAsync(cancellationToken);
+
+            foreach (var id in adminIds)
+            {
+                await _notificationService.CreateAsync(new CreateNotificationRequest(
+                    id,
+                    title,
+                    message,
+                    type,
+                    link), cancellationToken);
+            }
+        }
+        catch
+        {
+            // ignore notification failures
+        }
     }
 }
