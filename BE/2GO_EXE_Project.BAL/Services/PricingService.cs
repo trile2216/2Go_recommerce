@@ -1,4 +1,4 @@
-using _2GO_EXE_Project.BAL.DTOs.Ai;
+﻿using _2GO_EXE_Project.BAL.DTOs.Ai;
 using _2GO_EXE_Project.BAL.Interfaces;
 
 namespace _2GO_EXE_Project.BAL.Services;
@@ -14,11 +14,11 @@ public class PricingService : IPricingService
 
         var (minRate, maxRate) = marketResult.ConditionAI switch
         {
-            "EXCELLENT" => (0.80m, 0.90m),
-            "GOOD" => (0.60m, 0.75m),
-            "FAIR" => (0.40m, 0.60m),
-            "POOR" => (0.20m, 0.40m),
-            _ => (0.60m, 0.75m)
+            "NEW" => (0.80m, 0.90m),
+            "GOOD" => (0.65m, 0.75m),
+            "FAIR" => (0.45m, 0.60m),
+            "POOR" => (0.25m, 0.40m),
+            _ => (0.65m, 0.75m)
         };
 
         var suggestedMin = Math.Round(marketResult.MarketAvg * minRate, 0);

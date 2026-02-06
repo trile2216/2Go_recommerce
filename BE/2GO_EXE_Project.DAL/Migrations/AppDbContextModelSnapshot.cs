@@ -842,20 +842,29 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.ToTable("ManualReviewQueue");
                 });
 
-            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.MarketPriceCache", b =>
+            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.MarketPrice", b =>
                 {
-                    b.Property<string>("ProductKey")
-                        .HasMaxLength(255)
-                        .IsUnicode(false)
-                        .HasColumnType("character varying(255)");
+                    b.Property<int>("MarketPriceId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("MarketPriceId"));
 
                     b.Property<decimal>("AvgPrice")
                         .HasColumnType("decimal(15, 2)");
 
-                    b.Property<DateTime>("LastUpdated")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("NOW()");
+                    b.Property<int?>("CategoryId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Condition")
+                        .IsUnicode(false)
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Confidence")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<decimal>("MaxPrice")
                         .HasColumnType("decimal(15, 2)");
@@ -863,13 +872,32 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.Property<decimal>("MinPrice")
                         .HasColumnType("decimal(15, 2)");
 
-                    b.Property<string>("SourcesJson")
-                        .HasColumnType("text");
+                    b.Property<string>("ProductKey")
+                        .HasMaxLength(255)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(255)");
 
-                    b.HasKey("ProductKey")
-                        .HasName("PK_MarketPriceCache");
+                    b.Property<int>("SampleCount")
+                        .HasColumnType("integer");
 
-                    b.ToTable("MarketPriceCache");
+                    b.Property<string>("Source")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.HasKey("MarketPriceId")
+                        .HasName("PK_MarketPrices");
+
+                    b.HasIndex("ProductKey", "CategoryId", "Condition")
+                        .IsUnique()
+                        .HasDatabaseName("IX_MarketPrices_Product_Category_Condition");
+
+                    b.ToTable("MarketPrices");
                 });
 
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.Message", b =>

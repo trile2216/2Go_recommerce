@@ -15,9 +15,16 @@ public class NoteGenerationService : INoteGenerationService
             return $"Không đủ dữ liệu thị trường{reason}. Vui lòng cập nhật thêm thông tin sản phẩm.";
         }
 
-        return $"Sản phẩm được nhận diện: {pricing.DetectedProduct}. " +
-               $"Tình trạng AI đánh giá: {conditionAi}. " +
-               $"Giá thị trường trung bình khoảng {pricing.MarketAvg:N0} VND. " +
-               $"Gợi ý giá bán trong khoảng {pricing.SuggestedMin:N0} - {pricing.SuggestedMax:N0} VND.";
+        var note = $"Sản phẩm được nhận diện: {pricing.DetectedProduct}. " +
+                   $"Tình trạng AI đánh giá: {conditionAi}. " +
+                   $"Giá thị trường trung bình khoảng {pricing.MarketAvg:N0} VND. " +
+                   $"Gợi ý giá bán trong khoảng {pricing.SuggestedMin:N0} - {pricing.SuggestedMax:N0} VND.";
+
+        if (string.Equals(pricing.Source, "rule_estimation", StringComparison.OrdinalIgnoreCase))
+        {
+            note += " Giá mang tính tham khảo.";
+        }
+
+        return note;
     }
 }

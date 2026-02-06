@@ -15,11 +15,13 @@ public class OrderService : IOrderService
 {
     private readonly IUnitOfWork _uow;
     private readonly IEscrowService _escrowService;
+    private readonly IMarketPriceProvider _marketPriceProvider;
 
-    public OrderService(IUnitOfWork uow, IEscrowService escrowService)
+    public OrderService(IUnitOfWork uow, IEscrowService escrowService, IMarketPriceProvider marketPriceProvider)
     {
         _uow = uow;
         _escrowService = escrowService;
+        _marketPriceProvider = marketPriceProvider;
     }
 
     private static long GetUserId(ClaimsPrincipal principal)
@@ -382,6 +384,7 @@ public class OrderService : IOrderService
             listing.AvailableQuantity = 0;
             listing.UpdatedAt = DateTime.UtcNow;
             _uow.Listings.Update(listing);
+            await _marketPriceProvider.TrackListingAsync(listing, "completed_sale", cancellationToken);
         }
         await _uow.SaveChangesAsync(cancellationToken);
     }

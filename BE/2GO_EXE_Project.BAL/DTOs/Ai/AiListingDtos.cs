@@ -22,6 +22,8 @@ public record AiPricingResult(
     string ConditionAI,
     decimal SuggestedMin,
     decimal SuggestedMax,
+    string Source,
+    string Confidence,
     string? Reason);
 
 public record AiRiskResult(

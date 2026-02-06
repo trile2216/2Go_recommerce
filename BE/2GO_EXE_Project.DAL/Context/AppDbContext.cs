@@ -61,7 +61,7 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Message> Messages { get; set; }
 
-    public virtual DbSet<MarketPriceCache> MarketPriceCaches { get; set; }
+    public virtual DbSet<MarketPrice> MarketPrices { get; set; }
 
     public virtual DbSet<ManualReviewQueue> ManualReviewQueues { get; set; }
 
@@ -315,10 +315,13 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Sender).WithMany(p => p.Messages).HasConstraintName("FK_Messages_Sender");
         });
 
-        modelBuilder.Entity<MarketPriceCache>(entity =>
+        modelBuilder.Entity<MarketPrice>(entity =>
         {
-            entity.HasKey(e => e.ProductKey).HasName("PK_MarketPriceCache");
-            entity.Property(e => e.LastUpdated).HasDefaultValueSql("NOW()");
+            entity.HasKey(e => e.MarketPriceId).HasName("PK_MarketPrices");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("NOW()");
+            entity.HasIndex(e => new { e.ProductKey, e.CategoryId, e.Condition })
+                .HasDatabaseName("IX_MarketPrices_Product_Category_Condition")
+                .IsUnique();
         });
 
         modelBuilder.Entity<ManualReviewQueue>(entity =>

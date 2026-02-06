@@ -13,9 +13,11 @@ namespace _2GO_EXE_Project.BAL.Services;
 public class ModeratorListingService : IModeratorListingService
 {
     private readonly IUnitOfWork _uow;
-    public ModeratorListingService(IUnitOfWork uow)
+    private readonly IMarketPriceProvider _marketPriceProvider;
+    public ModeratorListingService(IUnitOfWork uow, IMarketPriceProvider marketPriceProvider)
     {
         _uow = uow;
+        _marketPriceProvider = marketPriceProvider;
     }
 
     private static long? GetUserId(ClaimsPrincipal principal)
@@ -128,6 +130,7 @@ public class ModeratorListingService : IModeratorListingService
         _uow.Listings.Update(listing);
         await _uow.SaveChangesAsync(cancellationToken);
 
+        await _marketPriceProvider.TrackListingAsync(listing, "approved_listing", cancellationToken);
         await LogModActionAsync(modPrincipal, "ApproveListing", new { ListingId = listingId }, cancellationToken);
         return new BasicResponse(true, "Listing approved.");
     }

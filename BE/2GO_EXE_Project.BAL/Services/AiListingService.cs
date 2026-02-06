@@ -11,8 +11,9 @@ namespace _2GO_EXE_Project.BAL.Services;
 
 public class AiListingService : IAiListingService
 {
+    private static readonly Regex SpaceRegex = new(@"\s+", RegexOptions.Compiled);
     private readonly IAiQualityCheckService _qualityCheckService;
-    private readonly IMarketPriceService _marketPriceService;
+    private readonly IMarketPriceProvider _marketPriceProvider;
     private readonly IPricingService _pricingService;
     private readonly IModerationService _moderationService;
     private readonly INoteGenerationService _noteGenerationService;
@@ -20,14 +21,14 @@ public class AiListingService : IAiListingService
 
     public AiListingService(
         IAiQualityCheckService qualityCheckService,
-        IMarketPriceService marketPriceService,
+        IMarketPriceProvider marketPriceProvider,
         IPricingService pricingService,
         IModerationService moderationService,
         INoteGenerationService noteGenerationService,
         AppDbContext db)
     {
         _qualityCheckService = qualityCheckService;
-        _marketPriceService = marketPriceService;
+        _marketPriceProvider = marketPriceProvider;
         _pricingService = pricingService;
         _moderationService = moderationService;
         _noteGenerationService = noteGenerationService;
@@ -38,11 +39,21 @@ public class AiListingService : IAiListingService
     {
         var quality = await _qualityCheckService.CheckAsync(request.MediaUrls, cancellationToken);
 
-        var detectedProduct = await BuildQueryAsync(request, cancellationToken);
-        var market = await _marketPriceService.AnalyzeMarketAsync(detectedProduct, cancellationToken);
-
         var conditionAi = InferCondition(request.Title, request.Description);
-        var pricing = market with { ConditionAI = conditionAi };
+        var productKey = await BuildProductKeyAsync(request, cancellationToken);
+        var market = await _marketPriceProvider.GetMarketPriceAsync(
+            new MarketPriceInput(productKey, request.CategoryId, conditionAi, request.Price),
+            cancellationToken);
+
+        var pricing = new AiPricingResult(
+            productKey,
+            market.MarketAvg,
+            conditionAi,
+            0,
+            0,
+            market.Source,
+            market.Confidence,
+            market.Reason);
         pricing = _pricingService.BuildSuggestedRange(pricing);
 
         var risk = _moderationService.AnalyzeRisk(request.Title, request.Description, request.Price, pricing.SuggestedMin);
@@ -56,7 +67,7 @@ public class AiListingService : IAiListingService
         return response;
     }
 
-    private async Task<string> BuildQueryAsync(AiListingAnalyzeRequest request, CancellationToken cancellationToken)
+    private async Task<string> BuildProductKeyAsync(AiListingAnalyzeRequest request, CancellationToken cancellationToken)
     {
         var brand = request.Brand?.Trim();
         var categoryName = await _db.Categories
@@ -68,28 +79,27 @@ public class AiListingService : IAiListingService
         if (!string.IsNullOrWhiteSpace(brand)) parts.Add(brand);
         if (!string.IsNullOrWhiteSpace(categoryName)) parts.Add(categoryName);
         if (parts.Count == 0) parts.Add(request.Title);
-        parts.Add("giá mới");
-        return NormalizeQuery(string.Join(" ", parts));
+        return NormalizeKey(string.Join(" ", parts));
     }
 
-    private static string NormalizeQuery(string input)
+    private static string NormalizeKey(string input)
     {
         if (string.IsNullOrWhiteSpace(input)) return string.Empty;
-        return Regex.Replace(input, @"\s+", " ").Trim();
+        return SpaceRegex.Replace(input, " ").Trim().ToLowerInvariant();
     }
 
     private static string InferCondition(string title, string description)
     {
         var text = $"{title} {description}".ToLowerInvariant();
-        if (text.Contains("má»›i") || text.Contains("like new") || text.Contains("99%"))
+        if (text.Contains("mới") || text.Contains("like new") || text.Contains("99%"))
         {
-            return "EXCELLENT";
+            return "NEW";
         }
-        if (text.Contains("xÆ°á»›c") || text.Contains("tráº§y") || text.Contains("cÅ©"))
+        if (text.Contains("xước") || text.Contains("trầy") || text.Contains("cũ"))
         {
             return "FAIR";
         }
-        if (text.Contains("há»ng") || text.Contains("lá»—i"))
+        if (text.Contains("hỏng") || text.Contains("lỗi"))
         {
             return "POOR";
         }

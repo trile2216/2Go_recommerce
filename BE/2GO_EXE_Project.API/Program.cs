@@ -81,8 +81,7 @@ builder.Services.AddScoped<IAiQualityCheckService, AiQualityCheckService>();
 builder.Services.AddScoped<IPricingService, PricingService>();
 builder.Services.AddScoped<IModerationService, ModerationService>();
 builder.Services.AddScoped<INoteGenerationService, NoteGenerationService>();
-builder.Services.Configure<GoogleSearchSettings>(builder.Configuration.GetSection("GoogleSearch"));
-builder.Services.AddHttpClient<IMarketPriceService, MarketPriceService>();
+builder.Services.AddScoped<IMarketPriceProvider, MarketPriceProvider>();
 // Configure PayOS
 builder.Services.AddKeyedSingleton("OrderClient", (serviceProvider, key) =>
 {
