@@ -33,12 +33,16 @@ public class AdminListingService : IAdminListingService
     {
         var query = _uow.Listings.Query()
             .Include(l => l.SubCategory)
-            .ThenInclude(sc => sc.Category)
+            .ThenInclude(sc => sc!.Category)
             .Include(l => l.ListingImages)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(status))
         {
+            if (!AllowedStatuses.Contains(status))
+            {
+                throw new InvalidOperationException($"Invalid listing status. Allowed: {string.Join(", ", ListingStatuses.All)}.");
+            }
             query = query.Where(l => l.Status == status);
         }
         if (sellerId.HasValue)
@@ -79,7 +83,7 @@ public class AdminListingService : IAdminListingService
     {
         var query = _uow.Listings.Query()
             .Include(l => l.SubCategory)
-            .ThenInclude(sc => sc.Category)
+            .ThenInclude(sc => sc!.Category)
             .Include(l => l.ListingImages)
             .Include(l => l.ListingAttributes)
             .Include(l => l.Seller)
@@ -107,6 +111,8 @@ public class AdminListingService : IAdminListingService
             listing.Description,
             listing.Price,
             listing.HasNegotiation,
+            listing.ListingType,
+            listing.AvailableQuantity,
             listing.Condition,
             listing.Brand,
             listing.Status,

@@ -3,15 +3,18 @@ import { Link, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { Heart, MessageSquare, Bell, User, Search, ChevronDown, MapPin, Check, X, LogOut } from "lucide-react";
 import "./Header.css";
+import logo from "../assets/logo.jpg";
 import { fetchAllCategories } from "../service/home/api.category";
 import { fetchAllDistricts } from "../service/home/api.district";
 import { fetchAllWards } from "../service/home/api.ward";
+import { useAuth } from "../hooks/useAuth";
 
 import LocationPermissionPopup from "./LocationPermissionPopup";
 
 
 export default function Header() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(0);
   const [categories, setCategories] = useState([{id: 0, name: "Tất cả"}]);
@@ -206,11 +209,8 @@ export default function Header() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    setUser(null);
-    setIsLoggedIn(false);
+  const handleLogout = async () => {
+    await logout();
     setShowUserMenu(false);
     navigate('/');
   };
@@ -235,9 +235,9 @@ export default function Header() {
       <div className="header-wrapper">
         {/* Logo */}
         <Link to="/" className="header-logo" onClick={closeAllMenus}>
-          <div className="logo-badge">R</div>
+          <img src={logo} alt="2GO Logo" className="logo-badge" />
           <div className="logo-text">
-            <h1 className="logo-title">ReCommerce</h1>
+            <h1 className="logo-title">2GO</h1>
             <p className="logo-subtitle">Thủ Đức</p>
           </div>
         </Link>

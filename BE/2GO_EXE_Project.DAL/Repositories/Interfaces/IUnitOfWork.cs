@@ -7,6 +7,8 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     IAiScanResultRepository AiScanResults { get; }
     IApiLogRepository ApiLogs { get; }
     ICategoryRepository Categories { get; }
+    ICartRepository Carts { get; }
+    ICartItemRepository CartItems { get; }
     IChatRepository Chats { get; }
     ICityRepository Cities { get; }
     IDeviceLogRepository DeviceLogs { get; }

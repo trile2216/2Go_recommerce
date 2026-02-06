@@ -7,6 +7,8 @@ public interface IAiModerationLogRepository : IGenericRepository<AiModerationLog
 public interface IAiScanResultRepository : IGenericRepository<AiScanResult> { }
 public interface IApiLogRepository : IGenericRepository<ApiLog> { }
 public interface ICategoryRepository : IGenericRepository<Category> { }
+public interface ICartRepository : IGenericRepository<Cart> { }
+public interface ICartItemRepository : IGenericRepository<CartItem> { }
 public interface IChatRepository : IGenericRepository<Chat> { }
 public interface ICityRepository : IGenericRepository<City> { }
 public interface IDeviceLogRepository : IGenericRepository<DeviceLog> { }

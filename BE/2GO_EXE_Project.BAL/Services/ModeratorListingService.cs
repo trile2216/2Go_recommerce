@@ -31,12 +31,16 @@ public class ModeratorListingService : IModeratorListingService
     {
         var query = _uow.Listings.Query()
             .Include(l => l.SubCategory)
-            .ThenInclude(sc => sc.Category)
+            .ThenInclude(sc => sc!.Category)
             .Include(l => l.ListingImages)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(status))
         {
+            if (!ListingStatuses.All.Contains(status, StringComparer.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"Invalid listing status. Allowed: {string.Join(", ", ListingStatuses.All)}.");
+            }
             query = query.Where(l => l.Status == status);
         }
 
@@ -65,7 +69,7 @@ public class ModeratorListingService : IModeratorListingService
     {
         var listing = await _uow.Listings.Query()
             .Include(l => l.SubCategory)
-            .ThenInclude(sc => sc.Category)
+            .ThenInclude(sc => sc!.Category)
             .Include(l => l.ListingImages)
             .Include(l => l.ListingAttributes)
             .Include(l => l.Seller)
@@ -91,6 +95,8 @@ public class ModeratorListingService : IModeratorListingService
             listing.Description,
             listing.Price,
             listing.HasNegotiation,
+            listing.ListingType,
+            listing.AvailableQuantity,
             listing.Condition,
             listing.Brand,
             listing.Status,

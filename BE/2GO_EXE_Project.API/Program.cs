@@ -20,10 +20,24 @@ using PayOS.Models;
 var builder = WebApplication.CreateBuilder(args);
 var corsName = "AllowAll";
 
+var corsOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? Array.Empty<string>();
+if (corsOrigins.Length == 0)
+{
+    corsOrigins = new[] { "http://localhost:5173" };
+}
+
 builder.Services.AddCors(p => p.AddPolicy(name: corsName, policy =>
 {
-    policy.WithOrigins("http://localhost:5173")
+    policy.WithOrigins(corsOrigins)
         .AllowCredentials()
+        .AllowAnyMethod()
+        .AllowAnyHeader();
+}));
+
+// CORS policy for webhooks (no credentials needed)
+builder.Services.AddCors(p => p.AddPolicy("WebhookPolicy", policy =>
+{
+    policy.AllowAnyOrigin()
         .AllowAnyMethod()
         .AllowAnyHeader();
 }));
@@ -32,8 +46,8 @@ builder.Services.AddCors(p => p.AddPolicy(name: corsName, policy =>
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 builder.Services.Configure<GmailEmailSettings>(builder.Configuration.GetSection("Gmail"));
 builder.Services.Configure<_2GO_EXE_Project.BAL.Settings.PaymentGatewaySettings>(builder.Configuration.GetSection("PaymentGateway"));
-builder.Services.Configure<MomoSettings>(builder.Configuration.GetSection("Momo"));
 builder.Services.Configure<PayOSSettings>(builder.Configuration.GetSection("PayOS"));
+builder.Services.Configure<GhnSettings>(builder.Configuration.GetSection("GHN"));
 builder.Services.Configure<_2GO_EXE_Project.BAL.Settings.CloudinarySettings>(builder.Configuration.GetSection("Cloudinary"));
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
@@ -52,14 +66,16 @@ builder.Services.AddScoped<ISavedListingService, SavedListingService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IOrderTransactionService, OrderTransactionService>();
+builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IPaymentGateway, HmacPaymentGateway>();
-builder.Services.AddHttpClient<IMomoPaymentGateway, MomoPaymentGateway>();
+builder.Services.AddHttpClient<IPayosPaymentGateway, PayosPaymentGateway>();
 builder.Services.AddScoped<IEscrowService, EscrowService>();
 builder.Services.AddScoped<IShippingService, ShippingService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IDistrictService, DistrictService>();
 builder.Services.AddScoped<IWardService, WardService>();
+builder.Services.AddHttpClient<IGhnShippingService, GhnShippingService>();
 // Configure PayOS
 builder.Services.AddKeyedSingleton("OrderClient", (serviceProvider, key) =>
 {
@@ -206,3 +222,4 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+

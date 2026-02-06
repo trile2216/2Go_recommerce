@@ -27,6 +27,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Category> Categories { get; set; }
 
+    public virtual DbSet<Cart> Carts { get; set; }
+
+    public virtual DbSet<CartItem> CartItems { get; set; }
+
     public virtual DbSet<Chat> Chats { get; set; }
 
     public virtual DbSet<City> Cities { get; set; }
@@ -141,6 +145,31 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.CategoryId).HasName("PK__Categori__19093A0B23FCD2DD");
         });
 
+        modelBuilder.Entity<Cart>(entity =>
+        {
+            entity.HasKey(e => e.CartId).HasName("PK__Carts__51BCD7B7E05DE5F4");
+
+            entity.Property(e => e.Status).HasDefaultValue("ACTIVE");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Carts).HasConstraintName("FK_Carts_Users");
+        });
+
+        modelBuilder.Entity<CartItem>(entity =>
+        {
+            entity.HasKey(e => e.CartItemId).HasName("PK__CartIte__488B0B0A3F05C2DE");
+
+            entity.Property(e => e.IsSelected).HasDefaultValue(true);
+            entity.Property(e => e.Status).HasDefaultValue("AVAILABLE");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+
+            entity.HasOne(d => d.Cart).WithMany(p => p.CartItems).HasConstraintName("FK_CartItems_Carts");
+
+            entity.HasOne(d => d.Listing).WithMany(p => p.CartItems).HasConstraintName("FK_CartItems_Listings");
+
+            entity.HasOne(d => d.Seller).WithMany(p => p.CartItemsAsSeller).HasConstraintName("FK_CartItems_Sellers");
+        });
+
         modelBuilder.Entity<Chat>(entity =>
         {
             entity.HasKey(e => e.ChatId).HasName("PK__Chats__A9FBE7C6633500B5");
@@ -230,6 +259,8 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
             entity.Property(e => e.HasNegotiation).HasDefaultValue(true);
+            entity.Property(e => e.ListingType).HasMaxLength(20).IsUnicode(false).HasDefaultValue("SINGLE");
+            entity.Property(e => e.AvailableQuantity).HasDefaultValue(1);
 
             entity.HasOne(d => d.Seller).WithMany(p => p.Listings).HasConstraintName("FK_Listings_Users");
 
@@ -305,6 +336,8 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.PaymentId).HasName("PK__Payments__9B556A383AF28E0A");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+            entity.Property(e => e.CommissionRate).HasPrecision(5, 2);
+            entity.Property(e => e.CommissionBaseAmount).HasPrecision(15, 2);
 
             entity.HasOne(d => d.User).WithMany(p => p.Payments).HasConstraintName("FK_Payments_Users");
         });
@@ -390,6 +423,7 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.UserId).HasName("PK__Users__1788CC4C13494ED7");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+            entity.Property(e => e.FreeListingUsed).HasDefaultValue(0);
         });
 
         modelBuilder.Entity<UserDevice>(entity =>

@@ -13,6 +13,14 @@ public partial class PaymentLog
 
     public long? PaymentId { get; set; }
 
+    [StringLength(50)]
+    [Unicode(false)]
+    public string? Provider { get; set; }
+
+    [StringLength(50)]
+    [Unicode(false)]
+    public string? Event { get; set; }
+
     public string? RawResponse { get; set; }
 
     public DateTime? CreatedAt { get; set; }

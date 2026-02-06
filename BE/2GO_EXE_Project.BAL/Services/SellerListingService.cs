@@ -12,6 +12,7 @@ namespace _2GO_EXE_Project.BAL.Services;
 public class SellerListingService : ISellerListingService
 {
     private readonly IUnitOfWork _uow;
+    private const int FreeListingLimit = 2;
     public SellerListingService(IUnitOfWork uow)
     {
         _uow = uow;
@@ -75,6 +76,10 @@ public class SellerListingService : ISellerListingService
 
         if (!string.IsNullOrWhiteSpace(status))
         {
+            if (!ListingStatuses.All.Contains(status, StringComparer.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"Invalid listing status. Allowed: {string.Join(", ", ListingStatuses.All)}.");
+            }
             query = query.Where(l => l.Status == status);
         }
 
@@ -101,7 +106,7 @@ public class SellerListingService : ISellerListingService
         var sellerId = GetUserId(sellerPrincipal);
         var listing = await _uow.Listings.Query()
             .Include(l => l.SubCategory)
-            .ThenInclude(sc => sc.Category)
+            .ThenInclude(sc => sc!.Category)
             .Include(l => l.ListingImages)
             .Include(l => l.ListingAttributes)
             .Where(l => l.ListingId == listingId && l.SellerId == sellerId)
@@ -129,6 +134,8 @@ public class SellerListingService : ISellerListingService
             listing.Description,
             listing.Price,
             listing.HasNegotiation,
+            listing.ListingType,
+            listing.AvailableQuantity,
             listing.Condition,
             listing.Brand,
             listing.Status,
@@ -176,6 +183,8 @@ public class SellerListingService : ISellerListingService
             Condition = request.Condition,
             Price = request.Price,
             HasNegotiation = request.HasNegotiation,
+            ListingType = ListingTypes.Single,
+            AvailableQuantity = 1,
             Dimensions = request.Dimensions,
             Weight = request.Weight,
             Brand = request.Brand,
@@ -238,6 +247,18 @@ public class SellerListingService : ISellerListingService
         listing.WardId = request.WardId ?? listing.WardId;
         listing.Price = request.Price ?? listing.Price;
         listing.HasNegotiation = request.HasNegotiation ?? listing.HasNegotiation;
+        // Force SINGLE for thanh-ly model
+        if (!string.IsNullOrWhiteSpace(request.ListingType) &&
+            !string.Equals(request.ListingType, ListingTypes.Single, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("ListingType only supports SINGLE for this marketplace.");
+        }
+        if (request.AvailableQuantity.HasValue && request.AvailableQuantity.Value != 1)
+        {
+            throw new InvalidOperationException("AvailableQuantity must be 1 for SINGLE listings.");
+        }
+        listing.ListingType = ListingTypes.Single;
+        listing.AvailableQuantity = 1;
         listing.Condition = request.Condition ?? listing.Condition;
         listing.Brand = request.Brand ?? listing.Brand;
         listing.Dimensions = request.Dimensions ?? listing.Dimensions;
@@ -310,8 +331,24 @@ public class SellerListingService : ISellerListingService
             _uow.ListingImages.Update(images[0]);
         }
 
+        var user = await _uow.Users.Query()
+            .FirstOrDefaultAsync(u => u.UserId == sellerId, cancellationToken);
+        if (user == null) return new BasicResponse(false, "User not found.");
+
+        var now = DateTime.UtcNow;
+        var hasActiveSubscription = user.SubscriptionUntil.HasValue && user.SubscriptionUntil.Value > now;
+        if (!hasActiveSubscription)
+        {
+            if (user.FreeListingUsed >= FreeListingLimit)
+            {
+                return new BasicResponse(false, "Free publish limit reached. Please purchase a subscription to continue.");
+            }
+            user.FreeListingUsed += 1;
+            _uow.Users.Update(user);
+        }
+
         listing.Status = ListingStatuses.PendingReview;
-        listing.UpdatedAt = DateTime.UtcNow;
+        listing.UpdatedAt = now;
         _uow.Listings.Update(listing);
         await _uow.SaveChangesAsync(cancellationToken);
         return new BasicResponse(true, "Listing submitted for review.");
@@ -410,5 +447,12 @@ public class SellerListingService : ISellerListingService
             .CountAsync(o => o.ListingId == listingId, cancellationToken);
 
         return new ListingStatsResponse(listingId, views, saves, inquiries);
+    }
+
+    private static string NormalizeListingType(string? listingType)
+    {
+        if (string.IsNullOrWhiteSpace(listingType)) return ListingTypes.Single;
+        if (string.Equals(listingType, ListingTypes.Single, StringComparison.OrdinalIgnoreCase)) return ListingTypes.Single;
+        throw new InvalidOperationException("ListingType only supports SINGLE for this marketplace.");
     }
 }

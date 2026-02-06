@@ -32,6 +32,12 @@ public partial class Listing
 
     public bool? HasNegotiation { get; set; }
 
+    [StringLength(20)]
+    [Unicode(false)]
+    public string? ListingType { get; set; }
+
+    public int? AvailableQuantity { get; set; }
+
     [StringLength(255)]
     [Unicode(false)]
     public string? Dimensions { get; set; }
@@ -70,6 +76,9 @@ public partial class Listing
 
     [InverseProperty("Listing")]
     public virtual ICollection<ListingView> ListingViews { get; set; } = new List<ListingView>();
+
+    [InverseProperty("Listing")]
+    public virtual ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
 
     [InverseProperty("Listing")]
     public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();

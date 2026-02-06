@@ -137,7 +137,7 @@ public class AuthService : IAuthService
         var refreshToken = await IssueRefreshTokenAsync(user.UserId, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
 
-        return new AuthResponse(user.UserId, user.Email, user.Phone, accessToken, refreshToken, expiresAt);
+        return new AuthResponse(user.UserId, user.Email, user.Phone, user.Role, accessToken, refreshToken, expiresAt);
     }
 
     public async Task<BasicResponse> LogoutAsync(RefreshTokenRequest request, CancellationToken cancellationToken = default)
@@ -189,7 +189,7 @@ public class AuthService : IAuthService
         _uow.RefreshTokens.Update(token);
 
         await _uow.SaveChangesAsync(cancellationToken);
-        return new AuthResponse(user.UserId, user.Email, user.Phone, accessToken, newRefreshToken, expiresAt);
+        return new AuthResponse(user.UserId, user.Email, user.Phone, user.Role, accessToken, newRefreshToken, expiresAt);
     }
 
     public async Task<BasicResponse> VerifyEmailAsync(VerifyEmailRequest request, CancellationToken cancellationToken = default)
@@ -341,7 +341,7 @@ public class AuthService : IAuthService
         var refreshToken = await IssueRefreshTokenAsync(user.UserId, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
 
-        return new AuthResponse(user.UserId, user.Email, user.Phone, accessToken, refreshToken, expiresAt);
+        return new AuthResponse(user.UserId, user.Email, user.Phone, user.Role, accessToken, refreshToken, expiresAt);
     }
 
     public async Task<UserInfoResponse> GetCurrentUserAsync(ClaimsPrincipal userPrincipal, CancellationToken cancellationToken = default)

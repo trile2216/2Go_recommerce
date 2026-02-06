@@ -97,6 +97,7 @@ public class OrderService : IOrderService
         await _escrowService.EnsureForOrderAsync(order, payment.PaymentId, cancellationToken);
 
         listing.Status = ListingStatuses.Reserved;
+        listing.AvailableQuantity = 0;
         listing.UpdatedAt = DateTime.UtcNow;
         _uow.Listings.Update(listing);
         await _uow.SaveChangesAsync(cancellationToken);
@@ -223,7 +224,7 @@ public class OrderService : IOrderService
         await _uow.SaveChangesAsync(cancellationToken);
         await UpdatePaymentStatusAsync(order.OrderId, PaymentStatuses.Cancelled, cancellationToken);
         await _escrowService.RefundForOrderAsync(order.OrderId, cancellationToken);
-        await RestoreListingIfReservedAsync(order.ListingId, cancellationToken);
+        await RestoreListingIfReservedAsync(order, cancellationToken);
         await LogOrderActionAsync(userId, "OrderCancelled", new { order.OrderId, order.Status }, cancellationToken);
         return new BasicResponse(true, "Order cancelled.");
     }
@@ -296,7 +297,7 @@ public class OrderService : IOrderService
         _uow.Orders.Update(order);
         await _uow.SaveChangesAsync(cancellationToken);
         await _escrowService.ReleaseForOrderAsync(order.OrderId, cancellationToken);
-        await MarkListingSoldAsync(order.ListingId, cancellationToken);
+        await MarkListingSoldAsync(order, cancellationToken);
         await LogOrderActionAsync(userId, "OrderCompleted", new { order.OrderId, order.Status }, cancellationToken);
         return new BasicResponse(true, "Order completed.");
     }
@@ -304,8 +305,6 @@ public class OrderService : IOrderService
     private static string NormalizePaymentMethod(string method)
     {
         if (string.Equals(method, "COD", StringComparison.OrdinalIgnoreCase)) return "COD";
-        if (string.Equals(method, "VNPAY", StringComparison.OrdinalIgnoreCase)) return "VNPAY";
-        if (string.Equals(method, "MOMO", StringComparison.OrdinalIgnoreCase)) return "MOMO";
         if (string.Equals(method, "PAYOS", StringComparison.OrdinalIgnoreCase)) return "PAYOS";
         throw new InvalidOperationException("Payment method not supported.");
     }
@@ -326,28 +325,64 @@ public class OrderService : IOrderService
         await _uow.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task RestoreListingIfReservedAsync(long? listingId, CancellationToken cancellationToken)
+    private async Task RestoreListingIfReservedAsync(Order order, CancellationToken cancellationToken)
     {
-        if (!listingId.HasValue) return;
-        var listing = await _uow.Listings.GetByIdAsync(listingId.Value);
-        if (listing == null) return;
-        if (string.Equals(listing.Status, ListingStatuses.Reserved, StringComparison.OrdinalIgnoreCase))
+        var listingIds = new List<long>();
+        if (order.ListingId.HasValue) listingIds.Add(order.ListingId.Value);
+
+        if (listingIds.Count == 0)
         {
-            listing.Status = ListingStatuses.Active;
-            listing.UpdatedAt = DateTime.UtcNow;
-            _uow.Listings.Update(listing);
-            await _uow.SaveChangesAsync(cancellationToken);
+            var orderItems = await _uow.OrderItems.Query()
+                .Where(oi => oi.OrderId == order.OrderId && oi.ListingId.HasValue)
+                .ToListAsync(cancellationToken);
+            listingIds.AddRange(orderItems.Select(oi => oi.ListingId!.Value));
         }
+
+        if (listingIds.Count == 0) return;
+
+        var listings = await _uow.Listings.Query()
+            .Where(l => listingIds.Contains(l.ListingId))
+            .ToListAsync(cancellationToken);
+
+        foreach (var listing in listings)
+        {
+            if (string.Equals(listing.Status, ListingStatuses.Reserved, StringComparison.OrdinalIgnoreCase))
+            {
+                listing.Status = ListingStatuses.Active;
+                listing.AvailableQuantity = 1;
+                listing.UpdatedAt = DateTime.UtcNow;
+                _uow.Listings.Update(listing);
+            }
+        }
+        await _uow.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task MarkListingSoldAsync(long? listingId, CancellationToken cancellationToken)
+    private async Task MarkListingSoldAsync(Order order, CancellationToken cancellationToken)
     {
-        if (!listingId.HasValue) return;
-        var listing = await _uow.Listings.GetByIdAsync(listingId.Value);
-        if (listing == null) return;
-        listing.Status = ListingStatuses.Sold;
-        listing.UpdatedAt = DateTime.UtcNow;
-        _uow.Listings.Update(listing);
+        var listingIds = new List<long>();
+        if (order.ListingId.HasValue) listingIds.Add(order.ListingId.Value);
+
+        if (listingIds.Count == 0)
+        {
+            var orderItems = await _uow.OrderItems.Query()
+                .Where(oi => oi.OrderId == order.OrderId && oi.ListingId.HasValue)
+                .ToListAsync(cancellationToken);
+            listingIds.AddRange(orderItems.Select(oi => oi.ListingId!.Value));
+        }
+
+        if (listingIds.Count == 0) return;
+
+        var listings = await _uow.Listings.Query()
+            .Where(l => listingIds.Contains(l.ListingId))
+            .ToListAsync(cancellationToken);
+
+        foreach (var listing in listings)
+        {
+            listing.Status = ListingStatuses.Sold;
+            listing.AvailableQuantity = 0;
+            listing.UpdatedAt = DateTime.UtcNow;
+            _uow.Listings.Update(listing);
+        }
         await _uow.SaveChangesAsync(cancellationToken);
     }
 

@@ -10,10 +10,12 @@ namespace _2GO_EXE_Project.API.Controllers;
 public class UploadsController : ControllerBase
 {
     private readonly ICloudinaryService _cloudinaryService;
+    private readonly ILogger<UploadsController> _logger;
 
-    public UploadsController(ICloudinaryService cloudinaryService)
+    public UploadsController(ICloudinaryService cloudinaryService, ILogger<UploadsController> logger)
     {
         _cloudinaryService = cloudinaryService;
+        _logger = logger;
     }
 
     [HttpPost("image")]
@@ -34,8 +36,17 @@ public class UploadsController : ControllerBase
             return BadRequest("Only image files are allowed.");
         }
 
-        await using var stream = file.OpenReadStream();
-        var result = await _cloudinaryService.UploadImageAsync(stream, file.FileName, cancellationToken);
-        return Ok(result);
+        try
+        {
+            await using var stream = file.OpenReadStream();
+            var result = await _cloudinaryService.UploadImageAsync(stream, file.FileName, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Upload image failed. FileName={FileName}, ContentType={ContentType}, Length={Length}",
+                file.FileName, file.ContentType, file.Length);
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
     }
 }

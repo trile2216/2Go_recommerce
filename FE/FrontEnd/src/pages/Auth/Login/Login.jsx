@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { login } from '../../../service/auth/api.auth';
+import { login, loginWithOAuth } from '../../../service/auth/api.auth';
 import './Login.css';
+import { signInWithPopup } from 'firebase/auth';
+import { auth, googleProvider } from '../../../config/firebase';
 
 const Login = () => {
+
   const [credentials, setCredentials] = useState({
     identifier: '',
     password: '',
@@ -65,9 +68,51 @@ const Login = () => {
     }
   };
 
-  const handleOAuthClick = (provider) => {
-    console.log(`${provider} login clicked`);
-    // TODO: Implement OAuth login
+  const handleOAuthClick = async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      
+      // Get Firebase ID Token
+      const idToken = await user.getIdToken();
+      console.log('Firebase ID Token obtained:', idToken);
+      
+      // Send ID Token to backend
+      const response = await loginWithOAuth({ idToken });
+      console.log('OAuth login response:', response);
+      
+      const { accessToken, refreshToken, userId, email, phone } = response;
+      
+      if (accessToken && userId) {
+        const userData = {
+          userId,
+          email: email || user.email,
+          phone,
+          fullName: user.displayName || email.split('@')[0]
+        };
+        
+        localStorage.setItem('token', accessToken);
+        localStorage.setItem('refreshToken', refreshToken);
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        console.log('Successfully stored OAuth user:', userData);
+        
+        setTimeout(() => {
+          navigate('/');
+        }, 100);
+      } else {
+        setError('Invalid OAuth response - missing required fields');
+        console.error('Missing required fields:', { accessToken, userId });
+      }
+    } catch (error) {
+      console.error('OAuth login error:', error);
+      setError(error.response?.data?.message || 'OAuth login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -141,16 +186,7 @@ const Login = () => {
                 />
               </div>
 
-              <div className="form-group checkbox-group">
-                <label className="checkbox-label">
-                  <input
-                    id="customCheckLogin"
-                    type="checkbox"
-                    className="form-checkbox"
-                  />
-                  <span className="checkbox-text">Remember me</span>
-                </label>
-              </div>
+              
 
               <button type="submit" className="submit-btn" disabled={loading}>
                 {loading ? 'Loading...' : 'Sign In'}

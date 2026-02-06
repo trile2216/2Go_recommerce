@@ -8,7 +8,7 @@ public record ForgotPasswordRequest(string Email);
 public record ResetPasswordRequest(string Email, string Code, string NewPassword);
 
 public record RegisterResponse(long UserId, string Message);
-public record AuthResponse(long UserId, string? Email, string? Phone, string AccessToken, string RefreshToken, DateTime AccessTokenExpiresAt);
+public record AuthResponse(long UserId, string? Email, string? Phone, string? Role, string AccessToken, string RefreshToken, DateTime AccessTokenExpiresAt);
 public record BasicResponse(bool Success, string Message);
 public record FirebaseLoginRequest(string IdToken);
 public record UserProfileInfo(string? FullName, DateOnly? Birthday, string? Gender, string? Address, string? Bio, string? AvatarUrl);
