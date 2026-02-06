@@ -1,10 +1,10 @@
-using _2GO_EXE_Project.BAL.DTOs.Ai;
+﻿using _2GO_EXE_Project.BAL.DTOs.Ai;
 
 namespace _2GO_EXE_Project.BAL.Interfaces;
 
-public interface IModerationService
+public interface IUserPrecheckService
 {
-    AiRiskResult AnalyzeRisk(
+    AiRiskResult Evaluate(
         string title,
         string description,
         decimal? listingPrice,

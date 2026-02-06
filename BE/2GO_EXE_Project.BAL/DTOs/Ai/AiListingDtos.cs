@@ -26,6 +26,16 @@ public record AiPricingResult(
     string Confidence,
     string? Reason);
 
+public record AiUserRiskInfo(
+    int AccountAgeDays,
+    int RecentListingsCount,
+    int TotalListingsCount,
+    int CompletedSalesCount,
+    int ReportsCount,
+    int DeviceCount,
+    bool PhoneVerified,
+    bool EmailVerified);
+
 public record AiRiskResult(
     double RiskScore,
     IReadOnlyList<string> Flags,

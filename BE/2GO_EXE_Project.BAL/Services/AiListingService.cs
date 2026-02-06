@@ -15,7 +15,7 @@ public class AiListingService : IAiListingService
     private readonly IAiQualityCheckService _qualityCheckService;
     private readonly IMarketPriceProvider _marketPriceProvider;
     private readonly IPricingService _pricingService;
-    private readonly IModerationService _moderationService;
+    private readonly IUserPrecheckService _precheckService;
     private readonly INoteGenerationService _noteGenerationService;
     private readonly AppDbContext _db;
 
@@ -23,14 +23,14 @@ public class AiListingService : IAiListingService
         IAiQualityCheckService qualityCheckService,
         IMarketPriceProvider marketPriceProvider,
         IPricingService pricingService,
-        IModerationService moderationService,
+        IUserPrecheckService precheckService,
         INoteGenerationService noteGenerationService,
         AppDbContext db)
     {
         _qualityCheckService = qualityCheckService;
         _marketPriceProvider = marketPriceProvider;
         _pricingService = pricingService;
-        _moderationService = moderationService;
+        _precheckService = precheckService;
         _noteGenerationService = noteGenerationService;
         _db = db;
     }
@@ -40,7 +40,7 @@ public class AiListingService : IAiListingService
         var quality = await _qualityCheckService.CheckAsync(request.MediaUrls, cancellationToken);
 
         var conditionAi = InferCondition(request.Title, request.Description);
-        var productKey = await BuildProductKeyAsync(request, cancellationToken);
+        var productKey = await BuildProductKeyAsync(request.CategoryId, request.Brand, request.Title, cancellationToken);
         var market = await _marketPriceProvider.GetMarketPriceAsync(
             new MarketPriceInput(productKey, request.CategoryId, conditionAi, request.Price),
             cancellationToken);
@@ -56,7 +56,15 @@ public class AiListingService : IAiListingService
             market.Reason);
         pricing = _pricingService.BuildSuggestedRange(pricing);
 
-        var risk = _moderationService.AnalyzeRisk(request.Title, request.Description, request.Price, pricing.SuggestedMin);
+        var userInfo = await BuildUserRiskInfoAsync(request.UserId, cancellationToken);
+        var risk = _precheckService.Evaluate(
+            request.Title,
+            request.Description,
+            request.Price,
+            pricing.SuggestedMin,
+            pricing.SuggestedMax,
+            userInfo);
+
         var note = _noteGenerationService.BuildNote(pricing, conditionAi);
 
         var recommendation = ResolveRecommendation(quality, risk);
@@ -67,18 +75,53 @@ public class AiListingService : IAiListingService
         return response;
     }
 
-    private async Task<string> BuildProductKeyAsync(AiListingAnalyzeRequest request, CancellationToken cancellationToken)
+    public async Task<AiListingPrecheckResponse> PrecheckAsync(AiListingPrecheckRequest request, CancellationToken cancellationToken = default)
     {
-        var brand = request.Brand?.Trim();
+        var quality = await _qualityCheckService.CheckAsync(request.MediaUrls, cancellationToken);
+
+        var conditionAi = InferCondition(request.Title, request.Description);
+        var productKey = await BuildProductKeyAsync(request.CategoryId, request.Brand, request.Title, cancellationToken);
+        var market = await _marketPriceProvider.GetMarketPriceAsync(
+            new MarketPriceInput(productKey, request.CategoryId, conditionAi, request.Price),
+            cancellationToken);
+
+        var pricing = new AiPricingResult(
+            productKey,
+            market.MarketAvg,
+            conditionAi,
+            0,
+            0,
+            market.Source,
+            market.Confidence,
+            market.Reason);
+        pricing = _pricingService.BuildSuggestedRange(pricing);
+
+        var userInfo = await BuildUserRiskInfoAsync(request.UserId, cancellationToken);
+        var risk = _precheckService.Evaluate(
+            request.Title,
+            request.Description,
+            request.Price,
+            pricing.SuggestedMin,
+            pricing.SuggestedMax,
+            userInfo);
+
+        var note = _noteGenerationService.BuildNote(pricing, conditionAi);
+        var canPublish = quality.Decision == "PASS" && risk.Action != "REJECTED";
+
+        return new AiListingPrecheckResponse(quality, pricing, risk, note, canPublish);
+    }
+
+    private async Task<string> BuildProductKeyAsync(int categoryId, string? brand, string title, CancellationToken cancellationToken)
+    {
         var categoryName = await _db.Categories
-            .Where(x => x.CategoryId == request.CategoryId)
+            .Where(x => x.CategoryId == categoryId)
             .Select(x => x.Name)
             .FirstOrDefaultAsync(cancellationToken);
 
         var parts = new List<string>();
         if (!string.IsNullOrWhiteSpace(brand)) parts.Add(brand);
         if (!string.IsNullOrWhiteSpace(categoryName)) parts.Add(categoryName);
-        if (parts.Count == 0) parts.Add(request.Title);
+        if (parts.Count == 0) parts.Add(title);
         return NormalizeKey(string.Join(" ", parts));
     }
 
@@ -86,6 +129,58 @@ public class AiListingService : IAiListingService
     {
         if (string.IsNullOrWhiteSpace(input)) return string.Empty;
         return SpaceRegex.Replace(input, " ").Trim().ToLowerInvariant();
+    }
+
+    private async Task<AiUserRiskInfo> BuildUserRiskInfoAsync(string userId, CancellationToken cancellationToken)
+    {
+        if (!long.TryParse(userId, out var id))
+        {
+            return new AiUserRiskInfo(0, 0, 0, 0, 0, 0, false, false);
+        }
+
+        var now = DateTime.UtcNow;
+        var accountAgeDays = await _db.Users
+            .Where(u => u.UserId == id)
+            .Select(u => u.CreatedAt.HasValue ? (int)(now - u.CreatedAt.Value).TotalDays : 0)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var recentListingsCount = await _db.Listings
+            .Where(l => l.SellerId == id && l.CreatedAt.HasValue && l.CreatedAt.Value >= now.AddMinutes(-10))
+            .CountAsync(cancellationToken);
+
+        var totalListingsCount = await _db.Listings
+            .Where(l => l.SellerId == id)
+            .CountAsync(cancellationToken);
+
+        var completedSalesCount = await _db.Orders
+            .Where(o => o.SellerId == id && o.Status == "Completed")
+            .CountAsync(cancellationToken);
+
+        var reportsCount = await _db.Reports
+            .Where(r => r.TargetUserId == id && r.CreatedAt.HasValue && r.CreatedAt.Value >= now.AddDays(-30))
+            .CountAsync(cancellationToken);
+
+        var deviceCount = await _db.UserDevices
+            .Where(d => d.UserId == id)
+            .CountAsync(cancellationToken);
+
+        var verification = await _db.UserVerifications
+            .Where(v => v.UserId == id)
+            .OrderByDescending(v => v.VerifiedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var phoneVerified = verification?.PhoneVerified == true;
+        var emailVerified = verification?.EmailVerified == true;
+
+        return new AiUserRiskInfo(
+            Math.Max(0, accountAgeDays),
+            recentListingsCount,
+            totalListingsCount,
+            completedSalesCount,
+            reportsCount,
+            deviceCount,
+            phoneVerified,
+            emailVerified);
     }
 
     private static string InferCondition(string title, string description)
@@ -113,7 +208,7 @@ public class AiListingService : IAiListingService
             return AiListingRecommendations.RejectedDraft;
         }
 
-        if (quality.Decision == "MANUAL_REVIEW" || risk.Action is "REVIEW" or "BLOCK")
+        if (quality.Decision == "MANUAL_REVIEW" || risk.Action is "PENDING_REVIEW" or "REJECTED")
         {
             return AiListingRecommendations.PendingReview;
         }
@@ -139,7 +234,7 @@ public class AiListingService : IAiListingService
     private async Task QueueManualReviewIfNeededAsync(AiListingAnalyzeRequest request, AiListingAnalyzeResponse response, CancellationToken cancellationToken)
     {
         if (response.FinalRecommendation != AiListingRecommendations.PendingReview &&
-            response.Risk.Action is not "REVIEW" and not "BLOCK" &&
+            response.Risk.Action is not "PENDING_REVIEW" and not "REJECTED" &&
             response.Quality.Decision != "MANUAL_REVIEW")
         {
             return;

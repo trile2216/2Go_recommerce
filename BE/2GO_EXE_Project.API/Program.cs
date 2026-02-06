@@ -80,6 +80,7 @@ builder.Services.AddScoped<IAiListingService, AiListingService>();
 builder.Services.AddScoped<IAiQualityCheckService, AiQualityCheckService>();
 builder.Services.AddScoped<IPricingService, PricingService>();
 builder.Services.AddScoped<IModerationService, ModerationService>();
+builder.Services.AddScoped<IUserPrecheckService, UserPrecheckService>();
 builder.Services.AddScoped<INoteGenerationService, NoteGenerationService>();
 builder.Services.AddScoped<IMarketPriceProvider, MarketPriceProvider>();
 // Configure PayOS
