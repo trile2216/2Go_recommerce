@@ -119,12 +119,12 @@
   gap: 2px;
 }
 
-.star {
+.pd-star {
   font-size: 18px;
   color: #d1d5db;
 }
 
-.star.filled {
+.pd-star.filled {
   color: #fbbf24;
 }
 

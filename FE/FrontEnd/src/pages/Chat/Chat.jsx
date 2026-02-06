@@ -156,7 +156,7 @@ export default function Chat() {
               <Search size={18} className="search-icon" />
               <Input
                 placeholder="Nhập 3 ký tự để bắt đầu tìm kiếm"
-                className="search-input"
+                className="chat-search-input"
                 variant="filled"
               />
             </div>
@@ -230,7 +230,7 @@ export default function Chat() {
                   <Button
                     type="text"
                     icon={<ArrowLeftOutlined size={20} />}
-                    className="back-button"
+                    className="chat-back-button"
                     onClick={() => setSelectedConversation(null)}
                   />
                   <Avatar
@@ -259,18 +259,18 @@ export default function Chat() {
 
               {/* Product Context */}
               <div className="chat-product-context">
-                <div className="product-card">
+                <div className="chat-product-card">
                   <img
                     src="https://images.unsplash.com/photo-1632661674596-df8be070a5c5?w=100"
                     alt="Product"
-                    className="product-image"
+                    className="chat-product-image"
                   />
-                  <div className="product-info">
-                    <Text strong className="product-name">
+                  <div className="chat-product-info">
+                    <Text strong className="chat-product-name">
                       iPhone 13 Pro 128GB Vàng
                     </Text>
-                    <Text className="product-price">15.500.000 đ</Text>
-                    <Text className="product-status">
+                    <Text className="chat-product-price">15.500.000 đ</Text>
+                    <Text className="chat-product-status">
                       (Tin tự ẩn hết hạn hoặc đã bán)
                     </Text>
                   </div>
@@ -415,7 +415,7 @@ export default function Chat() {
                 key={idx}
                 type="text"
                 block
-                className="action-button"
+                className="chat-action-button"
                 icon={item.icon}
               >
                 {item.label}

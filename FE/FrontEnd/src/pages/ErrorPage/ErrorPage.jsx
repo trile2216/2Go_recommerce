@@ -26,8 +26,8 @@ export default function ErrorPage({ error = 'Something went wrong!' }) {
         </div>
 
         <h1>Oops! Có lỗi xảy ra!</h1>
-        {error && <p className="error-message">{error}</p>}
-        <div className="btn" onClick={handleReturnHome}>
+        {error && <p className="ep-error-message">{error}</p>}
+        <div className="ep-btn" onClick={handleReturnHome}>
           Quay về trang chủ
         </div>
       </div>

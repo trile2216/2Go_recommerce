@@ -161,7 +161,7 @@ export default function Orders() {
                     {SELL_ORDERS.length > 8 && !showMoreSell && (
                       <div className="load-more-container">
                         <button
-                          className="load-more-btn"
+                          className="order-load-more-btn"
                           onClick={() => setShowMoreSell(true)}
                         >
                           Xem thêm
@@ -191,7 +191,7 @@ export default function Orders() {
                     {BUY_ORDERS.length > 8 && !showMoreBuy && (
                       <div className="load-more-container">
                         <button
-                          className="load-more-btn"
+                          className="order-load-more-btn"
                           onClick={() => setShowMoreBuy(true)}
                         >
                           Xem thêm

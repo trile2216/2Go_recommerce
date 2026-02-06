@@ -14,7 +14,7 @@ export default function ProductGrid({ products }) {
       </div>
 
       <div className="load-more-wrapper">
-        <button className="load-more-btn">Xem thêm</button>
+        <button className="hp-load-more-btn">Xem thêm</button>
       </div>
     </main>
   );

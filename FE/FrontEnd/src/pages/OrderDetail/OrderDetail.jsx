@@ -114,7 +114,7 @@ function OrderStatusStepper({ currentStatus, type }) {
                   <Circle size={20} />
                 )}
               </div>
-              <p className={`status-label ${isCompleted ? "active" : ""}`}>
+              <p className={`od-status-label ${isCompleted ? "active" : ""}`}>
                 {status.label}
               </p>
             </div>
@@ -160,7 +160,7 @@ export default function OrderDetail() {
       <div className="order-detail-container">
         {/* Back Button */}
         <button
-          className="back-button"
+          className="od-back-button"
           onClick={() => navigate("/orders")}
         >
           <ArrowLeft size={16} />
@@ -170,33 +170,33 @@ export default function OrderDetail() {
         <div className="order-detail-content">
           {/* Order Information */}
           <div className="order-card">
-            <div className="card-header">
-              <h2 className="card-title">
+            <div className="od-card-header">
+              <h2 className="od-card-title">
                 <Package size={20} />
                 Thông tin đơn hàng
               </h2>
             </div>
-            <div className="card-body">
+            <div className="od-card-body">
               {/* Product Info */}
-              <div className="product-info">
+              <div className="detail-product-info">
                 <img
                   src={order.image}
                   alt={order.title}
-                  className="product-image"
+                  className="detail-product-image"
                 />
-                <div className="product-details">
-                  <h3 className="product-title">{order.title}</h3>
-                  <p className="product-price">
+                <div className="detail-product-details">
+                  <h3 className="detail-product-title">{order.title}</h3>
+                  <p className="detail-product-price">
                     {order.price.toLocaleString("vi-VN")} đ
                   </p>
-                  <div className="product-date">
+                  <div className="detail-product-date">
                     <Calendar size={16} />
                     <span>Thời gian đăng: {order.createdAt}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="separator" />
+              <div className="od-separator" />
 
               {/* Other Party Info */}
               {otherParty && (
@@ -228,16 +228,16 @@ export default function OrderDetail() {
 
           {/* Delivery Status */}
           <div className="order-card">
-            <div className="card-header">
-              <h2 className="card-title">Trạng thái giao hàng</h2>
+            <div className="od-card-header">
+              <h2 className="od-card-title">Trạng thái giao hàng</h2>
             </div>
-            <div className="card-body">
+            <div className="od-card-body">
               <OrderStatusStepper currentStatus={order.currentStatus} type={type} />
 
               {/* Cancel Order Button (only for buy orders and not completed) */}
               {type === "buy" && order.currentStatus < 3 && (
                 <div className="action-button-container">
-                  <button className="action-button cancel-button">
+                  <button className="od-action-button cancel-button">
                     <XCircle size={16} />
                     Hủy đơn
                   </button>
@@ -247,7 +247,7 @@ export default function OrderDetail() {
               {/* Review Button (if status is completed) */}
               {order.currentStatus === 3 && (
                 <div className="action-button-container">
-                  <button className="action-button review-button">
+                  <button className="od-action-button review-button">
                     Viết đánh giá
                   </button>
                 </div>

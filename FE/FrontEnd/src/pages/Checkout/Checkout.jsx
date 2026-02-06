@@ -111,16 +111,16 @@ export default function Checkout() {
           <div className="checkout-left">
             {/* Buyer Information */}
             <div className="checkout-card">
-              <div className="card-header">
-                <h2 className="card-title">
+              <div className="checkout-card-header">
+                <h2 className="checkout-card-title">
                   <User size={20} />
                   Thông tin người mua
                 </h2>
               </div>
-              <div className="card-body">
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="fullName" className="form-label">
+              <div className="checkout-card-body">
+                <div className="checkout-form-row">
+                  <div className="checkout-form-group">
+                    <label htmlFor="fullName" className="checkout-form-label">
                       Họ và tên <span className="required">*</span>
                     </label>
                     <div className="input-group">
@@ -129,7 +129,7 @@ export default function Checkout() {
                         id="fullName"
                         type="text"
                         placeholder="Nhập họ và tên"
-                        className="form-input"
+                        className="checkout-form-input"
                         value={buyerInfo.fullName}
                         onChange={(e) =>
                           setBuyerInfo({
@@ -141,8 +141,8 @@ export default function Checkout() {
                     </div>
                   </div>
 
-                  <div className="form-group">
-                    <label htmlFor="phone" className="form-label">
+                  <div className="checkout-form-group">
+                    <label htmlFor="phone" className="checkout-form-label">
                       Số điện thoại <span className="required">*</span>
                     </label>
                     <div className="input-group">
@@ -151,7 +151,7 @@ export default function Checkout() {
                         id="phone"
                         type="tel"
                         placeholder="Nhập số điện thoại"
-                        className="form-input"
+                        className="checkout-form-input"
                         value={buyerInfo.phone}
                         onChange={(e) =>
                           setBuyerInfo({ ...buyerInfo, phone: e.target.value })
@@ -161,7 +161,7 @@ export default function Checkout() {
                   </div>
                 </div>
 
-                <div className="separator" />
+                <div className="checkout-separator" />
 
                 <div className="address-section">
                   <div className="address-title">
@@ -169,14 +169,14 @@ export default function Checkout() {
                     Địa chỉ nhận hàng
                   </div>
 
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="ward" className="form-label">
+                  <div className="checkout-form-row">
+                    <div className="checkout-form-group">
+                      <label htmlFor="ward" className="checkout-form-label">
                         Phường/Xã <span className="required">*</span>
                       </label>
                       <select
                         id="ward"
-                        className="form-select"
+                        className="checkout-form-select"
                         value={buyerInfo.ward}
                         onChange={(e) =>
                           setBuyerInfo({ ...buyerInfo, ward: e.target.value })
@@ -191,8 +191,8 @@ export default function Checkout() {
                       </select>
                     </div>
 
-                    <div className="form-group">
-                      <label htmlFor="city" className="form-label">
+                    <div className="checkout-form-group">
+                      <label htmlFor="city" className="checkout-form-label">
                         Thành phố
                       </label>
                       <input
@@ -200,20 +200,20 @@ export default function Checkout() {
                         type="text"
                         value="Thành phố Thủ Đức, TP. Hồ Chí Minh"
                         disabled
-                        className="form-input disabled"
+                        className="checkout-form-input disabled"
                       />
                     </div>
                   </div>
 
-                  <div className="form-group">
-                    <label htmlFor="detailedAddress" className="form-label">
+                  <div className="checkout-form-group">
+                    <label htmlFor="detailedAddress" className="checkout-form-label">
                       Địa chỉ chi tiết <span className="required">*</span>
                     </label>
                     <input
                       id="detailedAddress"
                       type="text"
                       placeholder="Số nhà, tên đường, tòa nhà..."
-                      className="form-input"
+                      className="checkout-form-input"
                       value={buyerInfo.detailedAddress}
                       onChange={(e) =>
                         setBuyerInfo({
@@ -229,13 +229,13 @@ export default function Checkout() {
 
             {/* Payment Method */}
             <div className="checkout-card">
-              <div className="card-header">
-                <h2 className="card-title">
+              <div className="checkout-card-header">
+                <h2 className="checkout-card-title">
                   <Banknote size={20} />
                   Phương thức thanh toán
                 </h2>
               </div>
-              <div className="card-body">
+              <div className="checkout-card-body">
                 <div className="payment-options">
                   <div
                     className={`payment-option ${
@@ -311,13 +311,13 @@ export default function Checkout() {
           {/* Right Column - Order Summary */}
           <div className="checkout-right">
             <div className="checkout-card sticky">
-              <div className="card-header">
-                <h2 className="card-title">
+              <div className="checkout-card-header">
+                <h2 className="checkout-card-title">
                   <ShoppingBag size={20} />
                   Thông tin đơn hàng
                 </h2>
               </div>
-              <div className="card-body">
+              <div className="checkout-card-body">
                 {cartItems.length === 0 ? (
                   <div className="empty-cart">
                     <ShoppingBag size={48} />
@@ -353,7 +353,7 @@ export default function Checkout() {
                       ))}
                     </div>
 
-                    <div className="separator" />
+                    <div className="checkout-separator" />
 
                     <div className="price-summary">
                       <div className="price-row">
@@ -364,7 +364,7 @@ export default function Checkout() {
                         <span>Phí vận chuyển</span>
                         <span>{formatPrice(shippingFee)}</span>
                       </div>
-                      <div className="separator" />
+                      <div className="checkout-separator" />
                       <div className="price-row total">
                         <span>Tổng cộng</span>
                         <span>{formatPrice(total)}</span>

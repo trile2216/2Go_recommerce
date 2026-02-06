@@ -103,11 +103,11 @@ const Compare = () => {
 
   const renderRating = (rating, reviews) => {
     return (
-      <div className="rating">
+      <div className="cmp-rating">
         {[...Array(5)].map((_, i) => (
-          <span key={i} className="star">★</span>
+          <span key={i} className="cmp-star">★</span>
         ))}
-        <span className="review-count">({reviews})</span>
+        <span className="cmp-review-count">({reviews})</span>
       </div>
     );
   };
@@ -127,33 +127,33 @@ const Compare = () => {
           {/* Product Cards */}
           <div className="compare-cards">
             {products.map((product, index) => (
-              <div key={product.id} className="product-card">
-                <div className="product-image-wrapper">
-                  <img src={product.image} alt={product.name} className="product-image" />
+              <div key={product.id} className="compare-product-card">
+                <div className="compare-product-image-wrapper">
+                  <img src={product.image} alt={product.name} className="compare-product-image" />
                   <button className="wishlist-btn">
                     <Heart size={20} fill="currentColor" />
                   </button>
                 </div>
 
-                <div className="product-info">
-                  <h3 className="product-name">{product.name}</h3>
+                <div className="compare-product-info">
+                  <h3 className="compare-product-name">{product.name}</h3>
                   
-                  <div className="product-price">
+                  <div className="compare-product-price">
                     {product.price.toLocaleString('vi-VN')}
                     <span className="currency">₫</span>
                   </div>
 
                   {renderRating(product.rating, product.reviews)}
 
-                  <div className="product-actions">
+                  <div className="compare-product-actions">
                     <button 
-                      className="btn-secondary"
+                      className="cmp-btn-secondary"
                       onClick={() => handleChangeProduct(index)}
                     >
                       Thay đổi
                     </button>
                     <button 
-                      className="btn-primary"
+                      className="cmp-btn-primary"
                       onClick={() => handleContactSeller(product)}
                     >
                       <Phone size={16} />

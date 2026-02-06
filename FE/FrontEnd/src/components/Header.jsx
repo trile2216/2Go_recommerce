@@ -7,14 +7,14 @@ import logo from "../assets/logo.jpg";
 import { fetchAllCategories } from "../service/home/api.category";
 import { fetchAllDistricts } from "../service/home/api.district";
 import { fetchAllWards } from "../service/home/api.ward";
-import { useAuth } from "../hooks/useAuth";
+import useAuth from "../context/UseAuth";
 
 import LocationPermissionPopup from "./LocationPermissionPopup";
 
 
 export default function Header() {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { user, isLoggedIn, logoutUser } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(0);
   const [categories, setCategories] = useState([{id: 0, name: "Tất cả"}]);
@@ -31,66 +31,9 @@ export default function Header() {
   const favorites = useSelector(state => state.favorites.items);
   const compareItems = useSelector(state => state.compare.items);
 
-  // Auth state - read from localStorage
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState(null);
-
   const favoritesRef = useRef(null);
   const notificationsRef = useRef(null);
   const userMenuRef = useRef(null);
-
-  // Check auth status on mount and when window regains focus
-  useEffect(() => {
-    const checkAuth = () => {
-      const storedUser = localStorage.getItem('user');
-      console.log('Checking auth - stored user:', storedUser);
-      if (storedUser) {
-        try {
-          const parsedUser = JSON.parse(storedUser);
-          console.log('Parsed user:', parsedUser);
-          setUser(parsedUser);
-          setIsLoggedIn(true);
-        } catch (e) {
-          console.error('Error parsing user:', e);
-          setUser(null);
-          setIsLoggedIn(false);
-        }
-      } else {
-        setUser(null);
-        setIsLoggedIn(false);
-      }
-    };
-
-    // Check immediately on mount
-    checkAuth();
-
-    // Also check when visibility changes (page comes into focus)
-    window.addEventListener('visibilitychange', checkAuth);
-    // Check when tab regains focus
-    window.addEventListener('focus', checkAuth);
-    // Check when storage changes (other tab logged in)
-    window.addEventListener('storage', checkAuth);
-
-    return () => {
-      window.removeEventListener('visibilitychange', checkAuth);
-      window.removeEventListener('focus', checkAuth);
-      window.removeEventListener('storage', checkAuth);
-    };
-  }, []);
-
-  // Also check auth when location changes (navigate to home after login)
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-        setIsLoggedIn(true);
-      } catch (e) {
-        console.error('Error parsing user on location change:', e);
-      }
-    }
-  }, []);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -210,7 +153,7 @@ export default function Header() {
   };
 
   const handleLogout = async () => {
-    await logout();
+    await logoutUser();
     setShowUserMenu(false);
     navigate('/');
   };

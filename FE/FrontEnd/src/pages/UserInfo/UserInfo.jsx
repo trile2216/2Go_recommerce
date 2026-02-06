@@ -159,14 +159,14 @@ export default function UserInfo() {
             <>
               <button 
                 onClick={() => setIsEditing(true)}
-                className="btn btn-primary"
+                className="ui-btn ui-btn-primary"
               >
                 <User size={18} />
                 Edit Profile
               </button>
               <button 
                 onClick={() => setShowPasswordForm(true)}
-                className="btn btn-secondary"
+                className="ui-btn ui-btn-secondary"
               >
                 <Shield size={18} />
                 Change Password
@@ -211,19 +211,19 @@ export default function UserInfo() {
             
             <div className="profile-status">
               <div className="status-item">
-                <span className="status-label">Status:</span>
+                <span className="ui-status-label">Status:</span>
                 <span className={`status-badge ${userInfo?.status?.toLowerCase()}`}>
                   {userInfo?.status}
                 </span>
               </div>
               <div className="status-item">
-                <span className="status-label">Email Verified:</span>
+                <span className="ui-status-label">Email Verified:</span>
                 <span className={`status-badge ${userInfo?.emailVerified ? 'verified' : 'unverified'}`}>
                   {userInfo?.emailVerified ? '✓ Verified' : 'Not Verified'}
                 </span>
               </div>
               <div className="status-item">
-                <span className="status-label">Phone Verified:</span>
+                <span className="ui-status-label">Phone Verified:</span>
                 <span className={`status-badge ${userInfo?.phoneVerified ? 'verified' : 'unverified'}`}>
                   {userInfo?.phoneVerified ? '✓ Verified' : 'Not Verified'}
                 </span>
@@ -231,11 +231,11 @@ export default function UserInfo() {
             </div>
 
             <div className="profile-meta">
-              <div className="meta-item">
+              <div className="ui-meta-item">
                 <span className="meta-label">Created At:</span>
                 <span className="meta-value">{formatDate(userInfo?.createdAt)}</span>
               </div>
-              <div className="meta-item">
+              <div className="ui-meta-item">
                 <span className="meta-label">Last Login:</span>
                 <span className="meta-value">{formatDate(userInfo?.lastLoginAt)}</span>
               </div>
@@ -350,7 +350,7 @@ export default function UserInfo() {
                     <tr>
                       <td className="label">Status</td>
                       <td className="value">
-                        <span className={`badge ${userInfo?.status?.toLowerCase()}`}>
+                        <span className={`ui-badge ${userInfo?.status?.toLowerCase()}`}>
                           {userInfo?.status}
                         </span>
                       </td>
@@ -358,7 +358,7 @@ export default function UserInfo() {
                     <tr>
                       <td className="label">Email Verified</td>
                       <td className="value">
-                        <span className={`badge ${userInfo?.emailVerified ? 'verified' : 'unverified'}`}>
+                        <span className={`ui-badge ${userInfo?.emailVerified ? 'verified' : 'unverified'}`}>
                           {userInfo?.emailVerified ? 'Yes' : 'No'}
                         </span>
                       </td>
@@ -366,7 +366,7 @@ export default function UserInfo() {
                     <tr>
                       <td className="label">Phone Verified</td>
                       <td className="value">
-                        <span className={`badge ${userInfo?.phoneVerified ? 'verified' : 'unverified'}`}>
+                        <span className={`ui-badge ${userInfo?.phoneVerified ? 'verified' : 'unverified'}`}>
                           {userInfo?.phoneVerified ? 'Yes' : 'No'}
                         </span>
                       </td>
@@ -390,8 +390,8 @@ export default function UserInfo() {
             <div className="form-section">
               <h4>Edit Profile</h4>
               <form onSubmit={handleUpdateProfile} className="profile-form">
-                <div className="form-row">
-                  <div className="form-group">
+                <div className="ui-form-row">
+                  <div className="ui-form-group">
                     <label>Full Name *</label>
                     <input
                       type="text"
@@ -402,7 +402,7 @@ export default function UserInfo() {
                       required
                     />
                   </div>
-                  <div className="form-group">
+                  <div className="ui-form-group">
                     <label>Gender</label>
                     <select
                       name="gender"
@@ -417,8 +417,8 @@ export default function UserInfo() {
                   </div>
                 </div>
 
-                <div className="form-row">
-                  <div className="form-group">
+                <div className="ui-form-row">
+                  <div className="ui-form-group">
                     <label>Birthday</label>
                     <input
                       type="date"
@@ -427,7 +427,7 @@ export default function UserInfo() {
                       onChange={handleProfileFormChange}
                     />
                   </div>
-                  <div className="form-group">
+                  <div className="ui-form-group">
                     <label>Address</label>
                     <input
                       type="text"
@@ -439,7 +439,7 @@ export default function UserInfo() {
                   </div>
                 </div>
 
-                <div className="form-group">
+                <div className="ui-form-group">
                   <label>Bio</label>
                   <textarea
                     name="bio"
@@ -450,7 +450,7 @@ export default function UserInfo() {
                   />
                 </div>
 
-                <div className="form-group">
+                <div className="ui-form-group">
                   <label>Avatar URL</label>
                   <input
                     type="url"
@@ -465,11 +465,11 @@ export default function UserInfo() {
                   <button 
                     type="button"
                     onClick={() => setIsEditing(false)}
-                    className="btn btn-secondary"
+                    className="ui-btn ui-btn-secondary"
                   >
                     Cancel
                   </button>
-                  <button type="submit" className="btn btn-primary">
+                  <button type="submit" className="ui-btn ui-btn-primary">
                     Save Changes
                   </button>
                 </div>
@@ -482,7 +482,7 @@ export default function UserInfo() {
             <div className="form-section">
               <h4>Change Password</h4>
               <form onSubmit={handleResetPassword} className="password-form">
-                <div className="form-group">
+                <div className="ui-form-group">
                   <label>Current Password *</label>
                   <div className="password-input-wrapper">
                     <input
@@ -503,7 +503,7 @@ export default function UserInfo() {
                   </div>
                 </div>
 
-                <div className="form-group">
+                <div className="ui-form-group">
                   <label>New Password *</label>
                   <div className="password-input-wrapper">
                     <input
@@ -524,7 +524,7 @@ export default function UserInfo() {
                   </div>
                 </div>
 
-                <div className="form-group">
+                <div className="ui-form-group">
                   <label>Confirm Password *</label>
                   <div className="password-input-wrapper">
                     <input
@@ -549,11 +549,11 @@ export default function UserInfo() {
                   <button 
                     type="button"
                     onClick={() => setShowPasswordForm(false)}
-                    className="btn btn-secondary"
+                    className="ui-btn ui-btn-secondary"
                   >
                     Cancel
                   </button>
-                  <button type="submit" className="btn btn-primary">
+                  <button type="submit" className="ui-btn ui-btn-primary">
                     Change Password
                   </button>
                 </div>

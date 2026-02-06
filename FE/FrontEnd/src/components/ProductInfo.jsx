@@ -6,7 +6,7 @@ export default function ProductInfo({ product }) {
       <div className="product-rating">
         <div className="stars">
           {[...Array(5)].map((_, i) => (
-            <span key={i} className={`star ${i < 5 ? 'filled' : ''}`}>★</span>
+            <span key={i} className={`pd-star ${i < 5 ? 'filled' : ''}`}>★</span>
           ))}
         </div>
         <span className="rating-count">(12 đánh giá)</span>

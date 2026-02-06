@@ -71,15 +71,6 @@
   animation: fadeIn 0.3s ease;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
 /* Orders List */
 .orders-list {
   display: flex;
@@ -217,7 +208,7 @@
   padding: 1rem 0;
 }
 
-.load-more-btn {
+.order-load-more-btn {
   padding: 0.75rem 2rem;
   border: 1px solid #ddd;
   background-color: white;
@@ -230,7 +221,7 @@
   min-width: 200px;
 }
 
-.load-more-btn:hover {
+.order-load-more-btn:hover {
   background-color: #f5f5f5;
   border-color: #999;
 }
