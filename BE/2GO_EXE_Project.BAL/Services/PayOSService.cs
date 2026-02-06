@@ -7,6 +7,7 @@ using _2GO_EXE_Project.BAL.DTOs.Auth;
 using _2GO_EXE_Project.BAL.DTOs.Payments;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.BAL.Settings;
+using Microsoft.Extensions.Configuration;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -15,10 +16,13 @@ public class PayOSService : IPayOSService
     private readonly PayOSClient _client;
     private readonly PayOSSettings _settings;
 
-    public PayOSService([FromKeyedServices("OrderClient")] PayOSClient client, IOptions<PayOSSettings> options)
+    private readonly IConfiguration configuration;
+
+    public PayOSService([FromKeyedServices("OrderClient")] PayOSClient client, IOptions<PayOSSettings> options, IConfiguration configuration)
     {
         _client = client;
         _settings = options.Value ?? new PayOSSettings();
+        this.configuration = configuration;
     }
 
     public async Task<(string PaymentUrl, string PayOSOrderCode)> CreatePaymentLinkAsync(
@@ -29,7 +33,8 @@ public class PayOSService : IPayOSService
         string? returnUrl = null,
         string? cancelUrl = null,
         CancellationToken cancellationToken = default)
-    {
+    {   
+        var frontendBaseUrl = configuration.GetValue<string>("FrontendBaseUrl") ?? Environment.GetEnvironmentVariable("FRONTEND_BASE_URL") ?? "http://localhost:5173";
         if (amount <= 0)
         {
             throw new ArgumentException("Amount must be greater than 0.", nameof(amount));
@@ -48,8 +53,8 @@ public class PayOSService : IPayOSService
             OrderCode = orderCode,
             Amount = amount,
             Description = description ?? $"Payment {referenceCode}",
-            ReturnUrl = returnUrl ?? _settings.ReturnUrl ?? "http://localhost:5173/payment/success",
-            CancelUrl = cancelUrl ?? _settings.CancelUrl ?? "http://localhost:5173/payment/cancel",
+            ReturnUrl = returnUrl ?? _settings.ReturnUrl ?? $"{frontendBaseUrl}/payment/success", 
+            CancelUrl = cancelUrl ?? _settings.CancelUrl ?? $"{frontendBaseUrl}/payment/cancel",
             Items = new List<PaymentLinkItem>
             {
                 new PaymentLinkItem

@@ -29,6 +29,8 @@ public class OrderTransactionRepository : GenericRepository<OrderTransaction>, I
 public class OrderInvoiceRepository : GenericRepository<OrderInvoice>, IOrderInvoiceRepository { public OrderInvoiceRepository(AppDbContext ctx) : base(ctx) { } }
 public class PaymentRepository : GenericRepository<Payment>, IPaymentRepository { public PaymentRepository(AppDbContext ctx) : base(ctx) { } }
 public class PaymentLogRepository : GenericRepository<PaymentLog>, IPaymentLogRepository { public PaymentLogRepository(AppDbContext ctx) : base(ctx) { } }
+public class TransferRepository : GenericRepository<Transfer>, ITransferRepository { public TransferRepository(AppDbContext ctx) : base(ctx) { } }
+public class TransferTransactionRepository : GenericRepository<TransferTransaction>, ITransferTransactionRepository { public TransferTransactionRepository(AppDbContext ctx) : base(ctx) { } }
 public class PointTransactionRepository : GenericRepository<PointTransaction>, IPointTransactionRepository { public PointTransactionRepository(AppDbContext ctx) : base(ctx) { } }
 public class ReportRepository : GenericRepository<Report>, IReportRepository { public ReportRepository(AppDbContext ctx) : base(ctx) { } }
 public class SavedListingRepository : GenericRepository<SavedListing>, ISavedListingRepository { public SavedListingRepository(AppDbContext ctx) : base(ctx) { } }
@@ -79,6 +81,8 @@ public class UnitOfWork : IUnitOfWork
         OrderInvoices = new OrderInvoiceRepository(_context);
         Payments = new PaymentRepository(_context);
         PaymentLogs = new PaymentLogRepository(_context);
+        Transfers = new TransferRepository(_context);
+        TransferTransactions = new TransferTransactionRepository(_context);
         PointTransactions = new PointTransactionRepository(_context);
         Reports = new ReportRepository(_context);
         SavedListings = new SavedListingRepository(_context);
@@ -122,6 +126,8 @@ public class UnitOfWork : IUnitOfWork
     public IOrderInvoiceRepository OrderInvoices { get; }
     public IPaymentRepository Payments { get; }
     public IPaymentLogRepository PaymentLogs { get; }
+    public ITransferRepository Transfers { get; }
+    public ITransferTransactionRepository TransferTransactions { get; }
     public IPointTransactionRepository PointTransactions { get; }
     public IReportRepository Reports { get; }
     public ISavedListingRepository SavedListings { get; }
