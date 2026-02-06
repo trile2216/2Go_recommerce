@@ -890,6 +890,47 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.ToTable("Notifications");
                 });
 
+            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.ChatbotLog", b =>
+                {
+                    b.Property<long>("ChatbotLogId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("ChatbotLogId"));
+
+                    b.Property<string>("Answer")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Confidence")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("MatchedIntent")
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Question")
+                        .HasColumnType("text");
+
+                    b.Property<long?>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("ChatbotLogId")
+                        .HasName("PK_ChatbotLogs");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_ChatbotLogs_UserId");
+
+                    b.ToTable("ChatbotLogs");
+                });
+
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.MarketPrice", b =>
                 {
                     b.Property<int>("MarketPriceId")

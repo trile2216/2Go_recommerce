@@ -106,6 +106,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Notification> Notifications { get; set; }
 
+    public virtual DbSet<ChatbotLog> ChatbotLogs { get; set; }
+
     public virtual DbSet<VerificationCode> VerificationCodes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -520,6 +522,13 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
             entity.Property(e => e.IsRead).HasDefaultValue(false);
             entity.HasOne(d => d.User).WithMany(p => p.Notifications).HasForeignKey(d => d.UserId).HasConstraintName("FK_Notifications_Users");
+        });
+
+        modelBuilder.Entity<ChatbotLog>(entity =>
+        {
+            entity.HasKey(e => e.ChatbotLogId).HasName("PK_ChatbotLogs");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+            entity.HasOne(d => d.User).WithMany(p => p.ChatbotLogs).HasForeignKey(d => d.UserId).HasConstraintName("FK_ChatbotLogs_Users");
         });
 
         modelBuilder.Entity<Ward>(entity =>
