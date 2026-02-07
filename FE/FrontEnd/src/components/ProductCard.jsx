@@ -1,12 +1,16 @@
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Heart, Scale } from 'lucide-react';
+import { Heart, Scale, ShoppingCart } from 'lucide-react';
 import { addToFavorites, removeFromFavorites } from '../store/slices/favoritesSlice';
 import { addToCompare, removeFromCompare } from '../store/slices/compareSlice';
+import { useCart } from '../context/CartContext';
+import { useToast } from '../context/ToastContext';
 
 export default function ProductCard({ product }) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { addToCart, isInCart } = useCart();
+  const toast = useToast();
   
   // Get favorites and compare items from Redux
   const favorites = useSelector(state => state.favorites.items);
@@ -14,6 +18,7 @@ export default function ProductCard({ product }) {
   
   const isFavorited = favorites.some(item => item.id === product.listingId);
   const isInCompare = compareItems.some(item => item.id === product.listingId);
+  const isAddedToCart = isInCart(product.listingId);
 
   // Format giá tiền
   const formatPrice = (price) => {
@@ -43,6 +48,7 @@ export default function ProductCard({ product }) {
     e.stopPropagation();
     if (isFavorited) {
       dispatch(removeFromFavorites(product.listingId));
+      toast.info('Đã xóa khỏi yêu thích');
     } else {
       dispatch(addToFavorites({
         id: product.listingId,
@@ -51,6 +57,7 @@ export default function ProductCard({ product }) {
         image: product.primaryImageUrl,
         ...product
       }));
+      toast.success('Đã thêm vào yêu thích');
     }
   };
 
@@ -58,6 +65,7 @@ export default function ProductCard({ product }) {
     e.stopPropagation();
     if (isInCompare) {
       dispatch(removeFromCompare(product.listingId));
+      toast.info('Đã xóa khỏi so sánh');
     } else {
       const canAdd = compareItems.length < 5;
       if (canAdd) {
@@ -68,9 +76,21 @@ export default function ProductCard({ product }) {
           image: product.primaryImageUrl,
           ...product
         }));
+        toast.success('Đã thêm vào so sánh');
       } else {
-        alert('Bạn chỉ có thể so sánh tối đa 5 sản phẩm');
+        toast.warning('Bạn chỉ có thể so sánh tối đa 5 sản phẩm');
       }
+    }
+  };
+
+  const handleAddToCart = async (e) => {
+    e.stopPropagation();
+    if (isAddedToCart) return;
+    const result = await addToCart(product.listingId);
+    if (result.success) {
+      toast.success('Đã thêm vào giỏ hàng');
+    } else {
+      toast.error(typeof result.message === 'string' ? result.message : 'Thêm vào giỏ hàng thất bại');
     }
   };
 
@@ -98,6 +118,13 @@ export default function ProductCard({ product }) {
             title={isInCompare ? 'Bỏ so sánh' : 'Thêm vào so sánh'}
           >
             <Scale size={16} color={isInCompare ? '#3b82f6' : '#1e293b'} />
+          </button>
+          <button 
+            className={`action-btn ${isAddedToCart ? 'active' : ''}`}
+            onClick={handleAddToCart}
+            title={isAddedToCart ? 'Đã trong giỏ hàng' : 'Thêm vào giỏ hàng'}
+          >
+            <ShoppingCart size={16} color={isAddedToCart ? '#22c55e' : '#1e293b'} />
           </button>
         </div>
         {product.status === 'Active' && (

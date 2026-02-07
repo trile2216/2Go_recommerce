@@ -1,84 +1,87 @@
-import { createContext, useContext, useState, useEffect } from "react";
-import api from "../config/axios";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { fetchCart, addCartItem, removeCartItem, updateCartItem, clearCart as clearCartAPI } from "../service/home/api.cart";
 
 const CartContext = createContext();
 
 export const useCart = () => useContext(CartContext);
 
 export const CartProvider = ({ children }) => {
+  const [cart, setCart] = useState(null);
   const [cartItems, setCartItems] = useState([]);
   const [cartCount, setCartCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  const fetchCartData = async () => {
+  // Flatten groups into a single items array
+  const flattenCart = (cartData) => {
+    if (!cartData?.groups) return [];
+    return cartData.groups.flatMap(group => group.items || []);
+  };
+
+  const fetchCartData = useCallback(async () => {
     try {
-      const response = await api.get("/cart");
-      if (Array.isArray(response.data)) {
-        setCartItems(
-          response.data.map((item) => ({
-            productId: item.productId ?? item.id,
-            productName: item.productName ?? item.name,
-            productImage: item.productImage ?? item.image,
-            productPrice: item.productPrice ?? item.price ?? 0,
-            quantity: item.quantity ?? 1,
-          }))
-        );
-      } else {
-        setCartItems([]);
-      }
+      const data = await fetchCart();
+      setCart(data);
+      const items = flattenCart(data);
+      setCartItems(items);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching cart data:", error);
+      setCart(null);
       setCartItems([]);
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchCartData();
   }, []);
 
   useEffect(() => {
-    setCartCount(cartItems.reduce((total, item) => total + item.quantity, 0));
+    const token = localStorage.getItem("token");
+    if (token) {
+      fetchCartData();
+    } else {
+      setLoading(false);
+    }
+  }, [fetchCartData]);
+
+  useEffect(() => {
+    setCartCount(cartItems.reduce((total, item) => total + (item.quantity || 1), 0));
   }, [cartItems]);
 
-  const addToCart = async (product) => {
+  const addToCart = async (listingId) => {
     try {
-      await api.post("/cart/add", {
-        productId: product.productId || product.id,
-        quantity: product.quantity || 1,
-      });
+      await addCartItem(listingId, 1);
       await fetchCartData();
+      return { success: true };
     } catch (error) {
       console.error("Error adding to cart:", error);
+      return { success: false, message: error.response?.data || "Thêm vào giỏ hàng thất bại" };
     }
   };
 
-  const removeFromCart = async (productId) => {
+  const removeFromCart = async (cartItemId) => {
     try {
-      await api.delete(`/cart/${productId}`);
+      await removeCartItem(cartItemId);
       await fetchCartData();
     } catch (error) {
       console.error("Error removing from cart:", error);
     }
   };
 
-  const updateQuantity = async (productId, newQuantity) => {
+  const updateQuantity = async (cartItemId, newQuantity) => {
     if (newQuantity < 1) {
-      return removeFromCart(productId);
+      return removeFromCart(cartItemId);
     }
     try {
-      await api.post("/cart/update-quantity", { productId, quantity: newQuantity });
+      await updateCartItem(cartItemId, { quantity: newQuantity });
       await fetchCartData();
     } catch (error) {
       console.error("Error updating quantity:", error);
     }
   };
 
-  const clearCart = async () => {
+  const clearAllCart = async () => {
     try {
+      await clearCartAPI();
+      setCart(null);
       setCartItems([]);
-      await fetchCartData();
     } catch (error) {
       console.error("Error clearing cart:", error);
     }
@@ -86,25 +89,28 @@ export const CartProvider = ({ children }) => {
 
   const getTotalPrice = () =>
     cartItems.reduce(
-      (total, item) => total + (item.productPrice || 0) * (item.quantity || 1),
+      (total, item) => total + (Number(item.priceSnapshot) || 0) * (item.quantity || 1),
       0
     );
 
-  if (loading) {
-    return <div>Loading cart...</div>;
-  }
+  const isInCart = (listingId) => {
+    return cartItems.some(item => item.listingId === listingId);
+  };
 
   return (
     <CartContext.Provider
       value={{
+        cart,
         cartItems,
         cartCount,
+        loading,
         addToCart,
         removeFromCart,
         updateQuantity,
-        clearCart,
+        clearCart: clearAllCart,
         getTotalPrice,
         fetchCartData,
+        isInCart,
       }}
     >
       {children}

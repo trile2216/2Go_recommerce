@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Layout,
   List,
@@ -8,14 +8,14 @@ import {
   Button,
   Badge,
   Card,
-  Dropdown,
   Drawer,
   Divider,
   Tabs,
+  Spin,
+  message as antMessage,
 } from 'antd';
 import {
   MoreOutlined,
-  ArrowLeftOutlined,
 } from '@ant-design/icons';
 import { 
   Search, 
@@ -29,53 +29,12 @@ import {
   Shield,
   EyeOff,
 } from 'lucide-react';
+import { fetchMyChats, fetchMessages, sendMessage } from '../../service/home/api.chat';
+import useAuth from '../../context/UseAuth';
 import './Chat.css';
 
 const { Sider, Content } = Layout;
 const { Text, Title } = Typography;
-
-const CONVERSATIONS = [
-  {
-    id: '1',
-    name: 'Tạ Như Mộng',
-    initials: 'TM',
-    lastMessage: 'Cảm ơn bạn đã quan tâm đề...',
-    time: '2 giờ trước',
-    unread: 2,
-  },
-  {
-    id: '2',
-    name: 'Tuyen dung HomeKit',
-    initials: 'TH',
-    lastMessage: 'Bạn cho mình xin thông tin: h...',
-    time: '5 giờ trước',
-    unread: 0,
-  },
-  {
-    id: '3',
-    name: 'Nguyễn Hoài Anh',
-    initials: 'NA',
-    lastMessage: 'Sản phẩm còn không bạn?',
-    time: '1 ngày trước',
-    unread: 1,
-  },
-  {
-    id: '4',
-    name: 'Trần Đại Phú',
-    initials: 'TP',
-    lastMessage: 'Ok, tôi sẽ đến lấy vào chiều nay',
-    time: '2 ngày trước',
-    unread: 0,
-  },
-  {
-    id: '5',
-    name: 'Võ Thị Kim Dự',
-    initials: 'VK',
-    lastMessage: 'Giá này có giảm được không?',
-    time: '3 ngày trước',
-    unread: 0,
-  },
-];
 
 const QUICK_REPLIES = [
   'Sản phẩm còn không?',
@@ -84,61 +43,216 @@ const QUICK_REPLIES = [
   'Khi nào có thể xem hàng?',
 ];
 
-const MESSAGES = [
-  {
-    id: 1,
-    senderId: 1,
-    senderName: 'Tạ Như Mộng',
-    text: 'Cảm ơn bạn đã quan tâm đề nghị tuyển dụng của chúng tôi. Bạn vui lòng liên hệ và gửi CV qua website/QLý tin nhé. Chúng tôi sẽ phản hồi sớm nhất.',
-    timestamp: '10:30 AM',
-  },
-  {
-    id: 2,
-    senderId: 1,
-    senderName: 'Tạ Như Mộng',
-    text: 'Xin vui lòng nộp thông tin qua link. Quản lý sẽ liên hệ.\nhttps://bit.ly/ChucksJobs',
-    timestamp: '10:31 AM',
-  },
-];
-
 export default function Chat() {
-  const [selectedConversation, setSelectedConversation] = useState(null);
-  const [message, setMessage] = useState('');
+  const { user } = useAuth();
+  const currentUserId = user?.userId;
+
+  const [conversations, setConversations] = useState([]);
+  const [selectedChatId, setSelectedChatId] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [messageText, setMessageText] = useState('');
+  const [loadingChats, setLoadingChats] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('all');
 
-  const selected = CONVERSATIONS.find((c) => c.id === selectedConversation);
+  const messagesEndRef = useRef(null);
+  const pollIntervalRef = useRef(null);
 
-  const infoItems = [
-    {
-      icon: <Flag size={16} />,
-      label: 'Báo xấu',
-    },
-    {
-      icon: <Ban size={16} />,
-      label: 'Chặn người dùng',
-    },
-    {
-      icon: <Shield size={16} />,
-      label: 'Đánh dấu tin nhắn rác',
-    },
-    {
-      icon: <EyeOff size={16} />,
-      label: 'Ẩn hội thoại',
-    },
-  ];
+  const selectedConversation = conversations.find(c => c.chatId === selectedChatId);
 
-  const handleSendMessage = () => {
-    if (message.trim()) {
-      setMessage('');
+  // Scroll to bottom of messages
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
+  // Format time ago
+  const formatTimeAgo = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Vừa xong';
+    if (diffMins < 60) return `${diffMins} phút trước`;
+    if (diffHours < 24) return `${diffHours} giờ trước`;
+    if (diffDays < 7) return `${diffDays} ngày trước`;
+    return date.toLocaleDateString('vi-VN');
+  };
+
+  // Format message time
+  const formatMessageTime = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Format date label for message groups
+  const formatDateLabel = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) return 'Hôm nay';
+    if (date.toDateString() === yesterday.toDateString()) return 'Hôm qua';
+    return date.toLocaleDateString('vi-VN');
+  };
+
+  // Get initials from a user ID
+  const getInitials = (userId) => {
+    return `U${userId}`;
+  };
+
+  // Fetch conversations
+  const loadChats = useCallback(async () => {
+    try {
+      const data = await fetchMyChats();
+      setConversations(data || []);
+    } catch (error) {
+      console.error('Failed to load chats:', error);
+    } finally {
+      setLoadingChats(false);
+    }
+  }, []);
+
+  // Fetch messages for selected chat
+  const loadMessages = useCallback(async (chatId) => {
+    if (!chatId) return;
+    try {
+      setLoadingMessages(true);
+      const data = await fetchMessages(chatId, 0, 50);
+      // API returns messages in descending order, reverse for display
+      setMessages((data || []).slice().reverse());
+    } catch (error) {
+      console.error('Failed to load messages:', error);
+    } finally {
+      setLoadingMessages(false);
+    }
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    loadChats();
+  }, [loadChats]);
+
+  // Load messages when a conversation is selected
+  useEffect(() => {
+    if (selectedChatId) {
+      loadMessages(selectedChatId);
+    } else {
+      setMessages([]);
+    }
+  }, [selectedChatId, loadMessages]);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
+
+  // Poll for new messages & chats
+  useEffect(() => {
+    pollIntervalRef.current = setInterval(() => {
+      loadChats();
+      if (selectedChatId) {
+        loadMessages(selectedChatId);
+      }
+    }, 2000);
+    return () => clearInterval(pollIntervalRef.current);
+  }, [selectedChatId, loadChats, loadMessages]);
+
+  // Send message
+  const handleSendMessage = async () => {
+    const text = messageText.trim();
+    if (!text || !selectedChatId) return;
+
+    setSendingMessage(true);
+    setMessageText('');
+    
+    // Optimistic update
+    const optimisticMsg = {
+      messageId: Date.now(),
+      chatId: selectedChatId,
+      senderId: currentUserId,
+      content: text,
+      imageUrl: null,
+      sentAt: new Date().toISOString(),
+      _optimistic: true,
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
+    scrollToBottom();
+
+    try {
+      await sendMessage(selectedChatId, { content: text });
+      // Reload messages to get the real one from server
+      await loadMessages(selectedChatId);
+      // Also refresh chat list to update lastMessage
+      await loadChats();
+    } catch (error) {
+      antMessage.error('Gửi tin nhắn thất bại');
+      // Remove optimistic message
+      setMessages(prev => prev.filter(m => m.messageId !== optimisticMsg.messageId));
+    } finally {
+      setSendingMessage(false);
     }
   };
+
+  const handleSelectConversation = (chatId) => {
+    setSelectedChatId(chatId);
+  };
+
+  // Filter conversations
+  const filteredConversations = conversations.filter(conv => {
+    if (activeTab === 'unread') {
+      // Since we don't have unread count from API, show all for now
+      return true;
+    }
+    if (searchQuery.trim().length >= 3) {
+      const query = searchQuery.toLowerCase();
+      return (
+        conv.lastMessage?.toLowerCase().includes(query) ||
+        String(conv.otherUserId).includes(query)
+      );
+    }
+    return true;
+  });
+
+  const infoItems = [
+    { icon: <Flag size={16} />, label: 'Báo xấu' },
+    { icon: <Ban size={16} />, label: 'Chặn người dùng' },
+    { icon: <Shield size={16} />, label: 'Đánh dấu tin nhắn rác' },
+    { icon: <EyeOff size={16} />, label: 'Ẩn hội thoại' },
+  ];
+
+  // Group messages by date
+  const groupMessagesByDate = (msgs) => {
+    const groups = [];
+    let currentDate = null;
+    msgs.forEach((msg) => {
+      const msgDate = msg.sentAt ? new Date(msg.sentAt).toDateString() : '';
+      if (msgDate !== currentDate) {
+        currentDate = msgDate;
+        groups.push({ type: 'date', label: formatDateLabel(msg.sentAt) });
+      }
+      groups.push({ type: 'message', data: msg });
+    });
+    return groups;
+  };
+
+  const messageGroups = groupMessagesByDate(messages);
 
   return (
     <div className="chat-container">
       <Layout className="chat-layout">
         {/* Conversations Sidebar */}
         <Sider
-          className={`chat-sidebar ${selectedConversation ? 'hidden-sidebar' : ''}`}
+          className={`chat-sidebar ${selectedChatId ? 'hidden-sidebar' : ''}`}
           width={380}
           trigger={null}
           collapsible
@@ -158,93 +272,99 @@ export default function Chat() {
                 placeholder="Nhập 3 ký tự để bắt đầu tìm kiếm"
                 className="chat-search-input"
                 variant="filled"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
 
             <Tabs
               defaultActiveKey="all"
+              onChange={(key) => setActiveTab(key)}
               items={[
-                {
-                  key: 'all',
-                  label: 'Tất cả tin nhắn',
-                },
-                {
-                  key: 'unread',
-                  label: 'Tin chưa đọc',
-                },
+                { key: 'all', label: 'Tất cả tin nhắn' },
+                { key: 'unread', label: 'Tin chưa đọc' },
               ]}
               className="chat-tabs"
             />
           </div>
 
           <div className="chat-conversations-list">
-            <List
-              itemLayout="horizontal"
-              dataSource={CONVERSATIONS}
-              renderItem={(item) => (
-                <List.Item
-                  className={`chat-list-item ${
-                    selectedConversation === item.id ? 'active' : ''
-                  }`}
-                  onClick={() => setSelectedConversation(item.id)}
-                >
-                  <List.Item.Meta
-                    avatar={
-                      <Badge count={item.unread} color="#0091FF" offset={[-5, 5]}>
+            {loadingChats ? (
+              <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                <Spin />
+              </div>
+            ) : filteredConversations.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: '#8e8e8e' }}>
+                Chưa có cuộc trò chuyện nào
+              </div>
+            ) : (
+              <List
+                itemLayout="horizontal"
+                dataSource={filteredConversations}
+                renderItem={(item) => (
+                  <List.Item
+                    className={`chat-list-item ${
+                      selectedChatId === item.chatId ? 'active' : ''
+                    }`}
+                    onClick={() => handleSelectConversation(item.chatId)}
+                  >
+                    <List.Item.Meta
+                      avatar={
                         <Avatar
                           style={{ backgroundColor: '#0091FF' }}
                           size={48}
                           className="chat-avatar"
                         >
-                          {item.initials}
+                          {getInitials(item.otherUserId)}
                         </Avatar>
-                      </Badge>
-                    }
-                    title={
-                      <div className="chat-item-title">
-                        <Text strong className="chat-name">
-                          {item.name}
+                      }
+                      title={
+                        <div className="chat-item-title">
+                          <Text strong className="chat-name">
+                            User #{item.otherUserId}
+                          </Text>
+                          <Text className="chat-time">
+                            {formatTimeAgo(item.lastMessageAt)}
+                          </Text>
+                        </div>
+                      }
+                      description={
+                        <Text className="chat-last-message" ellipsis>
+                          {item.lastMessage || 'Chưa có tin nhắn'}
                         </Text>
-                        <Text className="chat-time">{item.time}</Text>
-                      </div>
-                    }
-                    description={
-                      <Text className="chat-last-message" ellipsis>
-                        {item.lastMessage}
-                      </Text>
-                    }
-                  />
-                </List.Item>
-              )}
-            />
+                      }
+                    />
+                  </List.Item>
+                )}
+              />
+            )}
           </div>
         </Sider>
 
         {/* Chat Area */}
         <Content className="chat-content">
-          {selectedConversation ? (
+          {selectedChatId ? (
             <Card className="chat-card" bordered={false}>
               {/* Chat Header */}
               <div className="chat-card-header">
                 <div className="chat-header-left">
                   <Button
                     type="text"
-                    icon={<ArrowLeftOutlined size={20} />}
+                    icon={<ArrowLeft size={20} />}
                     className="chat-back-button"
-                    onClick={() => setSelectedConversation(null)}
+                    onClick={() => setSelectedChatId(null)}
                   />
                   <Avatar
                     style={{ backgroundColor: '#0091FF' }}
                     size={40}
                     className="chat-avatar"
                   >
-                    {selected?.initials}
+                    {selectedConversation ? getInitials(selectedConversation.otherUserId) : '?'}
                   </Avatar>
                   <div className="chat-header-info">
                     <Text strong className="chat-header-name">
-                      {selected?.name}
+                      User #{selectedConversation?.otherUserId}
                     </Text>
-                    <Text className="chat-header-status">Hoạt động 2 giờ trước</Text>
                   </div>
                 </div>
 
@@ -257,61 +377,67 @@ export default function Chat() {
 
               <Divider style={{ margin: '12px 0' }} />
 
-              {/* Product Context */}
-              <div className="chat-product-context">
-                <div className="chat-product-card">
-                  <img
-                    src="https://images.unsplash.com/photo-1632661674596-df8be070a5c5?w=100"
-                    alt="Product"
-                    className="chat-product-image"
-                  />
-                  <div className="chat-product-info">
-                    <Text strong className="chat-product-name">
-                      iPhone 13 Pro 128GB Vàng
-                    </Text>
-                    <Text className="chat-product-price">15.500.000 đ</Text>
-                    <Text className="chat-product-status">
-                      (Tin tự ẩn hết hạn hoặc đã bán)
-                    </Text>
-                  </div>
-                </div>
-              </div>
-
               {/* Messages */}
               <div className="chat-messages">
-                <div className="message-date">
-                  <span className="date-badge">Hôm nay</span>
-                </div>
-
-                {MESSAGES.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`message-group ${
-                      msg.senderId === 1 ? 'received' : 'sent'
-                    }`}
-                  >
-                    <Avatar
-                      style={{ backgroundColor: '#0091FF' }}
-                      size={40}
-                      className="message-avatar"
-                    >
-                      {selected?.initials}
-                    </Avatar>
-                    <div className="message-content">
-                      <Text className="message-sender">{msg.senderName}</Text>
-                      <div className="message-bubble">
-                        <p className="message-text">{msg.text}</p>
-                        <Button
-                          type="text"
-                          size="small"
-                          icon={<MoreOutlined rotate={90} />}
-                          className="message-menu"
-                        />
-                      </div>
-                      <Text className="message-time">{msg.timestamp}</Text>
-                    </div>
+                {loadingMessages ? (
+                  <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                    <Spin />
                   </div>
-                ))}
+                ) : messages.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px 20px', color: '#8e8e8e' }}>
+                    Hãy gửi tin nhắn đầu tiên!
+                  </div>
+                ) : (
+                  messageGroups.map((item, idx) => {
+                    if (item.type === 'date') {
+                      return (
+                        <div key={`date-${idx}`} className="message-date">
+                          <span className="date-badge">{item.label}</span>
+                        </div>
+                      );
+                    }
+                    const msg = item.data;
+                    const isSent = msg.senderId === currentUserId;
+                    return (
+                      <div
+                        key={msg.messageId}
+                        className={`message-group ${isSent ? 'sent' : 'received'}`}
+                      >
+                        {!isSent && (
+                          <Avatar
+                            style={{ backgroundColor: '#0091FF' }}
+                            size={40}
+                            className="message-avatar"
+                          >
+                            {selectedConversation ? getInitials(selectedConversation.otherUserId) : '?'}
+                          </Avatar>
+                        )}
+                        <div className="message-content">
+                          <div className="message-bubble">
+                            {msg.imageUrl && (
+                              <img
+                                src={msg.imageUrl}
+                                alt="attachment"
+                                style={{ maxWidth: '200px', borderRadius: '4px', marginBottom: msg.content ? '8px' : 0 }}
+                              />
+                            )}
+                            {msg.content && (
+                              <p className="message-text">{msg.content}</p>
+                            )}
+                            <Button
+                              type="text"
+                              size="small"
+                              icon={<MoreOutlined rotate={90} />}
+                              className="message-menu"
+                            />
+                          </div>
+                          <Text className="message-time">{formatMessageTime(msg.sentAt)}</Text>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+                <div ref={messagesEndRef} />
               </div>
 
               {/* Quick Replies */}
@@ -320,7 +446,7 @@ export default function Chat() {
                   <Button
                     key={idx}
                     className="quick-reply-btn"
-                    onClick={() => setMessage(reply)}
+                    onClick={() => setMessageText(reply)}
                   >
                     {reply}
                   </Button>
@@ -341,17 +467,19 @@ export default function Chat() {
                 />
                 <Input
                   placeholder="Nhập tin nhắn"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
+                  value={messageText}
+                  onChange={(e) => setMessageText(e.target.value)}
                   onPressEnter={handleSendMessage}
                   className="message-input"
                   variant="filled"
+                  disabled={sendingMessage}
                 />
                 <Button
                   type="primary"
                   icon={<Send size={16} />}
                   className="send-button"
-                  disabled={!message.trim()}
+                  disabled={!messageText.trim() || sendingMessage}
+                  loading={sendingMessage}
                   onClick={handleSendMessage}
                 />
               </div>
@@ -390,9 +518,9 @@ export default function Chat() {
               size={80}
               className="info-avatar"
             >
-              {selected?.initials}
+              {selectedConversation ? getInitials(selectedConversation.otherUserId) : '?'}
             </Avatar>
-            <Title level={4}>{selected?.name}</Title>
+            <Title level={4}>User #{selectedConversation?.otherUserId}</Title>
             <Button type="primary" className="view-profile-btn">
               Xem Trang
             </Button>

@@ -205,6 +205,18 @@
   box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
 }
 
+.btn-add-cart.added {
+  background-color: #22c55e;
+  color: white;
+  cursor: default;
+}
+
+.btn-add-cart.added:hover {
+  background-color: #22c55e;
+  transform: none;
+  box-shadow: none;
+}
+
 .btn-compare {
   background-color: #fbbf24;
   color: #1f2937;
@@ -214,6 +226,17 @@
   background-color: #f59e0b;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+}
+
+.btn-compare.added {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.btn-compare.added:hover {
+  background-color: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .seller-section {
@@ -451,6 +474,45 @@
 
 .related-product-card:hover .related-image {
   transform: scale(1.05);
+}
+
+.related-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.related-product-card:hover .related-actions {
+  opacity: 1;
+}
+
+.related-action-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.related-action-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+}
+
+.related-action-btn.active {
+  background-color: #f8fafc;
 }
 
 .like-btn {

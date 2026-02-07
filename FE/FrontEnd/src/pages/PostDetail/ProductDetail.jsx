@@ -9,11 +9,12 @@ import RelatedProducts from '../../components/RelatedProducts';
 import ErrorPage from '../ErrorPage/ErrorPage';
 import '../../styles/loader.css';
 import './ProductDetail.css';
-import { fetchProductById } from '../../service/home/api.product';
+import { fetchProductById, fetchProducts } from '../../service/home/api.product';
 
 export default function ProductDetail() {
   const { id } = useParams();
   const [product, setProduct] = useState(null);
+  const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -24,6 +25,22 @@ export default function ProductDetail() {
         const data = await fetchProductById(id);
         setProduct(data);
         setError(null);
+
+        // Fetch related products by same category/subCategory
+        try {
+          const related = await fetchProducts({
+            categoryId: data.categoryId,
+            status: 'Active',
+            take: 8,
+          });
+          // Filter out the current product
+          const filtered = (related.items || []).filter(
+            (item) => item.listingId !== parseInt(id)
+          );
+          setRelatedProducts(filtered.slice(0, 4));
+        } catch {
+          setRelatedProducts([]);
+        }
       } catch (err) {
         console.error('Failed to fetch product detail:', err);
         setError(err.message);
@@ -76,7 +93,7 @@ export default function ProductDetail() {
 
   const specifications = {
     highlights: [
-      `Tình trạng: ${product.condition}`,
+      `Tình trạng: ${product.condition === "USED" ? 'Đã sử dụng' : 'Mới'} `,
       `Thương lượng: ${product.hasNegotiation ? 'Có' : 'Không'}`,
       `Hãng: ${product.brand}`,
       `Danh mục: ${product.categoryName}`,
@@ -87,37 +104,6 @@ export default function ProductDetail() {
       `Số điện thoại: ${product.sellerPhone}`,
     ]
   };
-
-  const relatedProducts = [
-    {
-      id: 2,
-      title: 'iPhone 13 Pro 128GB - Đẹp như mới',
-      price: '15.500.000 đ',
-      location: 'Phường Linh Xuân, Thủ Đức',
-      image: 'https://api.builder.io/api/v1/image/assets/TEMP/bf95040152b70a135d0df38766088c92c548a01f?width=518',
-    },
-    {
-      id: 3,
-      title: 'iPhone 13 Pro 128GB - Đẹp như mới',
-      price: '15.500.000 đ',
-      location: 'Phường Linh Xuân, Thủ Đức',
-      image: 'https://api.builder.io/api/v1/image/assets/TEMP/bf95040152b70a135d0df38766088c92c548a01f?width=518',
-    },
-    {
-      id: 4,
-      title: 'iPhone 13 Pro 128GB - Đẹp như mới',
-      price: '15.500.000 đ',
-      location: 'Phường Linh Xuân, Thủ Đức',
-      image: 'https://api.builder.io/api/v1/image/assets/TEMP/bf95040152b70a135d0df38766088c92c548a01f?width=518',
-    },
-    {
-      id: 5,
-      title: 'iPhone 13 Pro 128GB - Đẹp như mới',
-      price: '15.500.000 đ',
-      location: 'Phường Linh Xuân, Thủ Đức',
-      image: 'https://api.builder.io/api/v1/image/assets/TEMP/bf95040152b70a135d0df38766088c92c548a01f?width=518',
-    },
-  ];
 
   return (
     <div className="product-detail-page">
@@ -130,7 +116,7 @@ export default function ProductDetail() {
             </div>
             
             <div className="detail-info-section">
-              <ProductInfo product={productData} />
+              <ProductInfo product={productData} listingId={product.listingId} primaryImageUrl={product.primaryImageUrl} rawPrice={product.price} />
             </div>
           </div>
         </div>
@@ -141,10 +127,12 @@ export default function ProductDetail() {
             specifications={specifications}
           />
         </div>
-
-        <div className="product-detail-container">
-          <RelatedProducts products={relatedProducts} />
-        </div>
+         {relatedProducts.length > 0 &&  
+          <div className="product-detail-container">
+            <RelatedProducts products={relatedProducts} />
+          </div>
+         }
+       
       </main>
 
       <Footer />

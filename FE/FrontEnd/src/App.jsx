@@ -2,6 +2,9 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import store from './context/store';
 import { SearchProvider } from './context/SearchContext';
+import { CartProvider } from './context/CartContext';
+import { ToastProvider } from './context/ToastContext';
+import './styles/toast.css';
 import UserLayout from './layouts/UserLayout';
 import './App.css'
 import Homepage from './pages/Homepage/Homepage';
@@ -9,8 +12,10 @@ import Login from './pages/Auth/Login/Login';
 import Register from './pages/Auth/Register/Register';
 import ProductDetail from './pages/PostDetail/ProductDetail';
 import Compare from './pages/ComparePage/Compare';
+import Listings from './pages/Listings/Listings';
 import PostListing from './pages/PostListing/PostListing';
 import Chat from './pages/Chat/Chat';
+import CompareFloatingButton from './components/CompareFloatingButton';
 
 // Admin Pages
 import AdminDashboard from './pages/Admin/AdminDashboard/AdminDashboard';
@@ -29,16 +34,20 @@ function App() {
   return (
     <Provider store={store}>
       <Router>
+        <ToastProvider>
         <SearchProvider>
+        <CartProvider>
+        <CompareFloatingButton />
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Homepage />} />
           <Route path="/auth/login" element={<Login />} />
           <Route path="/auth/register" element={<Register />} />
           <Route path="/product/:id" element={<ProductDetail />} />
+          <Route path="/compare" element={<Compare />} />
+          <Route path="/listings" element={<Listings />} />
           {/* Protected Routes - Requires login */}
           <Route element={<ProtectedRoute allowedRoles={['User']}/>}>
-            <Route path="/compare" element={<Compare />} />
             <Route path="/user/info" element={<UserInfo />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/order/:orderId" element={<OrderDetail />} />
@@ -65,7 +74,9 @@ function App() {
             <Route path="/admin/categories" element={<AdminCategory />} />
           </Route>
         </Routes>
+        </CartProvider>
         </SearchProvider>
+        </ToastProvider>
       </Router>
     </Provider>
   )
