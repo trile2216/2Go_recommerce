@@ -25,66 +25,12 @@ import "./PostListing.css";
 import Header from "../../components/Header";
 import { uploadImageAndGetUrl } from "../../service/upload/api.upload";
 import { createListing } from "../../service/home/api.lishting";
+import { fetchAllCategories, fetchSubCategoriesByCategoryId } from "../../service/home/api.category";
+import { fetchAllDistricts, fetchAllWards } from "../../service/home/api.ward";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
-
-// Category structure
-const CATEGORIES = [
-    {
-        id: "electronics",
-        name: "Đồ điện tử",
-        subcategories: [
-            { id: "smartphone", name: "Điện thoại thông minh" },
-            { id: "laptop", name: "Laptop" },
-            { id: "pc", name: "PC" },
-            { id: "tablet", name: "Máy tính bảng" },
-            { id: "accessories", name: "Phụ kiện điện tử" },
-        ],
-    },
-    {
-        id: "fashion",
-        name: "Thời trang",
-        subcategories: [
-            { id: "men", name: "Thời trang nam" },
-            { id: "women", name: "Thời trang nữ" },
-            { id: "kids", name: "Thời trang trẻ em" },
-            { id: "shoes", name: "Giày dép" },
-            { id: "bags", name: "Túi xách" },
-        ],
-    },
-    {
-        id: "home",
-        name: "Đồ gia dụng",
-        subcategories: [
-            { id: "furniture", name: "Nội thất" },
-            { id: "kitchen", name: "Đồ dùng nhà bếp" },
-            { id: "decor", name: "Trang trí" },
-            { id: "appliances", name: "Thiết bị gia đình" },
-        ],
-    },
-    {
-        id: "vehicles",
-        name: "Xe cộ",
-        subcategories: [
-            { id: "motorbike", name: "Xe máy" },
-            { id: "bicycle", name: "Xe đạp" },
-            { id: "car", name: "Ô tô" },
-            { id: "parts", name: "Phụ tùng xe" },
-        ],
-    },
-    {
-        id: "books",
-        name: "Sách & Văn phòng phẩm",
-        subcategories: [
-            { id: "textbooks", name: "Sách giáo khoa" },
-            { id: "novels", name: "Tiểu thuyết" },
-            { id: "stationery", name: "Văn phòng phẩm" },
-            { id: "magazines", name: "Tạp chí" },
-        ],
-    },
-];
 
 export default function PostListing() {
     const navigate = useNavigate();
@@ -101,13 +47,118 @@ export default function PostListing() {
     const [videoFile, setVideoFile] = useState(null);
     const [isFree, setIsFree] = useState(false);
 
+    // Categories State
+    const [categories, setCategories] = useState([]);
+    const [loadingCategories, setLoadingCategories] = useState(false);
+
+    // Districts & Wards State
+    const [districts, setDistricts] = useState([]);
+    const [wards, setWards] = useState([]);
+    const [selectedDistrict, setSelectedDistrict] = useState(null);
+    const [selectedWard, setSelectedWard] = useState(null);
+    const [loadingDistricts, setLoadingDistricts] = useState(false);
+    const [loadingWards, setLoadingWards] = useState(false);
+
     useEffect(() => {
+        // Fetch categories from API
+        const loadCategories = async () => {
+            setLoadingCategories(true);
+            try {
+                const data = await fetchAllCategories();
+                
+                // Transform API response to include subcategories
+                const categoriesWithSubs = await Promise.all(
+                    data.items.map(async (category) => {
+                        try {
+                            const subData = await fetchSubCategoriesByCategoryId(category.categoryId);
+                            return {
+                                id: category.categoryId,
+                                name: category.name,
+                                subcategories: subData.items.map(sub => ({
+                                    id: sub.subCategoryId,
+                                    name: sub.name
+                                })) || []
+                            };
+                        } catch (err) {
+                            console.error(`Error fetching subcategories for ${category.categoryId}:`, err);
+                            return {
+                                id: category.categoryId,
+                                name: category.name,
+                                subcategories: []
+                            };
+                        }
+                    })
+                );
+                
+                setCategories(categoriesWithSubs);
+            } catch (error) {
+                console.error('Error loading categories:', error);
+                message.error('Không thể tải danh mục. Vui lòng thử lại!');
+            } finally {
+                setLoadingCategories(false);
+            }
+        };
+
+        loadCategories();
         // Show modal on mount if no category selected
         if (!selectedCategory || !selectedSubcategory) {
             setIsCategoryModalOpen(true);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Fetch districts on component mount
+    useEffect(() => {
+        const loadDistricts = async () => {
+            setLoadingDistricts(true);
+            try {
+                const data = await fetchAllDistricts();
+                const districtsList = data.items.map(district => ({
+                    value: district.districtId,
+                    label: district.name,
+                    cityName: district.cityName
+                }));
+                setDistricts(districtsList);
+            } catch (error) {
+                console.error('Error loading districts:', error);
+                message.error('Không thể tải quận/huyện. Vui lòng thử lại!');
+            } finally {
+                setLoadingDistricts(false);
+            }
+        };
+        loadDistricts();
+    }, []);
+
+    // Fetch wards when district is selected
+    useEffect(() => {
+        if (selectedDistrict) {
+            const loadWards = async () => {
+                setLoadingWards(true);
+                try {
+                    const data = await fetchAllWards();
+                    // Filter wards by selected district
+                    const wardsList = data.items
+                        .filter(ward => ward.districtId === selectedDistrict)
+                        .map(ward => ({
+                            value: ward.wardId,
+                            label: ward.name,
+                            districtName: ward.districtName
+                        }));
+                    setWards(wardsList);
+                    setSelectedWard(null); // Reset selected ward
+                } catch (error) {
+                    console.error('Error loading wards:', error);
+                    message.error('Không thể tải phường/xã. Vui lòng thử lại!');
+                } finally {
+                    setLoadingWards(false);
+                }
+            };
+            loadWards();
+        } else {
+            setWards([]);
+            setSelectedWard(null);
+        }
+    }, [selectedDistrict]);
 
     const handleCategorySelect = (category) => {
         if (expandedCategoryId === category.id) {
@@ -130,12 +181,6 @@ export default function PostListing() {
         setFileList(newFileList);
     };
 
-    const handleVideoChange = (info) => {
-        if (info.file.status !== 'uploading') {
-            const file = info.file.originFileObj || info.file;
-            setVideoFile(file);
-        }
-    };
 
     const onFinish = async (values) => {
         if (fileList.length === 0) {
@@ -167,7 +212,7 @@ export default function PostListing() {
                 title: values.title,
                 description: values.description,
                 subCategoryId: selectedSubcategory.id,
-                wardId: 0, // Default ward ID
+                wardId: selectedWard || 0,
                 price: values.isFree ? 0 : parseInt(values.price) || 0,
                 listingType: "SELLING", // Default listing type
                 availableQuantity: 1,
@@ -215,7 +260,6 @@ export default function PostListing() {
                     layout="vertical"
                     onFinish={onFinish}
                     initialValues={{
-                        address: "Thủ Đức, TP. Hồ Chí Minh",
                         condition: undefined
                     }}
                 >
@@ -242,19 +286,6 @@ export default function PostListing() {
                                 </Form.Item>
                             </Col>
 
-                            <Col span={24} style={{ marginTop: 16 }}>
-                                <Form.Item label="Video" tooltip="Đăng video để bán nhanh hơn">
-                                    <Upload
-                                        accept="video/*"
-                                        maxCount={1}
-                                        onChange={handleVideoChange}
-                                        beforeUpload={() => false}
-                                        showUploadList={{ showRemoveIcon: true }}
-                                    >
-                                        <Button icon={<Video size={16} />}>Chọn video</Button>
-                                    </Upload>
-                                </Form.Item>
-                            </Col>
                         </Row>
                     </Card>
 
@@ -351,11 +382,38 @@ export default function PostListing() {
                     {/* Seller Info Section */}
                     <Card title="Thông tin người bán" className="mb-4" bordered={false} style={{ marginBottom: 16, borderRadius: 8 }}>
                         <Form.Item
-                            name="address"
-                            label="Địa chỉ"
-                            rules={[{ required: true, message: 'Vui lòng nhập địa chỉ' }]}
+                            label="Quận/Huyện"
+                            rules={[{ required: true, message: 'Vui lòng chọn quận/huyện' }]}
                         >
-                            <Input prefix={<MapPin size={16} color="#999" />} />
+                            <Select
+                                placeholder="Chọn quận/huyện"
+                                loading={loadingDistricts}
+                                value={selectedDistrict}
+                                onChange={setSelectedDistrict}
+                                options={districts}
+                            />
+                        </Form.Item>
+
+                        <Form.Item
+                            label="Phường/Xã"
+                            rules={[{ required: true, message: 'Vui lòng chọn phường/xã' }]}
+                        >
+                            <Select
+                                placeholder="Chọn phường/xã"
+                                loading={loadingWards}
+                                value={selectedWard}
+                                onChange={setSelectedWard}
+                                options={wards}
+                                disabled={!selectedDistrict}
+                            />
+                        </Form.Item>
+
+                        <Form.Item
+                            name="address"
+                            label="Địa chỉ chi tiết"
+                            rules={[{ required: true, message: 'Vui lòng nhập địa chỉ chi tiết' }]}
+                        >
+                            <Input placeholder="Ví dụ: Số nhà, tên đường..." prefix={<MapPin size={16} color="#999" />} />
                         </Form.Item>
                     </Card>
 
@@ -382,50 +440,60 @@ export default function PostListing() {
                     centered
                 >
                     <div className="category-list" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-                        {CATEGORIES.map((category) => (
-                            <div key={category.id} style={{ marginBottom: 8, border: '1px solid #f0f0f0', borderRadius: 8, overflow: 'hidden' }}>
-                                <div
-                                    onClick={() => handleCategorySelect(category)}
-                                    style={{
-                                        padding: '12px 16px',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        backgroundColor: expandedCategoryId === category.id ? '#fafafa' : '#fff',
-                                        fontWeight: 500
-                                    }}
-                                >
-                                    <span>{category.name}</span>
-                                    {expandedCategoryId === category.id ? <span>−</span> : <span>+</span>}
-                                </div>
-
-                                {expandedCategoryId === category.id && (
-                                    <div style={{ backgroundColor: '#f9f9f9', borderTop: '1px solid #f0f0f0' }}>
-                                        {category.subcategories.map((sub) => (
-                                            <div
-                                                key={sub.id}
-                                                onClick={() => handleSubcategorySelect(category, sub)}
-                                                style={{
-                                                    padding: '10px 24px',
-                                                    cursor: 'pointer',
-                                                    color: '#555',
-                                                    transition: 'background 0.2s',
-                                                    display: 'flex',
-                                                    justifyContent: 'space-between'
-                                                }}
-                                                className="hover:bg-gray-100"
-                                                onMouseEnter={(e) => e.target.style.backgroundColor = '#f0f0f0'}
-                                                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                                            >
-                                                {sub.name}
-                                                {selectedSubcategory?.id === sub.id && <Check size={16} color="green" />}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+                        {loadingCategories ? (
+                            <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
+                                Đang tải danh mục...
                             </div>
-                        ))}
+                        ) : categories.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
+                                Không có danh mục nào
+                            </div>
+                        ) : (
+                            categories.map((category) => (
+                                <div key={category.id} style={{ marginBottom: 8, border: '1px solid #f0f0f0', borderRadius: 8, overflow: 'hidden' }}>
+                                    <div
+                                        onClick={() => handleCategorySelect(category)}
+                                        style={{
+                                            padding: '12px 16px',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            backgroundColor: expandedCategoryId === category.id ? '#fafafa' : '#fff',
+                                            fontWeight: 500
+                                        }}
+                                    >
+                                        <span>{category.name}</span>
+                                        {expandedCategoryId === category.id ? <span>−</span> : <span>+</span>}
+                                    </div>
+
+                                    {expandedCategoryId === category.id && (
+                                        <div style={{ backgroundColor: '#f9f9f9', borderTop: '1px solid #f0f0f0' }}>
+                                            {category.subcategories && category.subcategories.map((sub) => (
+                                                <div
+                                                    key={sub.id}
+                                                    onClick={() => handleSubcategorySelect(category, sub)}
+                                                    style={{
+                                                        padding: '10px 24px',
+                                                        cursor: 'pointer',
+                                                        color: '#555',
+                                                        transition: 'background 0.2s',
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between'
+                                                    }}
+                                                    className="hover:bg-gray-100"
+                                                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f0f0f0'}
+                                                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                                                >
+                                                    {sub.name}
+                                                    {selectedSubcategory?.id === sub.id && <Check size={16} color="green" />}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ))
+                        )}
                     </div>
                 </Modal>
             </div>

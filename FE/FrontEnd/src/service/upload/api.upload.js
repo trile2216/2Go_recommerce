@@ -14,11 +14,7 @@ export const uploadImage = async (file) => {
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await api.post('/uploads/image', formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-        });
+        const response = await api.post('/uploads/image', formData);
 
         return response.data;
     } catch (error) {
@@ -52,14 +48,23 @@ export const uploadMultipleImages = async (files) => {
 
 /**
  * Upload ảnh và trả về URL
- * @param {File} file - File ảnh cần upload
- * @returns {Promise<string>} - URL của ảnh đã upload
+ * @param {File|File[]} files - File ảnh hoặc mảng file ảnh cần upload
+ * @returns {Promise<string|string[]>} - URL của ảnh đã upload (hoặc mảng URL nếu input là mảng)
  */
-export const uploadImageAndGetUrl = async (file) => {
+export const uploadImageAndGetUrl = async (files) => {
     try {
-        const response = await uploadImage(file);
-        // Giả sử backend trả về object có property `url` hoặc `imageUrl`
-        return response.url || response.imageUrl || response.data;
+        // Nếu là mảng files
+        if (Array.isArray(files)) {
+            if (files.length === 0) {
+                throw new Error('Files are required');
+            }
+            const results = await uploadMultipleImages(files);
+            return results.map(response => response.url || response.imageUrl || response.data);
+        } else {
+            // Nếu là single file
+            const response = await uploadImage(files);
+            return response.url || response.imageUrl || response.data;
+        }
     } catch (error) {
         console.error('Error uploading image and getting URL:', error);
         throw error;
