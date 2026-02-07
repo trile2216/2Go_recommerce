@@ -112,6 +112,8 @@ public class SellerListingService : ISellerListingService
             .ThenInclude(sc => sc!.Category)
             .Include(l => l.ListingImages)
             .Include(l => l.ListingAttributes)
+            .Include(l => l.Seller)
+            .ThenInclude(s => s!.UserProfiles)
             .Where(l => l.ListingId == listingId && l.SellerId == sellerId)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -131,6 +133,10 @@ public class SellerListingService : ISellerListingService
             .Select(a => new ListingAttributeItem(a.Name ?? string.Empty, a.Value ?? string.Empty))
             .ToList();
 
+        var sellerProfile = listing.Seller?.UserProfiles
+            .OrderBy(p => p.ProfileId)
+            .FirstOrDefault();
+
         return new ListingDetail(
             listing.ListingId,
             listing.Title,
@@ -148,6 +154,9 @@ public class SellerListingService : ISellerListingService
             listing.SubCategoryId,
             listing.SubCategory?.Category?.Name,
             listing.SubCategory?.Name,
+            listing.SellerId,
+            sellerProfile?.FullName,
+            sellerProfile?.AvatarUrl,
             listing.Seller?.Email,
             listing.Seller?.Phone,
             primary,
