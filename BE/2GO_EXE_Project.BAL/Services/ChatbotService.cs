@@ -37,9 +37,9 @@ public class ChatbotService : IChatbotService
             var suggestions = await FindListingsAsync(productQuery, cancellationToken);
             if (suggestions.Count > 0)
             {
-                var answer = $"Mình tìm thấy {suggestions.Count} sản phẩm liên quan đến \"{productQuery}\".";
-                await LogAsync(userId, request.Question, answer, "product_search", "MEDIUM", cancellationToken);
-                return new ChatbotAskResponse(answer, "MEDIUM", "LISTINGS", "product_search", suggestions);
+                var productSearchAnswer = $"Mình tìm thấy {suggestions.Count} sản phẩm liên quan đến \"{productQuery}\".";
+                await LogAsync(userId, request.Question, productSearchAnswer, "product_search", "MEDIUM", cancellationToken);
+                return new ChatbotAskResponse(productSearchAnswer, "MEDIUM", "LISTINGS", "product_search", suggestions);
             }
 
             var noResultAnswer = $"Hiện chưa thấy sản phẩm phù hợp với \"{productQuery}\". Bạn có thể cho mình thêm thông tin (hãng, model, giá, tình trạng) không?";
