@@ -752,33 +752,44 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.ToTable("ListingAttributes");
                 });
 
-            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.ListingImage", b =>
+            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.ListingMedia", b =>
                 {
-                    b.Property<long>("ImageId")
+                    b.Property<long>("MediaId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("ImageId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("MediaId"));
 
-                    b.Property<string>("ImageUrl")
-                        .HasMaxLength(500)
+                    b.Property<long?>("ListingId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("MediaType")
+                        .HasMaxLength(20)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("IMAGE");
 
                     b.Property<bool?>("IsPrimary")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
-                    b.Property<long?>("ListingId")
-                        .HasColumnType("bigint");
+                    b.Property<int?>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
-                    b.HasKey("ImageId")
-                        .HasName("PK__ListingI__7516F70C45586241");
+                    b.Property<string>("Url")
+                        .HasMaxLength(500)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("MediaId")
+                        .HasName("PK__ListingM__6D5D1F36E99C3C10");
 
                     b.HasIndex("ListingId");
 
-                    b.ToTable("ListingImages");
+                    b.ToTable("ListingMedias");
                 });
 
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.ListingView", b =>
@@ -2227,12 +2238,12 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.Navigation("Listing");
                 });
 
-            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.ListingImage", b =>
+            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.ListingMedia", b =>
                 {
                     b.HasOne("_2GO_EXE_Project.DAL.Entities.Listing", "Listing")
-                        .WithMany("ListingImages")
+                        .WithMany("ListingMedias")
                         .HasForeignKey("ListingId")
-                        .HasConstraintName("FK_ListingImages_Listings");
+                        .HasConstraintName("FK_ListingMedias_Listings");
 
                     b.Navigation("Listing");
                 });
@@ -2623,7 +2634,7 @@ namespace _2GO_EXE_Project.DAL.Migrations
 
                     b.Navigation("ListingAttributes");
 
-                    b.Navigation("ListingImages");
+                    b.Navigation("ListingMedias");
 
                     b.Navigation("ListingViews");
 

@@ -35,7 +35,7 @@ public class ListingService : IListingService
         var query = _uow.Listings.Query()
             .Include(l => l.SubCategory)
             .ThenInclude(sc => sc!.Category)
-            .Include(l => l.ListingImages)
+            .Include(l => l.ListingMedias)
             .Include(l => l.Ward)
             .ThenInclude(w => w!.District)
             .ThenInclude(d => d!.City)
@@ -121,7 +121,13 @@ public class ListingService : IListingService
                 l.SubCategoryId,
                 l.SubCategory != null && l.SubCategory.Category != null ? l.SubCategory.Category.Name : null,
                 l.SubCategory != null ? l.SubCategory.Name : null,
-                l.ListingImages.OrderByDescending(img => img.IsPrimary == true).ThenBy(img => img.ImageId).Select(img => img.ImageUrl).FirstOrDefault()))
+                l.ListingMedias
+                    .Where(m => string.Equals(m.MediaType, MediaTypes.Image, StringComparison.OrdinalIgnoreCase))
+                    .OrderByDescending(m => m.IsPrimary == true)
+                    .ThenBy(m => m.SortOrder ?? 0)
+                    .ThenBy(m => m.MediaId)
+                    .Select(m => m.Url)
+                    .FirstOrDefault()))
             .ToListAsync(cancellationToken);
 
         return new ListingListResponse(total, items);
@@ -132,7 +138,7 @@ public class ListingService : IListingService
         var query = _uow.Listings.Query()
             .Include(l => l.SubCategory)
             .ThenInclude(sc => sc!.Category)
-            .Include(l => l.ListingImages)
+            .Include(l => l.ListingMedias)
             .Include(l => l.Seller)
             .ThenInclude(s => s!.UserProfiles)
             .Where(l => l.ListingId == listingId);
@@ -147,12 +153,20 @@ public class ListingService : IListingService
 
         await TrackViewAsync(listing.ListingId, viewerUserId, cancellationToken);
 
-        var images = listing.ListingImages
-            .OrderByDescending(img => img.IsPrimary == true)
-            .ThenBy(img => img.ImageId)
-            .Select(img => img.ImageUrl ?? string.Empty)
+        var media = listing.ListingMedias
+            .OrderByDescending(m => m.IsPrimary == true)
+            .ThenBy(m => m.SortOrder ?? 0)
+            .ThenBy(m => m.MediaId)
+            .Select(m => new ListingMediaItem(
+                m.Url ?? string.Empty,
+                m.MediaType ?? MediaTypes.Image,
+                m.IsPrimary ?? false,
+                m.SortOrder))
             .ToList();
-        var primary = images.FirstOrDefault();
+        var primary = media
+            .Where(m => string.Equals(m.MediaType, MediaTypes.Image, StringComparison.OrdinalIgnoreCase))
+            .Select(m => m.Url)
+            .FirstOrDefault();
 
         var attributes = listing.ListingAttributes
             .OrderBy(a => a.AttributeId)
@@ -187,7 +201,7 @@ public class ListingService : IListingService
             null,
             null,
             primary,
-            images,
+            media,
             attributes);
     }
 

@@ -20,7 +20,7 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     IFixerServiceRepository FixerServices { get; }
     IListingRepository Listings { get; }
     IListingAttributeRepository ListingAttributes { get; }
-    IListingImageRepository ListingImages { get; }
+    IListingMediaRepository ListingMedias { get; }
     IListingViewRepository ListingViews { get; }
     IMessageRepository Messages { get; }
     IOrderRepository Orders { get; }

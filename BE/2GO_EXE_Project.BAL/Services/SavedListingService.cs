@@ -35,7 +35,7 @@ public class SavedListingService : ISavedListingService
         var userId = GetUserId(userPrincipal);
         var query = _uow.SavedListings.Query()
             .Include(s => s.Listing)
-            .ThenInclude(l => l!.ListingImages)
+            .ThenInclude(l => l!.ListingMedias)
             .Where(s => s.UserId == userId);
 
         var total = await query.CountAsync(cancellationToken);
@@ -49,7 +49,13 @@ public class SavedListingService : ISavedListingService
                 s.Listing != null ? s.Listing.Title : null,
                 s.Listing != null ? s.Listing.Price : null,
                 s.Listing != null
-                    ? s.Listing.ListingImages.OrderByDescending(i => i.IsPrimary == true).ThenBy(i => i.ImageId).Select(i => i.ImageUrl).FirstOrDefault()
+                    ? s.Listing.ListingMedias
+                        .Where(m => string.Equals(m.MediaType, MediaTypes.Image, StringComparison.OrdinalIgnoreCase))
+                        .OrderByDescending(m => m.IsPrimary == true)
+                        .ThenBy(m => m.SortOrder ?? 0)
+                        .ThenBy(m => m.MediaId)
+                        .Select(m => m.Url)
+                        .FirstOrDefault()
                     : null))
             .ToListAsync(cancellationToken);
 

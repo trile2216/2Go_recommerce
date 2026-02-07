@@ -72,7 +72,7 @@ public partial class Listing
     public virtual ICollection<ListingAttribute> ListingAttributes { get; set; } = new List<ListingAttribute>();
 
     [InverseProperty("Listing")]
-    public virtual ICollection<ListingImage> ListingImages { get; set; } = new List<ListingImage>();
+    public virtual ICollection<ListingMedia> ListingMedias { get; set; } = new List<ListingMedia>();
 
     [InverseProperty("Listing")]
     public virtual ICollection<ListingView> ListingViews { get; set; } = new List<ListingView>();

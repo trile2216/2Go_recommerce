@@ -49,4 +49,36 @@ public class UploadsController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
         }
     }
+
+    [HttpPost("video")]
+    [Authorize]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(CloudinaryUploadResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [RequestSizeLimit(50_000_000)]
+    public async Task<IActionResult> UploadVideo(IFormFile file, CancellationToken cancellationToken)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest("File is required.");
+        }
+
+        if (!file.ContentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest("Only video files are allowed.");
+        }
+
+        try
+        {
+            await using var stream = file.OpenReadStream();
+            var result = await _cloudinaryService.UploadVideoAsync(stream, file.FileName, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Upload video failed. FileName={FileName}, ContentType={ContentType}, Length={Length}",
+                file.FileName, file.ContentType, file.Length);
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
+    }
 }

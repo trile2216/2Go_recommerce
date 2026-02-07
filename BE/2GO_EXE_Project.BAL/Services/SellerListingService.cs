@@ -70,11 +70,60 @@ public class SellerListingService : ISellerListingService
             .ToList();
     }
 
+    private static string NormalizeMediaType(string? mediaType)
+    {
+        if (string.IsNullOrWhiteSpace(mediaType))
+        {
+            return MediaTypes.Image;
+        }
+
+        var normalized = mediaType.Trim().ToUpperInvariant();
+        if (!MediaTypes.All.Contains(normalized, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"Invalid media type. Allowed: {string.Join(", ", MediaTypes.All)}.");
+        }
+
+        return normalized;
+    }
+
+    private static void ValidateMediaRequests(IReadOnlyList<ListingMediaRequest> mediaRequests)
+    {
+        if (mediaRequests.Count == 0)
+        {
+            throw new InvalidOperationException("At least one media item is required.");
+        }
+
+        var primaryImageCount = 0;
+        foreach (var item in mediaRequests)
+        {
+            if (string.IsNullOrWhiteSpace(item.Url))
+            {
+                throw new InvalidOperationException("Media url is required.");
+            }
+
+            var normalizedType = NormalizeMediaType(item.MediaType);
+            if (string.Equals(normalizedType, MediaTypes.Video, StringComparison.OrdinalIgnoreCase) && item.IsPrimary)
+            {
+                throw new InvalidOperationException("Primary media must be an image.");
+            }
+
+            if (string.Equals(normalizedType, MediaTypes.Image, StringComparison.OrdinalIgnoreCase) && item.IsPrimary)
+            {
+                primaryImageCount++;
+            }
+        }
+
+        if (primaryImageCount > 1)
+        {
+            throw new InvalidOperationException("Only one primary image is allowed.");
+        }
+    }
+
     public async Task<SellerListingListResponse> GetMyListingsAsync(ClaimsPrincipal sellerPrincipal, string? status, int skip, int take, CancellationToken cancellationToken = default)
     {
         var sellerId = GetUserId(sellerPrincipal);
         var query = _uow.Listings.Query()
-            .Include(l => l.ListingImages)
+            .Include(l => l.ListingMedias)
             .Where(l => l.SellerId == sellerId);
 
         if (!string.IsNullOrWhiteSpace(status))
@@ -98,7 +147,13 @@ public class SellerListingService : ISellerListingService
                 l.Status,
                 l.CreatedAt,
                 l.UpdatedAt,
-                l.ListingImages.OrderByDescending(i => i.IsPrimary == true).ThenBy(i => i.ImageId).Select(i => i.ImageUrl).FirstOrDefault()))
+                l.ListingMedias
+                    .Where(m => string.Equals(m.MediaType, MediaTypes.Image, StringComparison.OrdinalIgnoreCase))
+                    .OrderByDescending(m => m.IsPrimary == true)
+                    .ThenBy(m => m.SortOrder ?? 0)
+                    .ThenBy(m => m.MediaId)
+                    .Select(m => m.Url)
+                    .FirstOrDefault()))
             .ToListAsync(cancellationToken);
 
         return new SellerListingListResponse(total, items);
@@ -110,7 +165,7 @@ public class SellerListingService : ISellerListingService
         var listing = await _uow.Listings.Query()
             .Include(l => l.SubCategory)
             .ThenInclude(sc => sc!.Category)
-            .Include(l => l.ListingImages)
+            .Include(l => l.ListingMedias)
             .Include(l => l.ListingAttributes)
             .Include(l => l.Seller)
             .ThenInclude(s => s!.UserProfiles)
@@ -119,13 +174,21 @@ public class SellerListingService : ISellerListingService
 
         if (listing == null) return null;
 
-        var images = listing.ListingImages
-            .OrderByDescending(i => i.IsPrimary == true)
-            .ThenBy(i => i.ImageId)
-            .Select(i => i.ImageUrl ?? string.Empty)
+        var media = listing.ListingMedias
+            .OrderByDescending(m => m.IsPrimary == true)
+            .ThenBy(m => m.SortOrder ?? 0)
+            .ThenBy(m => m.MediaId)
+            .Select(m => new ListingMediaItem(
+                m.Url ?? string.Empty,
+                m.MediaType ?? MediaTypes.Image,
+                m.IsPrimary ?? false,
+                m.SortOrder))
             .ToList();
 
-        var primary = images.FirstOrDefault();
+        var primary = media
+            .Where(m => string.Equals(m.MediaType, MediaTypes.Image, StringComparison.OrdinalIgnoreCase))
+            .Select(m => m.Url)
+            .FirstOrDefault();
 
         var attributes = listing.ListingAttributes
             .OrderBy(a => a.AttributeId)
@@ -160,7 +223,7 @@ public class SellerListingService : ISellerListingService
             listing.Seller?.Email,
             listing.Seller?.Phone,
             primary,
-            images,
+            media,
             attributes);
     }
 
@@ -180,8 +243,13 @@ public class SellerListingService : ISellerListingService
         {
             throw new InvalidOperationException("Price must be greater than 0.");
         }
-        var images = request.Images?.ToList() ?? new List<ListingImageRequest>();
-        if (images.Count == 0)
+        var mediaRequests = request.Media?.ToList() ?? new List<ListingMediaRequest>();
+        ValidateMediaRequests(mediaRequests);
+        var imageRequests = mediaRequests
+            .Where(m => string.IsNullOrWhiteSpace(m.MediaType) ||
+                        string.Equals(m.MediaType, MediaTypes.Image, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (imageRequests.Count == 0)
         {
             throw new InvalidOperationException("At least one image is required.");
         }
@@ -208,15 +276,31 @@ public class SellerListingService : ISellerListingService
         await _uow.Listings.AddAsync(listing, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
 
-        var hasPrimary = images.Any(i => i.IsPrimary);
-        var listingImages = images.Select((img, index) => new ListingImage
+        var hasPrimaryImage = imageRequests.Any(i => i.IsPrimary);
+        var listingMedia = new List<ListingMedia>();
+        var imageIndex = 0;
+        for (var index = 0; index < mediaRequests.Count; index++)
         {
-            ListingId = listing.ListingId,
-            ImageUrl = img.ImageUrl,
-            IsPrimary = hasPrimary ? img.IsPrimary : index == 0
-        }).ToList();
+            var item = mediaRequests[index];
+            var normalizedType = NormalizeMediaType(item.MediaType);
+            var isImage = string.Equals(normalizedType, MediaTypes.Image, StringComparison.OrdinalIgnoreCase);
+            var isPrimary = isImage && (hasPrimaryImage ? item.IsPrimary : imageIndex == 0);
+            if (isImage)
+            {
+                imageIndex++;
+            }
 
-        await _uow.ListingImages.AddRangeAsync(listingImages, cancellationToken);
+            listingMedia.Add(new ListingMedia
+            {
+                ListingId = listing.ListingId,
+                Url = item.Url,
+                MediaType = normalizedType,
+                IsPrimary = isPrimary,
+                SortOrder = item.SortOrder ?? index
+            });
+        }
+
+        await _uow.ListingMedias.AddRangeAsync(listingMedia, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
 
         var attributeRequests = request.Attributes ?? Array.Empty<ListingAttributeRequest>();
@@ -305,7 +389,7 @@ public class SellerListingService : ISellerListingService
     {
         var sellerId = GetUserId(sellerPrincipal);
         var listing = await _uow.Listings.Query()
-            .Include(l => l.ListingImages)
+            .Include(l => l.ListingMedias)
             .FirstOrDefaultAsync(l => l.ListingId == listingId && l.SellerId == sellerId, cancellationToken);
         if (listing == null) return new BasicResponse(false, "Listing not found.");
 
@@ -331,7 +415,8 @@ public class SellerListingService : ISellerListingService
         }
         await EnsureSubCategoryValidAsync(listing.SubCategoryId.Value, cancellationToken);
 
-        var images = listing.ListingImages.ToList();
+        var media = listing.ListingMedias.ToList();
+        var images = media.Where(m => string.Equals(m.MediaType, MediaTypes.Image, StringComparison.OrdinalIgnoreCase)).ToList();
         if (images.Count == 0)
         {
             return new BasicResponse(false, "At least one image is required before submitting.");
@@ -340,7 +425,7 @@ public class SellerListingService : ISellerListingService
         if (!images.Any(i => i.IsPrimary == true))
         {
             images[0].IsPrimary = true;
-            _uow.ListingImages.Update(images[0]);
+            _uow.ListingMedias.Update(images[0]);
         }
 
         var user = await _uow.Users.Query()
@@ -408,44 +493,70 @@ public class SellerListingService : ISellerListingService
         return new BasicResponse(true, "Listing deleted (soft).");
     }
 
-    public async Task<BasicResponse> UpdateImagesAsync(ClaimsPrincipal sellerPrincipal, long listingId, UpdateListingImagesRequest request, CancellationToken cancellationToken = default)
+    public async Task<BasicResponse> UpdateMediaAsync(ClaimsPrincipal sellerPrincipal, long listingId, UpdateListingMediaRequest request, CancellationToken cancellationToken = default)
     {
         var sellerId = GetUserId(sellerPrincipal);
         var listing = await _uow.Listings.Query()
-            .Include(l => l.ListingImages)
+            .Include(l => l.ListingMedias)
             .FirstOrDefaultAsync(l => l.ListingId == listingId && l.SellerId == sellerId, cancellationToken);
         if (listing == null) return new BasicResponse(false, "Listing not found.");
 
         if (!string.Equals(listing.Status, ListingStatuses.Draft, StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(listing.Status, ListingStatuses.Rejected, StringComparison.OrdinalIgnoreCase))
         {
-            return new BasicResponse(false, "Images can only be updated when status is Draft or Rejected.");
+            return new BasicResponse(false, "Media can only be updated when status is Draft or Rejected.");
         }
 
-        var existing = listing.ListingImages.ToList();
+        var existing = listing.ListingMedias.ToList();
         if (existing.Count > 0)
         {
-            _uow.ListingImages.RemoveRange(existing);
+            _uow.ListingMedias.RemoveRange(existing);
         }
 
-        var images = request.Images ?? Array.Empty<ListingImageRequest>();
-        if (images.Count == 0)
+        var mediaRequests = request.Media ?? Array.Empty<ListingMediaRequest>();
+        if (mediaRequests.Count == 0)
         {
             await _uow.SaveChangesAsync(cancellationToken);
-            return new BasicResponse(true, "Images cleared.");
+            return new BasicResponse(true, "Media cleared.");
+        }
+        ValidateMediaRequests(mediaRequests);
+
+        var imageRequests = mediaRequests
+            .Where(m => string.IsNullOrWhiteSpace(m.MediaType) ||
+                        string.Equals(m.MediaType, MediaTypes.Image, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (imageRequests.Count == 0)
+        {
+            throw new InvalidOperationException("At least one image is required.");
         }
 
-        var hasPrimary = images.Any(i => i.IsPrimary);
-        var newImages = images.Select((img, index) => new ListingImage
+        var hasPrimaryImage = imageRequests.Any(i => i.IsPrimary);
+        var newMedia = new List<ListingMedia>();
+        var imageIndex = 0;
+        for (var index = 0; index < mediaRequests.Count; index++)
         {
-            ListingId = listing.ListingId,
-            ImageUrl = img.ImageUrl,
-            IsPrimary = hasPrimary ? img.IsPrimary : index == 0
-        }).ToList();
+            var item = mediaRequests[index];
+            var normalizedType = NormalizeMediaType(item.MediaType);
+            var isImage = string.Equals(normalizedType, MediaTypes.Image, StringComparison.OrdinalIgnoreCase);
+            var isPrimary = isImage && (hasPrimaryImage ? item.IsPrimary : imageIndex == 0);
+            if (isImage)
+            {
+                imageIndex++;
+            }
 
-        await _uow.ListingImages.AddRangeAsync(newImages, cancellationToken);
+            newMedia.Add(new ListingMedia
+            {
+                ListingId = listing.ListingId,
+                Url = item.Url,
+                MediaType = normalizedType,
+                IsPrimary = isPrimary,
+                SortOrder = item.SortOrder ?? index
+            });
+        }
+
+        await _uow.ListingMedias.AddRangeAsync(newMedia, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
-        return new BasicResponse(true, "Images updated.");
+        return new BasicResponse(true, "Media updated.");
     }
 
     public async Task<ListingStatsResponse?> GetMyListingStatsAsync(ClaimsPrincipal sellerPrincipal, long listingId, CancellationToken cancellationToken = default)

@@ -20,7 +20,7 @@ public interface IFixerRequestRepository : IGenericRepository<FixerRequest> { }
 public interface IFixerServiceRepository : IGenericRepository<FixerService> { }
 public interface IListingRepository : IGenericRepository<Listing> { }
 public interface IListingAttributeRepository : IGenericRepository<ListingAttribute> { }
-public interface IListingImageRepository : IGenericRepository<ListingImage> { }
+public interface IListingMediaRepository : IGenericRepository<ListingMedia> { }
 public interface IListingViewRepository : IGenericRepository<ListingView> { }
 public interface IMessageRepository : IGenericRepository<Message> { }
 public interface IOrderRepository : IGenericRepository<Order> { }

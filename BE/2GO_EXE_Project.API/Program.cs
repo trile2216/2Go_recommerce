@@ -14,6 +14,7 @@ using _2GO_EXE_Project.DAL.Repositories.Implementations;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Npgsql;
 using PayOS;
 using PayOS.Models;
 
@@ -99,10 +100,9 @@ builder.Services.AddKeyedSingleton("OrderClient", (serviceProvider, key) =>
 builder.Services.AddScoped<IPayOSService, PayOSService>();
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-// builder.Services.AddDbContext<AppDbContext>(options =>
-//     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var connectionString = builder.Configuration.GetConnectionString("PostgreSqlConnection") ?? builder.Configuration.GetValue<string>("ConnectionStrings__PostgreSqlConnection");
+var sanitizedConnectionString = SanitizeConnectionString(connectionString);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
@@ -199,6 +199,7 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+app.Logger.LogInformation("Database connection: {ConnectionString}", sanitizedConnectionString);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("EnableSwaggerInProduction"))
@@ -217,4 +218,26 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+static string SanitizeConnectionString(string? connectionString)
+{
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        return "<empty>";
+    }
+
+    try
+    {
+        var builder = new NpgsqlConnectionStringBuilder(connectionString);
+        if (!string.IsNullOrWhiteSpace(builder.Password))
+        {
+            builder.Password = "****";
+        }
+        return builder.ToString();
+    }
+    catch
+    {
+        return "<invalid connection string>";
+    }
+}
 

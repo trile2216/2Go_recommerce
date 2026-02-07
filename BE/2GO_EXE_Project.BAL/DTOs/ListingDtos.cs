@@ -14,6 +14,8 @@ public record ListingListItem(
 
 public record ListingAttributeItem(string Name, string Value);
 
+public record ListingMediaItem(string Url, string MediaType, bool IsPrimary, int? SortOrder);
+
 public record ListingDetail(
     long ListingId,
     string? Title,
@@ -37,7 +39,7 @@ public record ListingDetail(
     string? SellerEmail,
     string? SellerPhone,
     string? PrimaryImageUrl,
-    IReadOnlyList<string> Images,
+    IReadOnlyList<ListingMediaItem> Media,
     IReadOnlyList<ListingAttributeItem> Attributes);
 
 public record ListingListResponse(int Total, IReadOnlyList<ListingListItem> Items);
