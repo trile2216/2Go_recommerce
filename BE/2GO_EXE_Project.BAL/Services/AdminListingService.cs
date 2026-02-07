@@ -77,7 +77,7 @@ public class AdminListingService : IAdminListingService
                 l.SubCategory != null && l.SubCategory.Category != null ? l.SubCategory.Category.Name : null,
                 l.SubCategory != null ? l.SubCategory.Name : null,
                 l.ListingMedias
-                    .Where(m => string.Equals(m.MediaType, MediaTypes.Image, StringComparison.OrdinalIgnoreCase))
+                    .Where(m => m.MediaType == MediaTypes.Image)
                     .OrderByDescending(m => m.IsPrimary == true)
                     .ThenBy(m => m.SortOrder ?? 0)
                     .ThenBy(m => m.MediaId)
@@ -113,7 +113,7 @@ public class AdminListingService : IAdminListingService
                 m.SortOrder))
             .ToList();
         var primary = media
-            .Where(m => string.Equals(m.MediaType, MediaTypes.Image, StringComparison.OrdinalIgnoreCase))
+            .Where(m => m.MediaType == MediaTypes.Image)
             .Select(m => m.Url)
             .FirstOrDefault();
 

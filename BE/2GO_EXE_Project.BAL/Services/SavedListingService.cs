@@ -50,7 +50,7 @@ public class SavedListingService : ISavedListingService
                 s.Listing != null ? s.Listing.Price : null,
                 s.Listing != null
                     ? s.Listing.ListingMedias
-                        .Where(m => string.Equals(m.MediaType, MediaTypes.Image, StringComparison.OrdinalIgnoreCase))
+                        .Where(m => m.MediaType == MediaTypes.Image)
                         .OrderByDescending(m => m.IsPrimary == true)
                         .ThenBy(m => m.SortOrder ?? 0)
                         .ThenBy(m => m.MediaId)
