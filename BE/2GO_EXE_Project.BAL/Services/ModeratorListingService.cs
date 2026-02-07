@@ -78,6 +78,7 @@ public class ModeratorListingService : IModeratorListingService
             .Include(l => l.ListingImages)
             .Include(l => l.ListingAttributes)
             .Include(l => l.Seller)
+            .ThenInclude(s => s!.UserProfiles)
             .FirstOrDefaultAsync(l => l.ListingId == listingId, cancellationToken);
         if (listing == null) return null;
 
@@ -93,6 +94,10 @@ public class ModeratorListingService : IModeratorListingService
             .Where(a => !string.IsNullOrWhiteSpace(a.Name))
             .Select(a => new ListingAttributeItem(a.Name ?? string.Empty, a.Value ?? string.Empty))
             .ToList();
+
+        var sellerProfile = listing.Seller?.UserProfiles
+            .OrderBy(p => p.ProfileId)
+            .FirstOrDefault();
 
         return new ListingDetail(
             listing.ListingId,
@@ -111,6 +116,9 @@ public class ModeratorListingService : IModeratorListingService
             listing.SubCategoryId,
             listing.SubCategory?.Category?.Name,
             listing.SubCategory?.Name,
+            listing.SellerId,
+            sellerProfile?.FullName,
+            sellerProfile?.AvatarUrl,
             listing.Seller?.Email,
             listing.Seller?.Phone,
             primary,
