@@ -76,6 +76,15 @@ builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IDistrictService, DistrictService>();
 builder.Services.AddScoped<IWardService, WardService>();
 builder.Services.AddHttpClient<IGhnShippingService, GhnShippingService>();
+builder.Services.AddScoped<IAiListingService, AiListingService>();
+builder.Services.AddScoped<IAiQualityCheckService, AiQualityCheckService>();
+builder.Services.AddScoped<IPricingService, PricingService>();
+builder.Services.AddScoped<IModerationService, ModerationService>();
+builder.Services.AddScoped<IUserPrecheckService, UserPrecheckService>();
+builder.Services.AddScoped<INoteGenerationService, NoteGenerationService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IChatbotService, ChatbotService>();
+builder.Services.AddScoped<IMarketPriceProvider, MarketPriceProvider>();
 // Configure PayOS
 builder.Services.AddKeyedSingleton("OrderClient", (serviceProvider, key) =>
 {

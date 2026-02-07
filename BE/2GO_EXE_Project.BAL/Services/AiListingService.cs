@@ -1,0 +1,294 @@
+﻿using System.Text.Json;
+using System.Text.RegularExpressions;
+using Microsoft.EntityFrameworkCore;
+using _2GO_EXE_Project.BAL.Constants;
+using _2GO_EXE_Project.BAL.DTOs.Ai;
+using _2GO_EXE_Project.BAL.DTOs.Notifications;
+using _2GO_EXE_Project.BAL.Interfaces;
+using _2GO_EXE_Project.DAL.Context;
+using _2GO_EXE_Project.DAL.Entities;
+
+namespace _2GO_EXE_Project.BAL.Services;
+
+public class AiListingService : IAiListingService
+{
+    private static readonly Regex SpaceRegex = new(@"\s+", RegexOptions.Compiled);
+    private readonly IAiQualityCheckService _qualityCheckService;
+    private readonly IMarketPriceProvider _marketPriceProvider;
+    private readonly IPricingService _pricingService;
+    private readonly IUserPrecheckService _precheckService;
+    private readonly INoteGenerationService _noteGenerationService;
+    private readonly INotificationService _notificationService;
+    private readonly AppDbContext _db;
+
+    public AiListingService(
+        IAiQualityCheckService qualityCheckService,
+        IMarketPriceProvider marketPriceProvider,
+        IPricingService pricingService,
+        IUserPrecheckService precheckService,
+        INoteGenerationService noteGenerationService,
+        INotificationService notificationService,
+        AppDbContext db)
+    {
+        _qualityCheckService = qualityCheckService;
+        _marketPriceProvider = marketPriceProvider;
+        _pricingService = pricingService;
+        _precheckService = precheckService;
+        _noteGenerationService = noteGenerationService;
+        _notificationService = notificationService;
+        _db = db;
+    }
+
+    public async Task<AiListingAnalyzeResponse> AnalyzeAsync(AiListingAnalyzeRequest request, CancellationToken cancellationToken = default)
+    {
+        var quality = await _qualityCheckService.CheckAsync(request.MediaUrls, cancellationToken);
+
+        var conditionAi = InferCondition(request.Title, request.Description);
+        var productKey = await BuildProductKeyAsync(request.CategoryId, request.Brand, request.Title, cancellationToken);
+        var market = await _marketPriceProvider.GetMarketPriceAsync(
+            new MarketPriceInput(productKey, request.CategoryId, conditionAi, request.Price),
+            cancellationToken);
+
+        var pricing = new AiPricingResult(
+            productKey,
+            market.MarketAvg,
+            conditionAi,
+            0,
+            0,
+            market.Source,
+            market.Confidence,
+            market.Reason);
+        pricing = _pricingService.BuildSuggestedRange(pricing);
+
+        var userInfo = await BuildUserRiskInfoAsync(request.UserId, cancellationToken);
+        var risk = _precheckService.Evaluate(
+            request.Title,
+            request.Description,
+            request.Price,
+            pricing.SuggestedMin,
+            pricing.SuggestedMax,
+            userInfo);
+
+        var note = _noteGenerationService.BuildNote(pricing, conditionAi);
+
+        var recommendation = ResolveRecommendation(quality, risk);
+
+        var response = new AiListingAnalyzeResponse(quality, pricing, risk, note, recommendation);
+        await LogAnalysisAsync(request, response, cancellationToken);
+        await QueueManualReviewIfNeededAsync(request, response, cancellationToken);
+        return response;
+    }
+
+    public async Task<AiListingPrecheckResponse> PrecheckAsync(AiListingPrecheckRequest request, CancellationToken cancellationToken = default)
+    {
+        var quality = await _qualityCheckService.CheckAsync(request.MediaUrls, cancellationToken);
+
+        var conditionAi = InferCondition(request.Title, request.Description);
+        var productKey = await BuildProductKeyAsync(request.CategoryId, request.Brand, request.Title, cancellationToken);
+        var market = await _marketPriceProvider.GetMarketPriceAsync(
+            new MarketPriceInput(productKey, request.CategoryId, conditionAi, request.Price),
+            cancellationToken);
+
+        var pricing = new AiPricingResult(
+            productKey,
+            market.MarketAvg,
+            conditionAi,
+            0,
+            0,
+            market.Source,
+            market.Confidence,
+            market.Reason);
+        pricing = _pricingService.BuildSuggestedRange(pricing);
+
+        var userInfo = await BuildUserRiskInfoAsync(request.UserId, cancellationToken);
+        var risk = _precheckService.Evaluate(
+            request.Title,
+            request.Description,
+            request.Price,
+            pricing.SuggestedMin,
+            pricing.SuggestedMax,
+            userInfo);
+
+        var note = _noteGenerationService.BuildNote(pricing, conditionAi);
+        var canPublish = quality.Decision == "PASS" && risk.Action != "REJECTED";
+
+        return new AiListingPrecheckResponse(quality, pricing, risk, note, canPublish);
+    }
+
+    private async Task<string> BuildProductKeyAsync(int categoryId, string? brand, string title, CancellationToken cancellationToken)
+    {
+        var categoryName = await _db.Categories
+            .Where(x => x.CategoryId == categoryId)
+            .Select(x => x.Name)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(brand)) parts.Add(brand);
+        if (!string.IsNullOrWhiteSpace(categoryName)) parts.Add(categoryName);
+        if (parts.Count == 0) parts.Add(title);
+        return NormalizeKey(string.Join(" ", parts));
+    }
+
+    private static string NormalizeKey(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return string.Empty;
+        return SpaceRegex.Replace(input, " ").Trim().ToLowerInvariant();
+    }
+
+    private async Task<AiUserRiskInfo> BuildUserRiskInfoAsync(string userId, CancellationToken cancellationToken)
+    {
+        if (!long.TryParse(userId, out var id))
+        {
+            return new AiUserRiskInfo(0, 0, 0, 0, 0, 0, false, false);
+        }
+
+        var now = DateTime.UtcNow;
+        var accountAgeDays = await _db.Users
+            .Where(u => u.UserId == id)
+            .Select(u => u.CreatedAt.HasValue ? (int)(now - u.CreatedAt.Value).TotalDays : 0)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var recentListingsCount = await _db.Listings
+            .Where(l => l.SellerId == id && l.CreatedAt.HasValue && l.CreatedAt.Value >= now.AddMinutes(-10))
+            .CountAsync(cancellationToken);
+
+        var totalListingsCount = await _db.Listings
+            .Where(l => l.SellerId == id)
+            .CountAsync(cancellationToken);
+
+        var completedSalesCount = await _db.Orders
+            .Where(o => o.SellerId == id && o.Status == "Completed")
+            .CountAsync(cancellationToken);
+
+        var reportsCount = await _db.Reports
+            .Where(r => r.TargetUserId == id && r.CreatedAt.HasValue && r.CreatedAt.Value >= now.AddDays(-30))
+            .CountAsync(cancellationToken);
+
+        var deviceCount = await _db.UserDevices
+            .Where(d => d.UserId == id)
+            .CountAsync(cancellationToken);
+
+        var verification = await _db.UserVerifications
+            .Where(v => v.UserId == id)
+            .OrderByDescending(v => v.VerifiedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var phoneVerified = verification?.PhoneVerified == true;
+        var emailVerified = verification?.EmailVerified == true;
+
+        return new AiUserRiskInfo(
+            Math.Max(0, accountAgeDays),
+            recentListingsCount,
+            totalListingsCount,
+            completedSalesCount,
+            reportsCount,
+            deviceCount,
+            phoneVerified,
+            emailVerified);
+    }
+
+    private static string InferCondition(string title, string description)
+    {
+        var text = $"{title} {description}".ToLowerInvariant();
+        if (text.Contains("mới") || text.Contains("like new") || text.Contains("99%"))
+        {
+            return "NEW";
+        }
+        if (text.Contains("xước") || text.Contains("trầy") || text.Contains("cũ"))
+        {
+            return "FAIR";
+        }
+        if (text.Contains("hỏng") || text.Contains("lỗi"))
+        {
+            return "POOR";
+        }
+        return "GOOD";
+    }
+
+    private static string ResolveRecommendation(AiQualityResult quality, AiRiskResult risk)
+    {
+        if (quality.Decision == "REJECT")
+        {
+            return AiListingRecommendations.RejectedDraft;
+        }
+
+        if (quality.Decision == "MANUAL_REVIEW" || risk.Action is "PENDING_REVIEW" or "REJECTED")
+        {
+            return AiListingRecommendations.PendingReview;
+        }
+
+        return AiListingRecommendations.Published;
+    }
+
+    private async Task LogAnalysisAsync(AiListingAnalyzeRequest request, AiListingAnalyzeResponse response, CancellationToken cancellationToken)
+    {
+        var log = new AiAnalysisLog
+        {
+            Type = "ListingAnalyze",
+            UserId = request.UserId,
+            RequestJson = JsonSerializer.Serialize(request),
+            ResponseJson = JsonSerializer.Serialize(response),
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.AiAnalysisLogs.Add(log);
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task QueueManualReviewIfNeededAsync(AiListingAnalyzeRequest request, AiListingAnalyzeResponse response, CancellationToken cancellationToken)
+    {
+        if (response.FinalRecommendation != AiListingRecommendations.PendingReview &&
+            response.Risk.Action is not "PENDING_REVIEW" and not "REJECTED" &&
+            response.Quality.Decision != "MANUAL_REVIEW")
+        {
+            return;
+        }
+
+        var reasonParts = new List<string>();
+        if (response.Quality.Decision != "PASS") reasonParts.Add($"Quality:{response.Quality.Decision}");
+        if (response.Risk.Flags.Count > 0) reasonParts.Add(string.Join(",", response.Risk.Flags));
+
+        var queue = new ManualReviewQueue
+        {
+            ListingId = request.ListingId,
+            Reason = string.Join(" | ", reasonParts),
+            Status = "Pending",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.ManualReviewQueues.Add(queue);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        await NotifyAdminsAsync(
+            "RISK",
+            "Bài đăng cần kiểm tra",
+            $"Listing #{request.ListingId} cần kiểm tra thủ công.",
+            $"/admin/listings/{request.ListingId}",
+            cancellationToken);
+    }
+
+    private async Task NotifyAdminsAsync(string type, string title, string message, string? link, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var adminIds = await _db.Users
+                .Where(u => u.Role == UserRoles.Admin || u.Role == UserRoles.Manager)
+                .Select(u => u.UserId)
+                .ToListAsync(cancellationToken);
+
+            foreach (var id in adminIds)
+            {
+                await _notificationService.CreateAsync(new CreateNotificationRequest(
+                    id,
+                    title,
+                    message,
+                    type,
+                    link), cancellationToken);
+            }
+        }
+        catch
+        {
+            // ignore notification failures
+        }
+    }
+}

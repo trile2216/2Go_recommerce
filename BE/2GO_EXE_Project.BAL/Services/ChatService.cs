@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using _2GO_EXE_Project.BAL.DTOs.Auth;
 using _2GO_EXE_Project.BAL.DTOs.Chat;
+using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
@@ -11,10 +12,12 @@ namespace _2GO_EXE_Project.BAL.Services;
 public class ChatService : IChatService
 {
     private readonly IUnitOfWork _uow;
+    private readonly INotificationService _notificationService;
 
-    public ChatService(IUnitOfWork uow)
+    public ChatService(IUnitOfWork uow, INotificationService notificationService)
     {
         _uow = uow;
+        _notificationService = notificationService;
     }
 
     private static long GetUserId(ClaimsPrincipal principal)
@@ -136,6 +139,28 @@ public class ChatService : IChatService
 
         await _uow.Messages.AddAsync(message, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
+        var receiverId = chat.User1Id == userId ? chat.User2Id : chat.User1Id;
+        if (receiverId.HasValue)
+        {
+            await NotifyAsync(receiverId.Value, "CHAT", "Tin nhắn mới", "Bạn có tin nhắn mới.", $"/chat/{chatId}", cancellationToken);
+        }
         return new BasicResponse(true, "Message sent.");
+    }
+
+    private async Task NotifyAsync(long userId, string type, string title, string message, string? link, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _notificationService.CreateAsync(new CreateNotificationRequest(
+                userId,
+                title,
+                message,
+                type,
+                link), cancellationToken);
+        }
+        catch
+        {
+            // ignore notification failures
+        }
     }
 }

@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using _2GO_EXE_Project.BAL.Constants;
 using _2GO_EXE_Project.BAL.DTOs.Auth;
+using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
@@ -12,10 +13,12 @@ namespace _2GO_EXE_Project.BAL.Services;
 public class ModeratorService : IModeratorService
 {
     private readonly IUnitOfWork _uow;
+    private readonly INotificationService _notificationService;
 
-    public ModeratorService(IUnitOfWork uow)
+    public ModeratorService(IUnitOfWork uow, INotificationService notificationService)
     {
         _uow = uow;
+        _notificationService = notificationService;
     }
 
     private long? GetUserId(ClaimsPrincipal principal)
@@ -241,6 +244,7 @@ public class ModeratorService : IModeratorService
         _uow.Reports.Update(report);
         await _uow.SaveChangesAsync(cancellationToken);
 
+        await NotifyReportStatusAsync(report, nextStatus, cancellationToken);
         await LogModActionAsync(modPrincipal, "ResolveReport", new { ReportId = reportId, report.Status, request.WaitingForRole, request.Decision, request.Note }, cancellationToken);
         return new BasicResponse(true, "Report updated.");
     }
@@ -461,6 +465,50 @@ public class ModeratorService : IModeratorService
         catch
         {
             // swallow logging errors
+        }
+    }
+
+    private async Task NotifyReportStatusAsync(Report report, string nextStatus, CancellationToken cancellationToken)
+    {
+        if (string.Equals(nextStatus, ReportStatuses.WaitingOtherParty, StringComparison.OrdinalIgnoreCase) && report.WaitingForUserId.HasValue)
+        {
+            await NotifyAsync(report.WaitingForUserId.Value, "REPORT", "Cần phản hồi báo cáo", $"Báo cáo #{report.ReportId} đang chờ phản hồi của bạn.", $"/reports/{report.ReportId}", cancellationToken);
+            return;
+        }
+
+        if (string.Equals(nextStatus, ReportStatuses.Resolved, StringComparison.OrdinalIgnoreCase))
+        {
+            if (report.ReporterId.HasValue)
+            {
+                await NotifyAsync(report.ReporterId.Value, "REPORT", "Báo cáo đã được xử lý", $"Báo cáo #{report.ReportId} đã được xử lý.", $"/reports/{report.ReportId}", cancellationToken);
+            }
+            if (report.TargetUserId.HasValue)
+            {
+                await NotifyAsync(report.TargetUserId.Value, "REPORT", "Báo cáo đã được xử lý", $"Báo cáo #{report.ReportId} đã được xử lý.", $"/reports/{report.ReportId}", cancellationToken);
+            }
+            return;
+        }
+
+        if (string.Equals(nextStatus, ReportStatuses.Rejected, StringComparison.OrdinalIgnoreCase) && report.ReporterId.HasValue)
+        {
+            await NotifyAsync(report.ReporterId.Value, "REPORT", "Báo cáo bị từ chối", $"Báo cáo #{report.ReportId} đã bị từ chối.", $"/reports/{report.ReportId}", cancellationToken);
+        }
+    }
+
+    private async Task NotifyAsync(long userId, string type, string title, string message, string? link, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _notificationService.CreateAsync(new CreateNotificationRequest(
+                userId,
+                title,
+                message,
+                type,
+                link), cancellationToken);
+        }
+        catch
+        {
+            // ignore notification failures
         }
     }
 }

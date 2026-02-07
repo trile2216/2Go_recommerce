@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using _2GO_EXE_Project.DAL.Context;
@@ -11,9 +12,11 @@ using _2GO_EXE_Project.DAL.Context;
 namespace _2GO_EXE_Project.DAL.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260205185011_AddAiTables")]
+    partial class AddAiTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -842,118 +845,20 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.ToTable("ManualReviewQueue");
                 });
 
-            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.Notification", b =>
+            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.MarketPriceCache", b =>
                 {
-                    b.Property<long>("NotificationId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("NotificationId"));
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("NOW()");
-
-                    b.Property<bool>("IsRead")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("Link")
-                        .HasMaxLength(500)
+                    b.Property<string>("ProductKey")
+                        .HasMaxLength(255)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("Message")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Title")
-                        .HasMaxLength(200)
-                        .IsUnicode(false)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("Type")
-                        .HasMaxLength(50)
-                        .IsUnicode(false)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<long?>("UserId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("NotificationId")
-                        .HasName("PK_Notifications");
-
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("IX_Notifications_UserId");
-
-                    b.ToTable("Notifications");
-                });
-
-            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.ChatbotLog", b =>
-                {
-                    b.Property<long>("ChatbotLogId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("ChatbotLogId"));
-
-                    b.Property<string>("Answer")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Confidence")
-                        .HasMaxLength(20)
-                        .IsUnicode(false)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("NOW()");
-
-                    b.Property<string>("MatchedIntent")
-                        .HasMaxLength(100)
-                        .IsUnicode(false)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("Question")
-                        .HasColumnType("text");
-
-                    b.Property<long?>("UserId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("ChatbotLogId")
-                        .HasName("PK_ChatbotLogs");
-
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("IX_ChatbotLogs_UserId");
-
-                    b.ToTable("ChatbotLogs");
-                });
-
-            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.MarketPrice", b =>
-                {
-                    b.Property<int>("MarketPriceId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("MarketPriceId"));
+                        .HasColumnType("character varying(255)");
 
                     b.Property<decimal>("AvgPrice")
                         .HasColumnType("decimal(15, 2)");
 
-                    b.Property<int?>("CategoryId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Condition")
-                        .IsUnicode(false)
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("Confidence")
-                        .HasMaxLength(20)
-                        .IsUnicode(false)
-                        .HasColumnType("character varying(20)");
+                    b.Property<DateTime>("LastUpdated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
 
                     b.Property<decimal>("MaxPrice")
                         .HasColumnType("decimal(15, 2)");
@@ -961,32 +866,13 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.Property<decimal>("MinPrice")
                         .HasColumnType("decimal(15, 2)");
 
-                    b.Property<string>("ProductKey")
-                        .HasMaxLength(255)
-                        .IsUnicode(false)
-                        .HasColumnType("character varying(255)");
+                    b.Property<string>("SourcesJson")
+                        .HasColumnType("text");
 
-                    b.Property<int>("SampleCount")
-                        .HasColumnType("integer");
+                    b.HasKey("ProductKey")
+                        .HasName("PK_MarketPriceCache");
 
-                    b.Property<string>("Source")
-                        .HasMaxLength(50)
-                        .IsUnicode(false)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("NOW()");
-
-                    b.HasKey("MarketPriceId")
-                        .HasName("PK_MarketPrices");
-
-                    b.HasIndex("ProductKey", "CategoryId", "Condition")
-                        .IsUnique()
-                        .HasDatabaseName("IX_MarketPrices_Product_Category_Condition");
-
-                    b.ToTable("MarketPrices");
+                    b.ToTable("MarketPriceCache");
                 });
 
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.Message", b =>
@@ -1676,123 +1562,6 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("SupportTickets");
-                });
-
-            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.Transfer", b =>
-                {
-                    b.Property<long>("TransferId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("TransferId"));
-
-                    b.Property<string>("ApprovalState")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("Category")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("PayoutId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("ReferenceId")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<int?>("TotalCredit")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<long?>("UserId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("TransferId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Transfers");
-                });
-
-            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.TransferTransaction", b =>
-                {
-                    b.Property<long>("TransferTransactionId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("TransferTransactionId"));
-
-                    b.Property<long>("Amount")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("ErrorCode")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("ErrorMessage")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("PayoutTransactionId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("Reference")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("ReferenceId")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("State")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("ToAccountName")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("ToAccountNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("ToBin")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime?>("TransactionDatetime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<long>("TransferId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("TransferTransactionId");
-
-                    b.HasIndex("TransferId");
-
-                    b.ToTable("TransferTransactions");
                 });
 
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.User", b =>
@@ -2605,26 +2374,6 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.Transfer", b =>
-                {
-                    b.HasOne("_2GO_EXE_Project.DAL.Entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.TransferTransaction", b =>
-                {
-                    b.HasOne("_2GO_EXE_Project.DAL.Entities.Transfer", "Transfer")
-                        .WithMany("Transactions")
-                        .HasForeignKey("TransferId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Transfer");
-                });
-
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.UserDevice", b =>
                 {
                     b.HasOne("_2GO_EXE_Project.DAL.Entities.User", "User")
@@ -2803,11 +2552,6 @@ namespace _2GO_EXE_Project.DAL.Migrations
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.SubCategory", b =>
                 {
                     b.Navigation("Listings");
-                });
-
-            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.Transfer", b =>
-                {
-                    b.Navigation("Transactions");
                 });
 
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.User", b =>

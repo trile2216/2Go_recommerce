@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using _2GO_EXE_Project.BAL.Constants;
 using _2GO_EXE_Project.BAL.DTOs.Auth;
 using _2GO_EXE_Project.BAL.DTOs.Listings;
+using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
@@ -12,10 +13,12 @@ namespace _2GO_EXE_Project.BAL.Services;
 public class SellerListingService : ISellerListingService
 {
     private readonly IUnitOfWork _uow;
+    private readonly INotificationService _notificationService;
     private const int FreeListingLimit = 2;
-    public SellerListingService(IUnitOfWork uow)
+    public SellerListingService(IUnitOfWork uow, INotificationService notificationService)
     {
         _uow = uow;
+        _notificationService = notificationService;
     }
 
     private static long GetUserId(ClaimsPrincipal principal)
@@ -351,6 +354,8 @@ public class SellerListingService : ISellerListingService
         listing.UpdatedAt = now;
         _uow.Listings.Update(listing);
         await _uow.SaveChangesAsync(cancellationToken);
+        await NotifyAsync(sellerId, "LISTING", "Đã gửi duyệt bài đăng", $"Bài đăng #{listing.ListingId} đã được gửi để duyệt.", $"/seller/listings/{listing.ListingId}", cancellationToken);
+        await NotifyAdminsAsync("LISTING_REVIEW", "Có bài đăng cần duyệt", $"Bài đăng #{listing.ListingId} đang chờ duyệt.", $"/admin/listings/{listing.ListingId}", cancellationToken);
         return new BasicResponse(true, "Listing submitted for review.");
     }
 
@@ -370,6 +375,7 @@ public class SellerListingService : ISellerListingService
         listing.UpdatedAt = DateTime.UtcNow;
         _uow.Listings.Update(listing);
         await _uow.SaveChangesAsync(cancellationToken);
+        await NotifyAsync(sellerId, "LISTING", "Bài đăng đã lưu trữ", $"Bài đăng #{listing.ListingId} đã được lưu trữ.", $"/seller/listings/{listing.ListingId}", cancellationToken);
         return new BasicResponse(true, "Listing archived.");
     }
 
@@ -389,6 +395,7 @@ public class SellerListingService : ISellerListingService
         listing.UpdatedAt = DateTime.UtcNow;
         _uow.Listings.Update(listing);
         await _uow.SaveChangesAsync(cancellationToken);
+        await NotifyAsync(sellerId, "LISTING", "Bài đăng đã xóa", $"Bài đăng #{listing.ListingId} đã bị xóa.", $"/seller/listings/{listing.ListingId}", cancellationToken);
         return new BasicResponse(true, "Listing deleted (soft).");
     }
 
@@ -454,5 +461,47 @@ public class SellerListingService : ISellerListingService
         if (string.IsNullOrWhiteSpace(listingType)) return ListingTypes.Single;
         if (string.Equals(listingType, ListingTypes.Single, StringComparison.OrdinalIgnoreCase)) return ListingTypes.Single;
         throw new InvalidOperationException("ListingType only supports SINGLE for this marketplace.");
+    }
+
+    private async Task NotifyAsync(long userId, string type, string title, string message, string? link, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _notificationService.CreateAsync(new CreateNotificationRequest(
+                userId,
+                title,
+                message,
+                type,
+                link), cancellationToken);
+        }
+        catch
+        {
+            // ignore notification failures
+        }
+    }
+
+    private async Task NotifyAdminsAsync(string type, string title, string message, string? link, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var adminIds = await _uow.Users.Query()
+                .Where(u => u.Role == UserRoles.Admin || u.Role == UserRoles.Manager)
+                .Select(u => u.UserId)
+                .ToListAsync(cancellationToken);
+
+            foreach (var id in adminIds)
+            {
+                await _notificationService.CreateAsync(new CreateNotificationRequest(
+                    id,
+                    title,
+                    message,
+                    type,
+                    link), cancellationToken);
+            }
+        }
+        catch
+        {
+            // ignore notification failures
+        }
     }
 }

@@ -134,4 +134,10 @@ public partial class User
 
     [InverseProperty("User")]
     public virtual ICollection<VerificationCode> VerificationCodes { get; set; } = new List<VerificationCode>();
+
+    [InverseProperty("User")]
+    public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+
+    [InverseProperty("User")]
+    public virtual ICollection<ChatbotLog> ChatbotLogs { get; set; } = new List<ChatbotLog>();
 }

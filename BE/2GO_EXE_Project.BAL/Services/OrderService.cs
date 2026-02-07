@@ -4,6 +4,7 @@ using System.Text.Json;
 using _2GO_EXE_Project.BAL.Constants;
 using _2GO_EXE_Project.BAL.DTOs.Auth;
 using _2GO_EXE_Project.BAL.DTOs.Orders;
+using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
@@ -15,11 +16,15 @@ public class OrderService : IOrderService
 {
     private readonly IUnitOfWork _uow;
     private readonly IEscrowService _escrowService;
+    private readonly IMarketPriceProvider _marketPriceProvider;
+    private readonly INotificationService _notificationService;
 
-    public OrderService(IUnitOfWork uow, IEscrowService escrowService)
+    public OrderService(IUnitOfWork uow, IEscrowService escrowService, IMarketPriceProvider marketPriceProvider, INotificationService notificationService)
     {
         _uow = uow;
         _escrowService = escrowService;
+        _marketPriceProvider = marketPriceProvider;
+        _notificationService = notificationService;
     }
 
     private static long GetUserId(ClaimsPrincipal principal)
@@ -112,6 +117,8 @@ public class OrderService : IOrderService
         await _uow.SaveChangesAsync(cancellationToken);
 
         await LogOrderActionAsync(buyerId, "OrderCreated", new { order.OrderId, order.ListingId, order.Status }, cancellationToken);
+        await NotifyAsync(listing.SellerId.Value, "ORDER", "Có đơn hàng mới", $"Đơn hàng #{order.OrderId} vừa được tạo.", $"/orders/{order.OrderId}", cancellationToken);
+        await NotifyAsync(buyerId, "ORDER", "Đã tạo đơn hàng", $"Đơn hàng #{order.OrderId} của bạn đã được tạo.", $"/orders/{order.OrderId}", cancellationToken);
 
         return new OrderResponse(
             order.OrderId, 
@@ -226,6 +233,10 @@ public class OrderService : IOrderService
         await _escrowService.RefundForOrderAsync(order.OrderId, cancellationToken);
         await RestoreListingIfReservedAsync(order, cancellationToken);
         await LogOrderActionAsync(userId, "OrderCancelled", new { order.OrderId, order.Status }, cancellationToken);
+        if (order.SellerId.HasValue)
+        {
+            await NotifyAsync(order.SellerId.Value, "ORDER", "Đơn hàng đã hủy", $"Đơn hàng #{order.OrderId} đã bị hủy.", $"/orders/{order.OrderId}", cancellationToken);
+        }
         return new BasicResponse(true, "Order cancelled.");
     }
 
@@ -258,6 +269,10 @@ public class OrderService : IOrderService
         await _uow.SaveChangesAsync(cancellationToken);
         await _escrowService.EnsureForOrderAsync(order, null, cancellationToken);
         await LogOrderActionAsync(userId, "OrderConfirmed", new { order.OrderId, order.Status }, cancellationToken);
+        if (order.BuyerId.HasValue)
+        {
+            await NotifyAsync(order.BuyerId.Value, "ORDER", "Đơn hàng đã xác nhận", $"Đơn hàng #{order.OrderId} đã được xác nhận.", $"/orders/{order.OrderId}", cancellationToken);
+        }
         return new BasicResponse(true, "Order confirmed.");
     }
 
@@ -299,6 +314,10 @@ public class OrderService : IOrderService
         await _escrowService.ReleaseForOrderAsync(order.OrderId, cancellationToken);
         await MarkListingSoldAsync(order, cancellationToken);
         await LogOrderActionAsync(userId, "OrderCompleted", new { order.OrderId, order.Status }, cancellationToken);
+        if (order.SellerId.HasValue)
+        {
+            await NotifyAsync(order.SellerId.Value, "ORDER", "Đơn hàng đã hoàn tất", $"Đơn hàng #{order.OrderId} đã hoàn tất.", $"/orders/{order.OrderId}", cancellationToken);
+        }
         return new BasicResponse(true, "Order completed.");
     }
 
@@ -382,6 +401,7 @@ public class OrderService : IOrderService
             listing.AvailableQuantity = 0;
             listing.UpdatedAt = DateTime.UtcNow;
             _uow.Listings.Update(listing);
+            await _marketPriceProvider.TrackListingAsync(listing, "completed_sale", cancellationToken);
         }
         await _uow.SaveChangesAsync(cancellationToken);
     }
@@ -402,6 +422,23 @@ public class OrderService : IOrderService
         catch
         {
             // ignore logging failures
+        }
+    }
+
+    private async Task NotifyAsync(long userId, string type, string title, string message, string? link, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _notificationService.CreateAsync(new CreateNotificationRequest(
+                userId,
+                title,
+                message,
+                type,
+                link), cancellationToken);
+        }
+        catch
+        {
+            // ignore notification failures
         }
     }
 

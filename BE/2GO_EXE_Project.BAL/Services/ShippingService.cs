@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using _2GO_EXE_Project.BAL.Constants;
 using _2GO_EXE_Project.BAL.DTOs.Auth;
 using _2GO_EXE_Project.BAL.DTOs.Shipping;
+using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.BAL.Settings;
 using _2GO_EXE_Project.DAL.Entities;
@@ -16,12 +17,14 @@ public class ShippingService : IShippingService
     private readonly IUnitOfWork _uow;
     private readonly IGhnShippingService _ghnShippingService;
     private readonly GhnSettings _ghnSettings;
+    private readonly INotificationService _notificationService;
 
-    public ShippingService(IUnitOfWork uow, IGhnShippingService ghnShippingService, IOptions<GhnSettings> options)
+    public ShippingService(IUnitOfWork uow, IGhnShippingService ghnShippingService, IOptions<GhnSettings> options, INotificationService notificationService)
     {
         _uow = uow;
         _ghnShippingService = ghnShippingService;
         _ghnSettings = options.Value ?? new GhnSettings();
+        _notificationService = notificationService;
     }
 
     private static long GetUserId(ClaimsPrincipal principal)
@@ -79,6 +82,7 @@ public class ShippingService : IShippingService
 
         await _uow.ShippingRequests.AddAsync(ship, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
+        await NotifyShippingStatusAsync(order, ShippingStatuses.Requested, cancellationToken);
 
         return new ShippingResponse(
             ship.ShipId,
@@ -140,6 +144,7 @@ public class ShippingService : IShippingService
 
         await _uow.ShippingRequests.AddAsync(ship, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
+        await NotifyShippingStatusAsync(order, ShippingStatuses.Requested, cancellationToken);
 
         return new ShippingResponse(
             ship.ShipId,
@@ -226,6 +231,14 @@ public class ShippingService : IShippingService
             _uow.ShippingRequests.Update(ship);
         }
         await _uow.SaveChangesAsync(cancellationToken);
+        foreach (var ship in shippingList)
+        {
+            var order = await _uow.Orders.GetByIdAsync(ship.OrderId ?? 0);
+            if (order != null)
+            {
+                await NotifyShippingStatusAsync(order, ShippingStatuses.Failed, cancellationToken);
+            }
+        }
         return response;
     }
 
@@ -325,6 +338,14 @@ public class ShippingService : IShippingService
         await UpdateOrderStatusForShippingAsync(ship, mapped, cancellationToken);
         _uow.ShippingRequests.Update(ship);
         await _uow.SaveChangesAsync(cancellationToken);
+        if (ship.OrderId.HasValue)
+        {
+            var order = await _uow.Orders.GetByIdAsync(ship.OrderId.Value);
+            if (order != null)
+            {
+                await NotifyShippingStatusAsync(order, mapped, cancellationToken);
+            }
+        }
         return new BasicResponse(true, "Shipping updated.");
     }
 
@@ -390,6 +411,10 @@ public class ShippingService : IShippingService
         await UpdateOrderStatusForShippingAsync(ship, request.Status, cancellationToken);
         _uow.ShippingRequests.Update(ship);
         await _uow.SaveChangesAsync(cancellationToken);
+        if (order != null)
+        {
+            await NotifyShippingStatusAsync(order, request.Status, cancellationToken);
+        }
         return new BasicResponse(true, "Shipping updated.");
     }
 
@@ -446,6 +471,45 @@ public class ShippingService : IShippingService
 
         order.Status = OrderStatuses.Completed;
         _uow.Orders.Update(order);
+    }
+
+    private async Task NotifyShippingStatusAsync(Order order, string status, CancellationToken cancellationToken)
+    {
+        var title = status switch
+        {
+            ShippingStatuses.Requested => "Đơn hàng đang được giao",
+            ShippingStatuses.InTransit => "Đơn hàng đang vận chuyển",
+            ShippingStatuses.Delivered => "Đơn hàng đã giao",
+            ShippingStatuses.Failed => "Giao hàng thất bại",
+            _ => "Cập nhật vận chuyển"
+        };
+
+        var message = $"Đơn hàng #{order.OrderId} - trạng thái vận chuyển: {status}.";
+        if (order.BuyerId.HasValue)
+        {
+            await NotifyAsync(order.BuyerId.Value, "SHIPPING", title, message, $"/orders/{order.OrderId}", cancellationToken);
+        }
+        if (order.SellerId.HasValue)
+        {
+            await NotifyAsync(order.SellerId.Value, "SHIPPING", title, message, $"/orders/{order.OrderId}", cancellationToken);
+        }
+    }
+
+    private async Task NotifyAsync(long userId, string type, string title, string message, string? link, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _notificationService.CreateAsync(new CreateNotificationRequest(
+                userId,
+                title,
+                message,
+                type,
+                link), cancellationToken);
+        }
+        catch
+        {
+            // ignore notification failures
+        }
     }
 }
 

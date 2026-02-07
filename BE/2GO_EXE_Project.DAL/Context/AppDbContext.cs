@@ -25,6 +25,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<ApiLog> ApiLogs { get; set; }
 
+    public virtual DbSet<AiAnalysisLog> AiAnalysisLogs { get; set; }
+
     public virtual DbSet<Category> Categories { get; set; }
 
     public virtual DbSet<Cart> Carts { get; set; }
@@ -58,6 +60,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<ListingView> ListingViews { get; set; }
 
     public virtual DbSet<Message> Messages { get; set; }
+
+    public virtual DbSet<MarketPrice> MarketPrices { get; set; }
+
+    public virtual DbSet<ManualReviewQueue> ManualReviewQueues { get; set; }
 
     public virtual DbSet<Order> Orders { get; set; }
 
@@ -102,6 +108,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
 
+    public virtual DbSet<Notification> Notifications { get; set; }
+
+    public virtual DbSet<ChatbotLog> ChatbotLogs { get; set; }
+
     public virtual DbSet<VerificationCode> VerificationCodes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -137,6 +147,12 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.ApiId).HasName("PK__ApiLogs__024B3BB3924051E4");
 
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+        });
+
+        modelBuilder.Entity<AiAnalysisLog>(entity =>
+        {
+            entity.HasKey(e => e.LogId).HasName("PK_AIAnalysisLog");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
         });
 
@@ -305,6 +321,21 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Chat).WithMany(p => p.Messages).HasConstraintName("FK_Messages_Chat");
 
             entity.HasOne(d => d.Sender).WithMany(p => p.Messages).HasConstraintName("FK_Messages_Sender");
+        });
+
+        modelBuilder.Entity<MarketPrice>(entity =>
+        {
+            entity.HasKey(e => e.MarketPriceId).HasName("PK_MarketPrices");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("NOW()");
+            entity.HasIndex(e => new { e.ProductKey, e.CategoryId, e.Condition })
+                .HasDatabaseName("IX_MarketPrices_Product_Category_Condition")
+                .IsUnique();
+        });
+
+        modelBuilder.Entity<ManualReviewQueue>(entity =>
+        {
+            entity.HasKey(e => e.QueueId).HasName("PK_ManualReviewQueue");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
         });
 
         modelBuilder.Entity<Order>(entity =>
@@ -487,6 +518,21 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
             entity.Property(e => e.Purpose).HasMaxLength(50).IsUnicode(false);
             entity.HasOne(d => d.User).WithMany(p => p.VerificationCodes).HasForeignKey(d => d.UserId).HasConstraintName("FK_VerificationCodes_Users");
+        });
+
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(e => e.NotificationId).HasName("PK_Notifications");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+            entity.Property(e => e.IsRead).HasDefaultValue(false);
+            entity.HasOne(d => d.User).WithMany(p => p.Notifications).HasForeignKey(d => d.UserId).HasConstraintName("FK_Notifications_Users");
+        });
+
+        modelBuilder.Entity<ChatbotLog>(entity =>
+        {
+            entity.HasKey(e => e.ChatbotLogId).HasName("PK_ChatbotLogs");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+            entity.HasOne(d => d.User).WithMany(p => p.ChatbotLogs).HasForeignKey(d => d.UserId).HasConstraintName("FK_ChatbotLogs_Users");
         });
 
         modelBuilder.Entity<Ward>(entity =>

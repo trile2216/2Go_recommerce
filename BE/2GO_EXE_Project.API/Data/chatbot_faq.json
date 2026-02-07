@@ -1,0 +1,242 @@
+[
+  {
+    "id": "fee_listing",
+    "question": "Phí đăng bài là bao nhiêu?",
+    "answer": "Hiện tại phí đăng bài là miễn phí cho số lượng giới hạn. Sau đó bạn có thể mua thêm gói đăng bài nếu có nhu cầu.",
+    "keywords": ["phí", "đăng", "bài", "miễn phí", "gói"]
+  },
+  {
+    "id": "listing_pending",
+    "question": "Tại sao bài đăng của tôi bị chờ duyệt?",
+    "answer": "Bài đăng có thể bị chờ duyệt do hình ảnh chưa rõ, giá bán bất thường hoặc nội dung có dấu hiệu vi phạm. Hệ thống AI sẽ kiểm tra trước và chuyển sang duyệt thủ công nếu cần.",
+    "keywords": ["chờ", "duyệt", "pending", "bài đăng"]
+  },
+  {
+    "id": "image_quality",
+    "question": "Hình ảnh như thế nào thì được duyệt?",
+    "answer": "Hình ảnh cần rõ nét, đủ sáng, không bị mờ, không che khuất sản phẩm và không chứa thông tin liên hệ bên ngoài.",
+    "keywords": ["hình ảnh", "ảnh", "mờ", "rõ"]
+  },
+  {
+    "id": "listing_edit",
+    "question": "Tôi có thể chỉnh sửa bài đăng sau khi đăng không?",
+    "answer": "Bạn có thể chỉnh sửa bài đăng khi bài chưa được duyệt hoặc chưa có giao dịch phát sinh. Sau khi có đơn hàng, việc chỉnh sửa sẽ bị giới hạn.",
+    "keywords": ["chỉnh sửa", "bài đăng", "edit"]
+  },
+  {
+    "id": "listing_delete",
+    "question": "Xóa bài đăng có được không?",
+    "answer": "Bạn có thể xóa bài đăng khi chưa có đơn hàng. Nếu đã có giao dịch, bài đăng sẽ được lưu để phục vụ đối soát.",
+    "keywords": ["xóa", "bài đăng", "delete"]
+  },
+  {
+    "id": "listing_limit",
+    "question": "Một tài khoản được đăng tối đa bao nhiêu bài?",
+    "answer": "Số lượng bài đăng phụ thuộc vào gói tài khoản và chính sách hiện tại của hệ thống.",
+    "keywords": ["tối đa", "bao nhiêu", "bài đăng"]
+  },
+  {
+    "id": "ai_pricing",
+    "question": "AI gợi ý giá bán dựa trên đâu?",
+    "answer": "AI gợi ý giá dựa trên tình trạng sản phẩm, dữ liệu giao dịch nội bộ và các quy tắc khấu hao. Giá chỉ mang tính tham khảo.",
+    "keywords": ["ai", "gợi ý", "giá", "định giá"]
+  },
+  {
+    "id": "price_not_mandatory",
+    "question": "Giá AI gợi ý có bắt buộc không?",
+    "answer": "Không. Giá AI gợi ý chỉ để tham khảo, người bán hoàn toàn quyết định mức giá cuối cùng.",
+    "keywords": ["giá", "ai", "bắt buộc"]
+  },
+  {
+    "id": "price_too_low",
+    "question": "Giá bán quá thấp có sao không?",
+    "answer": "Giá quá thấp so với mức tham khảo có thể bị hệ thống đánh dấu rủi ro để đảm bảo an toàn cho người mua.",
+    "keywords": ["giá", "thấp", "rủi ro"]
+  },
+  {
+    "id": "price_high",
+    "question": "Giá bán cao quá có sao không?",
+    "answer": "Giá quá cao so với mức tham khảo có thể khiến bài đăng ít hiển thị hơn nhưng không bị từ chối nếu không vi phạm quy định.",
+    "keywords": ["giá cao", "đắt"]
+  },
+  {
+    "id": "risk_flag",
+    "question": "Vì sao bài đăng bị đánh dấu rủi ro?",
+    "answer": "Bài đăng có thể bị đánh dấu rủi ro nếu giá bất thường, nội dung spam, chứa link ngoài hoặc số điện thoại.",
+    "keywords": ["rủi ro", "đánh dấu", "spam"]
+  },
+  {
+    "id": "reject_listing",
+    "question": "Khi nào bài đăng bị từ chối?",
+    "answer": "Bài đăng sẽ bị từ chối nếu vi phạm nghiêm trọng như hàng cấm, lừa đảo rõ ràng hoặc nội dung không phù hợp.",
+    "keywords": ["từ chối", "reject", "vi phạm"]
+  },
+  {
+    "id": "escrow",
+    "question": "Escrow là gì?",
+    "answer": "Escrow là cơ chế giữ tiền tạm thời để đảm bảo người mua nhận hàng đúng mô tả trước khi người bán được thanh toán.",
+    "keywords": ["escrow", "giữ tiền", "an toàn"]
+  },
+  {
+    "id": "escrow_release",
+    "question": "Khi nào tiền escrow được giải ngân?",
+    "answer": "Tiền escrow sẽ được giải ngân sau khi người mua xác nhận đã nhận hàng và không có khiếu nại.",
+    "keywords": ["escrow", "giải ngân", "nhận hàng"]
+  },
+  {
+    "id": "refund",
+    "question": "Hoàn tiền như thế nào?",
+    "answer": "Hoàn tiền được xử lý sau khi có quyết định tranh chấp hoặc khi đơn hàng bị hủy theo chính sách.",
+    "keywords": ["hoàn", "tiền", "refund"]
+  },
+  {
+    "id": "dispute",
+    "question": "Làm sao để mở tranh chấp?",
+    "answer": "Bạn có thể mở tranh chấp trong trang chi tiết đơn hàng nếu sản phẩm không đúng mô tả hoặc có vấn đề phát sinh.",
+    "keywords": ["tranh chấp", "khiếu nại"]
+  },
+  {
+    "id": "shipping_create",
+    "question": "Cách tạo vận chuyển?",
+    "answer": "Bạn có thể tạo vận chuyển trong trang quản lý đơn hàng sau khi đơn được xác nhận.",
+    "keywords": ["vận chuyển", "tạo", "đơn hàng"]
+  },
+  {
+    "id": "shipping_delay",
+    "question": "Giao hàng bị trễ thì sao?",
+    "answer": "Nếu giao hàng trễ, bạn có thể liên hệ người bán hoặc mở yêu cầu hỗ trợ trong hệ thống.",
+    "keywords": ["trễ", "giao hàng"]
+  },
+  {
+    "id": "tracking",
+    "question": "Làm sao theo dõi đơn hàng?",
+    "answer": "Bạn có thể theo dõi trạng thái giao hàng trực tiếp trong chi tiết đơn hàng bằng mã vận đơn.",
+    "keywords": ["theo dõi", "đơn hàng", "vận chuyển"]
+  },
+  {
+    "id": "buyer_safe",
+    "question": "Làm sao mua hàng an toàn?",
+    "answer": "Bạn nên giao dịch qua hệ thống escrow, kiểm tra đánh giá người bán và không thanh toán bên ngoài nền tảng.",
+    "keywords": ["mua", "an toàn", "người mua"]
+  },
+  {
+    "id": "similar_products",
+    "question": "Có sản phẩm nào tương tự không?",
+    "answer": "Hệ thống sẽ gợi ý các sản phẩm tương tự dựa trên danh mục, giá và tình trạng sản phẩm.",
+    "keywords": ["tương tự", "giống", "gợi ý"]
+  },
+  {
+    "id": "seller_rating",
+    "question": "Đánh giá người bán như thế nào?",
+    "answer": "Sau mỗi giao dịch thành công, người mua có thể đánh giá người bán để xây dựng uy tín trên nền tảng.",
+    "keywords": ["đánh giá", "người bán", "uy tín"]
+  },
+  {
+    "id": "fake_seller",
+    "question": "Làm sao biết người bán có uy tín không?",
+    "answer": "Hệ thống hiển thị điểm uy tín, lịch sử giao dịch và cảnh báo rủi ro nếu phát hiện hành vi bất thường.",
+    "keywords": ["uy tín", "lừa đảo", "người bán"]
+  },
+  {
+    "id": "account_verify",
+    "question": "Có cần xác minh tài khoản không?",
+    "answer": "Một số tính năng nâng cao có thể yêu cầu xác minh tài khoản để đảm bảo an toàn giao dịch.",
+    "keywords": ["xác minh", "tài khoản"]
+  },
+  {
+    "id": "account_hack",
+    "question": "Nếu tài khoản bị hack thì sao?",
+    "answer": "Bạn nên đổi mật khẩu ngay và liên hệ bộ phận hỗ trợ để được kiểm tra và bảo vệ tài khoản.",
+    "keywords": ["hack", "bị chiếm"]
+  },
+  {
+    "id": "report_listing",
+    "question": "Làm sao báo cáo bài đăng xấu?",
+    "answer": "Bạn có thể dùng chức năng báo cáo trong chi tiết bài đăng để gửi phản hồi cho hệ thống.",
+    "keywords": ["báo cáo", "vi phạm"]
+  },
+  {
+    "id": "chatbot_role",
+    "question": "Chatbot AI có thể làm gì?",
+    "answer": "Chatbot AI giúp giải đáp thắc mắc, giải thích kết quả AI phân tích và hướng dẫn sử dụng hệ thống. Chatbot không thay thế quyết định của người dùng.",
+    "keywords": ["chatbot", "ai", "hỗ trợ"]
+  },
+  {
+    "id": "product_condition_meaning",
+    "question": "Tình trạng sản phẩm NEW / GOOD / FAIR / POOR nghĩa là gì?",
+    "answer": "NEW là gần như mới chưa sử dụng hoặc rất ít dùng. GOOD là đã dùng nhưng còn tốt. FAIR là đã dùng lâu, có hao mòn. POOR là tình trạng kém, nhiều trầy xước hoặc lỗi.",
+    "keywords": ["tình trạng", "new", "good", "fair", "poor"]
+  },
+  {
+    "id": "condition_ai_detect",
+    "question": "AI xác định tình trạng sản phẩm như thế nào?",
+    "answer": "AI phân tích mô tả, hình ảnh và thông tin người bán cung cấp để ước lượng tình trạng sử dụng của sản phẩm.",
+    "keywords": ["ai", "xác định", "tình trạng"]
+  },
+  {
+    "id": "product_real_or_fake",
+    "question": "AI có nhận biết hàng giả không?",
+    "answer": "AI có thể phát hiện một số dấu hiệu bất thường trong mô tả hoặc hình ảnh, nhưng không thể đảm bảo 100%. Người mua nên kiểm tra kỹ trước khi giao dịch.",
+    "keywords": ["hàng giả", "fake", "ai"]
+  },
+  {
+    "id": "product_quality_check",
+    "question": "Chất lượng sản phẩm được đánh giá dựa trên đâu?",
+    "answer": "Chất lượng sản phẩm được đánh giá dựa trên hình ảnh, mô tả, tình trạng sử dụng và dữ liệu giao dịch nội bộ tương tự.",
+    "keywords": ["chất lượng", "đánh giá", "sản phẩm"]
+  },
+  {
+    "id": "product_price_reference",
+    "question": "Giá tham khảo của sản phẩm là gì?",
+    "answer": "Giá tham khảo là mức giá AI gợi ý dựa trên dữ liệu nội bộ và tình trạng sản phẩm. Mức giá này không bắt buộc.",
+    "keywords": ["giá", "tham khảo", "sản phẩm"]
+  },
+  {
+    "id": "product_price_compare",
+    "question": "Làm sao biết giá sản phẩm này có hợp lý không?",
+    "answer": "Bạn có thể so sánh giá bán với khoảng giá AI gợi ý và các sản phẩm tương tự trên nền tảng.",
+    "keywords": ["giá", "hợp lý", "so sánh"]
+  },
+  {
+    "id": "product_usage_time",
+    "question": "Thời gian sử dụng sản phẩm có ảnh hưởng đến giá không?",
+    "answer": "Có. Thời gian sử dụng càng lâu thì giá trị sản phẩm thường càng giảm.",
+    "keywords": ["thời gian", "sử dụng", "giá"]
+  },
+  {
+    "id": "product_warranty",
+    "question": "Sản phẩm cũ có còn bảo hành không?",
+    "answer": "Tùy từng sản phẩm. Người bán cần ghi rõ thông tin bảo hành nếu còn hiệu lực.",
+    "keywords": ["bảo hành", "sản phẩm cũ"]
+  },
+  {
+    "id": "product_images_needed",
+    "question": "Cần bao nhiêu hình ảnh để đăng sản phẩm?",
+    "answer": "Nên đăng nhiều hình ảnh rõ nét từ các góc khác nhau để tăng độ tin cậy và khả năng được duyệt.",
+    "keywords": ["hình ảnh", "bao nhiêu", "đăng sản phẩm"]
+  },
+  {
+    "id": "product_video",
+    "question": "Có cần đăng video sản phẩm không?",
+    "answer": "Video không bắt buộc nhưng giúp người mua đánh giá sản phẩm rõ hơn.",
+    "keywords": ["video", "sản phẩm"]
+  },
+  {
+    "id": "product_sold_status",
+    "question": "Sản phẩm đã bán có còn hiển thị không?",
+    "answer": "Sản phẩm đã bán sẽ được đánh dấu là đã bán và không còn hiển thị để mua.",
+    "keywords": ["đã bán", "hiển thị", "sản phẩm"]
+  },
+  {
+    "id": "product_missing_info",
+    "question": "Nếu thiếu thông tin sản phẩm thì sao?",
+    "answer": "Thiếu thông tin quan trọng có thể khiến bài đăng bị chờ duyệt hoặc yêu cầu bổ sung.",
+    "keywords": ["thiếu", "thông tin", "sản phẩm"]
+  },
+  {
+    "id": "product_condition_wrong",
+    "question": "Nếu người bán ghi sai tình trạng sản phẩm thì sao?",
+    "answer": "Nếu phát hiện sai lệch, người mua có thể mở tranh chấp và hệ thống sẽ xem xét xử lý.",
+    "keywords": ["sai", "tình trạng", "sản phẩm"]
+  }
+]
