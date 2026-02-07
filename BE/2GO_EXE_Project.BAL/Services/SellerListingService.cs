@@ -148,7 +148,7 @@ public class SellerListingService : ISellerListingService
                 l.CreatedAt,
                 l.UpdatedAt,
                 l.ListingMedias
-                    .Where(m => string.Equals(m.MediaType, MediaTypes.Image, StringComparison.OrdinalIgnoreCase))
+                    .Where(m => m.MediaType == MediaTypes.Image)
                     .OrderByDescending(m => m.IsPrimary == true)
                     .ThenBy(m => m.SortOrder ?? 0)
                     .ThenBy(m => m.MediaId)
@@ -186,7 +186,7 @@ public class SellerListingService : ISellerListingService
             .ToList();
 
         var primary = media
-            .Where(m => string.Equals(m.MediaType, MediaTypes.Image, StringComparison.OrdinalIgnoreCase))
+            .Where(m => m.MediaType == MediaTypes.Image)
             .Select(m => m.Url)
             .FirstOrDefault();
 
@@ -247,7 +247,7 @@ public class SellerListingService : ISellerListingService
         ValidateMediaRequests(mediaRequests);
         var imageRequests = mediaRequests
             .Where(m => string.IsNullOrWhiteSpace(m.MediaType) ||
-                        string.Equals(m.MediaType, MediaTypes.Image, StringComparison.OrdinalIgnoreCase))
+                        m.MediaType == MediaTypes.Image)
             .ToList();
         if (imageRequests.Count == 0)
         {
@@ -416,7 +416,7 @@ public class SellerListingService : ISellerListingService
         await EnsureSubCategoryValidAsync(listing.SubCategoryId.Value, cancellationToken);
 
         var media = listing.ListingMedias.ToList();
-        var images = media.Where(m => string.Equals(m.MediaType, MediaTypes.Image, StringComparison.OrdinalIgnoreCase)).ToList();
+        var images = media.Where(m => m.MediaType == MediaTypes.Image).ToList();
         if (images.Count == 0)
         {
             return new BasicResponse(false, "At least one image is required before submitting.");
@@ -523,7 +523,7 @@ public class SellerListingService : ISellerListingService
 
         var imageRequests = mediaRequests
             .Where(m => string.IsNullOrWhiteSpace(m.MediaType) ||
-                        string.Equals(m.MediaType, MediaTypes.Image, StringComparison.OrdinalIgnoreCase))
+                        m.MediaType == MediaTypes.Image)
             .ToList();
         if (imageRequests.Count == 0)
         {
