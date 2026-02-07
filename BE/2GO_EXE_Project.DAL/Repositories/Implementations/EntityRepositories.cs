@@ -22,7 +22,7 @@ public class FixerRequestRepository : GenericRepository<FixerRequest>, IFixerReq
 public class FixerServiceRepository : GenericRepository<FixerService>, IFixerServiceRepository { public FixerServiceRepository(AppDbContext ctx) : base(ctx) { } }
 public class ListingRepository : GenericRepository<Listing>, IListingRepository { public ListingRepository(AppDbContext ctx) : base(ctx) { } }
 public class ListingAttributeRepository : GenericRepository<ListingAttribute>, IListingAttributeRepository { public ListingAttributeRepository(AppDbContext ctx) : base(ctx) { } }
-public class ListingImageRepository : GenericRepository<ListingImage>, IListingImageRepository { public ListingImageRepository(AppDbContext ctx) : base(ctx) { } }
+public class ListingMediaRepository : GenericRepository<ListingMedia>, IListingMediaRepository { public ListingMediaRepository(AppDbContext ctx) : base(ctx) { } }
 public class ListingViewRepository : GenericRepository<ListingView>, IListingViewRepository { public ListingViewRepository(AppDbContext ctx) : base(ctx) { } }
 public class MessageRepository : GenericRepository<Message>, IMessageRepository { public MessageRepository(AppDbContext ctx) : base(ctx) { } }
 public class OrderRepository : GenericRepository<Order>, IOrderRepository { public OrderRepository(AppDbContext ctx) : base(ctx) { } }
@@ -76,7 +76,7 @@ public class UnitOfWork : IUnitOfWork
         FixerServices = new FixerServiceRepository(_context);
         Listings = new ListingRepository(_context);
         ListingAttributes = new ListingAttributeRepository(_context);
-        ListingImages = new ListingImageRepository(_context);
+        ListingMedias = new ListingMediaRepository(_context);
         ListingViews = new ListingViewRepository(_context);
         Messages = new MessageRepository(_context);
         Orders = new OrderRepository(_context);
@@ -123,7 +123,7 @@ public class UnitOfWork : IUnitOfWork
     public IFixerServiceRepository FixerServices { get; }
     public IListingRepository Listings { get; }
     public IListingAttributeRepository ListingAttributes { get; }
-    public IListingImageRepository ListingImages { get; }
+    public IListingMediaRepository ListingMedias { get; }
     public IListingViewRepository ListingViews { get; }
     public IMessageRepository Messages { get; }
     public IOrderRepository Orders { get; }

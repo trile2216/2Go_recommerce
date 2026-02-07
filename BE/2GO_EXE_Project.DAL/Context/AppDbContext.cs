@@ -55,7 +55,7 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<ListingAttribute> ListingAttributes { get; set; }
 
-    public virtual DbSet<ListingImage> ListingImages { get; set; }
+    public virtual DbSet<ListingMedia> ListingMedias { get; set; }
 
     public virtual DbSet<ListingView> ListingViews { get; set; }
 
@@ -292,13 +292,15 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Listing).WithMany(p => p.ListingAttributes).HasConstraintName("FK_ListingAttributes_Listings");
         });
 
-        modelBuilder.Entity<ListingImage>(entity =>
+        modelBuilder.Entity<ListingMedia>(entity =>
         {
-            entity.HasKey(e => e.ImageId).HasName("PK__ListingI__7516F70C45586241");
+            entity.HasKey(e => e.MediaId).HasName("PK__ListingM__6D5D1F36E99C3C10");
 
             entity.Property(e => e.IsPrimary).HasDefaultValue(false);
+            entity.Property(e => e.MediaType).HasMaxLength(20).IsUnicode(false).HasDefaultValue("IMAGE");
+            entity.Property(e => e.SortOrder).HasDefaultValue(0);
 
-            entity.HasOne(d => d.Listing).WithMany(p => p.ListingImages).HasConstraintName("FK_ListingImages_Listings");
+            entity.HasOne(d => d.Listing).WithMany(p => p.ListingMedias).HasConstraintName("FK_ListingMedias_Listings");
         });
 
         modelBuilder.Entity<ListingView>(entity =>

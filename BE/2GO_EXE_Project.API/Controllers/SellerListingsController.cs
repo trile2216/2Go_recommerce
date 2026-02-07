@@ -93,10 +93,10 @@ public class SellerListingsController : ControllerBase
         return Ok(result);
     }
 
-    [HttpPut("{id:long}/images")]
-    public async Task<IActionResult> UpdateImages(long id, [FromBody] UpdateListingImagesRequest request, CancellationToken cancellationToken = default)
+    [HttpPut("{id:long}/media")]
+    public async Task<IActionResult> UpdateMedia(long id, [FromBody] UpdateListingMediaRequest request, CancellationToken cancellationToken = default)
     {
-        var result = await _sellerListingService.UpdateImagesAsync(User, id, request, cancellationToken);
+        var result = await _sellerListingService.UpdateMediaAsync(User, id, request, cancellationToken);
         if (!result.Success) return BadRequest(result.Message);
         return Ok(result);
     }

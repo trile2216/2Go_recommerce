@@ -37,7 +37,7 @@ public class ModeratorListingService : IModeratorListingService
         var query = _uow.Listings.Query()
             .Include(l => l.SubCategory)
             .ThenInclude(sc => sc!.Category)
-            .Include(l => l.ListingImages)
+            .Include(l => l.ListingMedias)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(status))
@@ -64,7 +64,13 @@ public class ModeratorListingService : IModeratorListingService
                 l.SubCategoryId,
                 l.SubCategory != null && l.SubCategory.Category != null ? l.SubCategory.Category.Name : null,
                 l.SubCategory != null ? l.SubCategory.Name : null,
-                l.ListingImages.OrderByDescending(i => i.IsPrimary == true).ThenBy(i => i.ImageId).Select(i => i.ImageUrl).FirstOrDefault()))
+                l.ListingMedias
+                    .Where(m => string.Equals(m.MediaType, MediaTypes.Image, StringComparison.OrdinalIgnoreCase))
+                    .OrderByDescending(m => m.IsPrimary == true)
+                    .ThenBy(m => m.SortOrder ?? 0)
+                    .ThenBy(m => m.MediaId)
+                    .Select(m => m.Url)
+                    .FirstOrDefault()))
             .ToListAsync(cancellationToken);
 
         return new ListingListResponse(total, items);
@@ -75,19 +81,27 @@ public class ModeratorListingService : IModeratorListingService
         var listing = await _uow.Listings.Query()
             .Include(l => l.SubCategory)
             .ThenInclude(sc => sc!.Category)
-            .Include(l => l.ListingImages)
+            .Include(l => l.ListingMedias)
             .Include(l => l.ListingAttributes)
             .Include(l => l.Seller)
             .ThenInclude(s => s!.UserProfiles)
             .FirstOrDefaultAsync(l => l.ListingId == listingId, cancellationToken);
         if (listing == null) return null;
 
-        var images = listing.ListingImages
-            .OrderByDescending(i => i.IsPrimary == true)
-            .ThenBy(i => i.ImageId)
-            .Select(i => i.ImageUrl ?? string.Empty)
+        var media = listing.ListingMedias
+            .OrderByDescending(m => m.IsPrimary == true)
+            .ThenBy(m => m.SortOrder ?? 0)
+            .ThenBy(m => m.MediaId)
+            .Select(m => new ListingMediaItem(
+                m.Url ?? string.Empty,
+                m.MediaType ?? MediaTypes.Image,
+                m.IsPrimary ?? false,
+                m.SortOrder))
             .ToList();
-        var primary = images.FirstOrDefault();
+        var primary = media
+            .Where(m => string.Equals(m.MediaType, MediaTypes.Image, StringComparison.OrdinalIgnoreCase))
+            .Select(m => m.Url)
+            .FirstOrDefault();
 
         var attributes = listing.ListingAttributes
             .OrderBy(a => a.AttributeId)
@@ -122,7 +136,7 @@ public class ModeratorListingService : IModeratorListingService
             listing.Seller?.Email,
             listing.Seller?.Phone,
             primary,
-            images,
+            media,
             attributes);
     }
 

@@ -47,4 +47,23 @@ public class CloudinaryService : ICloudinaryService
             result.Url?.ToString() ?? string.Empty,
             result.SecureUrl?.ToString() ?? string.Empty);
     }
+
+    public async Task<CloudinaryUploadResult> UploadVideoAsync(Stream fileStream, string fileName, CancellationToken cancellationToken = default)
+    {
+        var uploadParams = new VideoUploadParams
+        {
+            File = new FileDescription(fileName, fileStream)
+        };
+
+        var result = await _cloudinary.UploadAsync(uploadParams, cancellationToken);
+        if (result.StatusCode != HttpStatusCode.OK && result.StatusCode != HttpStatusCode.Created)
+        {
+            throw new InvalidOperationException("Cloudinary upload failed.");
+        }
+
+        return new CloudinaryUploadResult(
+            result.PublicId ?? string.Empty,
+            result.Url?.ToString() ?? string.Empty,
+            result.SecureUrl?.ToString() ?? string.Empty);
+    }
 }
