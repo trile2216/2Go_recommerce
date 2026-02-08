@@ -1,21 +1,30 @@
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 using System.IO;
 using System.Text;
 using System.Linq;
+using System.Text.RegularExpressions;
 using _2GO_EXE_Project.BAL.DTOs.Ai;
 using _2GO_EXE_Project.BAL.Interfaces;
+using _2GO_EXE_Project.DAL.Context;
+using _2GO_EXE_Project.DAL.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
 public class AiQualityCheckService : IAiQualityCheckService
 {
-    private const int MinResolution = 720;
+    private const int MinResolution = 600;
     private const int MaxBytesToRead = 64 * 1024;
+    private const int MaxVisionChecks = 2;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IGeminiService _geminiService;
+    private readonly AppDbContext _db;
 
-    public AiQualityCheckService(IHttpClientFactory httpClientFactory)
+    public AiQualityCheckService(IHttpClientFactory httpClientFactory, IGeminiService geminiService, AppDbContext db)
     {
         _httpClientFactory = httpClientFactory;
+        _geminiService = geminiService;
+        _db = db;
     }
 
     public async Task<AiQualityResult> CheckAsync(IReadOnlyList<string> mediaUrls, CancellationToken cancellationToken = default)
@@ -72,17 +81,144 @@ public class AiQualityCheckService : IAiQualityCheckService
             }
         }
 
+        // Gemini Vision assessment (best-effort, limited images to control quota)
+        var visionScores = new List<int>();
+        var visionChecks = mediaUrls.Take(MaxVisionChecks).ToList();
+        foreach (var url in visionChecks)
+        {
+            var vision = await TryGeminiVisionAsync(url, cancellationToken);
+            if (vision.HasValue)
+            {
+                visionScores.Add(vision.Value.Score);
+            }
+        }
+
+        if (visionScores.Count > 0)
+        {
+            var avg = (int)Math.Round(visionScores.Average(), 0);
+            issues.Add($"Gemini image quality avg: {avg}/10 (n={visionScores.Count}).");
+            if (avg <= 4)
+            {
+                score = Math.Min(score, 0.4);
+            }
+            else if (avg <= 6)
+            {
+                score -= 0.2;
+            }
+        }
+
+        // Gemini Vision damage check (best-effort, single image)
+        if (mediaUrls.Count > 0)
+        {
+            var damage = await TryGeminiDamageAsync(mediaUrls[0], cancellationToken);
+            if (!string.IsNullOrWhiteSpace(damage))
+            {
+                issues.Add($"Possible damage: {damage}");
+                score -= 0.1;
+            }
+        }
+
         score = Math.Clamp(score, 0, 1);
         var decision = score >= 0.75 ? "PASS"
             : score >= 0.45 ? "MANUAL_REVIEW"
             : "REJECT";
 
-        if (decision == "PASS" && hasUnknownResolution)
-        {
-            decision = "MANUAL_REVIEW";
-        }
-
         return new AiQualityResult(score, issues, decision);
+    }
+
+    private async Task UpsertCacheAsync(string imageUrl, Action<AiImageVisionCache> update, CancellationToken cancellationToken)
+    {
+        var existing = await _db.AiImageVisionCaches.FirstOrDefaultAsync(x => x.ImageUrl == imageUrl, cancellationToken);
+        if (existing == null)
+        {
+            var cache = new AiImageVisionCache
+            {
+                ImageUrl = imageUrl,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            update(cache);
+            _db.AiImageVisionCaches.Add(cache);
+        }
+        else
+        {
+            update(existing);
+            existing.UpdatedAt = DateTime.UtcNow;
+            _db.AiImageVisionCaches.Update(existing);
+        }
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
+        private async Task<(int Score, string Raw)?> TryGeminiVisionAsync(string imageUrl, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var cached = await _db.AiImageVisionCaches
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.ImageUrl == imageUrl, cancellationToken);
+            if (cached?.QualityScore != null)
+            {
+                return (cached.QualityScore.Value, cached.RawResponse ?? string.Empty);
+            }
+
+            var prompt =
+                "Danh gia chat luong anh san pham (ro net/anh sang) tren thang diem 1-10. " +
+                "Chi tra ve diem dang so va mot cau ngan ly do.";
+            var text = await _geminiService.GenerateFromImageAsync(prompt, imageUrl, null, cancellationToken);
+            if (string.IsNullOrWhiteSpace(text)) return null;
+
+            var match = Regex.Match(text, @"\b(10|[1-9])\b");
+            if (!match.Success) return null;
+            var score = int.Parse(match.Value);
+            await UpsertCacheAsync(imageUrl, cache =>
+            {
+                cache.QualityScore = score;
+                cache.RawResponse = text.Trim();
+            }, cancellationToken);
+            return (score, text);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+        private async Task<string?> TryGeminiDamageAsync(string imageUrl, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var cached = await _db.AiImageVisionCaches
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.ImageUrl == imageUrl, cancellationToken);
+            if (!string.IsNullOrWhiteSpace(cached?.DamageLabels))
+            {
+                return string.Equals(cached.DamageLabels, "none", StringComparison.OrdinalIgnoreCase)
+                    ? null
+                    : cached.DamageLabels;
+            }
+
+            var prompt =
+                "Kiem tra be mat san pham trong anh va liet ke cac dau hieu hu hong neu co. " +
+                "Tra ve danh sach ngan, phan tach bang dau phay. " +
+                "Neu khong thay, tra loi 'none'. Vi du: tray xuoc, bong troc, nut vo, loi man hinh, meo moc, o xy hoa.";
+            var text = await _geminiService.GenerateFromImageAsync(prompt, imageUrl, null, cancellationToken);
+            if (string.IsNullOrWhiteSpace(text)) return null;
+            var normalized = text.Trim().ToLowerInvariant();
+            var label = normalized.Contains("none") ? "none" : text.Trim();
+            await UpsertCacheAsync(imageUrl, cache =>
+            {
+                cache.DamageLabels = label;
+                if (string.IsNullOrWhiteSpace(cache.RawResponse))
+                {
+                    cache.RawResponse = text.Trim();
+                }
+            }, cancellationToken);
+            return label == "none" ? null : label;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private async Task<ImageInfo> TryGetImageInfoAsync(Uri uri, CancellationToken cancellationToken)
@@ -91,6 +227,7 @@ public class AiQualityCheckService : IAiQualityCheckService
         {
             var client = _httpClientFactory.CreateClient();
             using var request = new HttpRequestMessage(HttpMethod.Head, uri);
+            request.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36");
             using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
@@ -114,6 +251,7 @@ public class AiQualityCheckService : IAiQualityCheckService
     private static async Task<ImageInfo> TryGetImageInfoByGetAsync(HttpClient client, Uri uri, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+        request.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36");
         request.Headers.Range = new RangeHeaderValue(0, MaxBytesToRead - 1);
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         if (!response.IsSuccessStatusCode)
@@ -209,3 +347,4 @@ public class AiQualityCheckService : IAiQualityCheckService
 
     private sealed record ImageInfo(bool IsImage, int? Width, int? Height, long? ContentLength);
 }
+

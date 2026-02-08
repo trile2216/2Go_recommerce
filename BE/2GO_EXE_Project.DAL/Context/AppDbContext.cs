@@ -27,6 +27,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<AiAnalysisLog> AiAnalysisLogs { get; set; }
 
+    public virtual DbSet<AiImageVisionCache> AiImageVisionCaches { get; set; }
+
     public virtual DbSet<Category> Categories { get; set; }
 
     public virtual DbSet<Cart> Carts { get; set; }
@@ -154,6 +156,15 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.LogId).HasName("PK_AIAnalysisLog");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+        });
+
+        modelBuilder.Entity<AiImageVisionCache>(entity =>
+        {
+            entity.HasKey(e => e.CacheId).HasName("PK_AiImageVisionCache");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("NOW()");
+            entity.HasIndex(e => e.ImageUrl)
+                .HasDatabaseName("IX_AiImageVisionCache_ImageUrl");
         });
 
         modelBuilder.Entity<Category>(entity =>

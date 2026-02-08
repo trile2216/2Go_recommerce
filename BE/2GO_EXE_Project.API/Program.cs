@@ -46,6 +46,7 @@ builder.Services.AddCors(p => p.AddPolicy("WebhookPolicy", policy =>
 // Add services to the container.
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 builder.Services.Configure<GmailEmailSettings>(builder.Configuration.GetSection("Gmail"));
+builder.Services.Configure<GeminiSettings>(builder.Configuration.GetSection("Gemini"));
 builder.Services.Configure<_2GO_EXE_Project.BAL.Settings.PaymentGatewaySettings>(builder.Configuration.GetSection("PaymentGateway"));
 builder.Services.Configure<PayOSSettings>(builder.Configuration.GetSection("PayOS"));
 builder.Services.Configure<GhnSettings>(builder.Configuration.GetSection("GHN"));
@@ -78,6 +79,7 @@ builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IDistrictService, DistrictService>();
 builder.Services.AddScoped<IWardService, WardService>();
 builder.Services.AddHttpClient<IGhnShippingService, GhnShippingService>();
+builder.Services.AddHttpClient<IGeminiService, GeminiService>();
 builder.Services.AddScoped<IAiListingService, AiListingService>();
 builder.Services.AddScoped<IAiQualityCheckService, AiQualityCheckService>();
 builder.Services.AddScoped<IPricingService, PricingService>();

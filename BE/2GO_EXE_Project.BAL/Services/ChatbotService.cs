@@ -1,23 +1,28 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using _2GO_EXE_Project.BAL.Constants;
 using _2GO_EXE_Project.BAL.DTOs.Chatbot;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Context;
 using _2GO_EXE_Project.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
 public class ChatbotService : IChatbotService
 {
     private readonly AppDbContext _db;
+    private readonly IGeminiService _geminiService;
+    private readonly ILogger<ChatbotService> _logger;
     private readonly string _faqPath;
     private static readonly object LockObj = new();
     private static List<FaqItem>? Cache;
 
-    public ChatbotService(AppDbContext db)
+    public ChatbotService(AppDbContext db, IGeminiService geminiService, ILogger<ChatbotService> logger)
     {
         _db = db;
+        _geminiService = geminiService;
+        _logger = logger;
         _faqPath = ResolveFaqPath();
     }
 
@@ -25,7 +30,7 @@ public class ChatbotService : IChatbotService
     {
         if (string.IsNullOrWhiteSpace(request.Question))
         {
-            return new ChatbotAskResponse("Vui lòng nhập câu hỏi.", "LOW", "FAQ_JSON", null);
+            return new ChatbotAskResponse("Vui lÃ²ng nháº­p cÃ¢u há»i.", "LOW", "FAQ_JSON", null);
         }
 
         var faq = LoadFaq();
@@ -37,12 +42,12 @@ public class ChatbotService : IChatbotService
             var suggestions = await FindListingsAsync(productQuery, cancellationToken);
             if (suggestions.Count > 0)
             {
-                var productSearchAnswer = $"Mình tìm thấy {suggestions.Count} sản phẩm liên quan đến \"{productQuery}\".";
+                var productSearchAnswer = $"MÃ¬nh tÃ¬m tháº¥y {suggestions.Count} sáº£n pháº©m liÃªn quan Ä‘áº¿n \"{productQuery}\".";
                 await LogAsync(userId, request.Question, productSearchAnswer, "product_search", "MEDIUM", cancellationToken);
                 return new ChatbotAskResponse(productSearchAnswer, "MEDIUM", "LISTINGS", "product_search", suggestions);
             }
 
-            var noResultAnswer = $"Hiện chưa thấy sản phẩm phù hợp với \"{productQuery}\". Bạn có thể cho mình thêm thông tin (hãng, model, giá, tình trạng) không?";
+            var noResultAnswer = $"Hiá»‡n chÆ°a tháº¥y sáº£n pháº©m phÃ¹ há»£p vá»›i \"{productQuery}\". Báº¡n cÃ³ thá»ƒ cho mÃ¬nh thÃªm thÃ´ng tin (hÃ£ng, model, giÃ¡, tÃ¬nh tráº¡ng) khÃ´ng?";
             await LogAsync(userId, request.Question, noResultAnswer, "product_search", "LOW", cancellationToken);
             return new ChatbotAskResponse(noResultAnswer, "LOW", "LISTINGS", "product_search");
         }
@@ -71,8 +76,9 @@ public class ChatbotService : IChatbotService
         }
         else
         {
-            answer = "Mình chưa có thông tin này. Bạn vui lòng liên hệ CSKH để được hỗ trợ thêm.";
-            confidence = "LOW";
+            answer = await TryGeminiFallbackAsync(request.Question, request.Context, userId, cancellationToken)
+                ?? "Mình chưa có thông tin này. Bạn vui lòng liên hệ CSKH để được hỗ trợ thêm.";
+            confidence = answer.StartsWith("Mình chưa có", StringComparison.Ordinal) ? "LOW" : "MEDIUM";
         }
 
         await LogAsync(userId, request.Question, answer, intent, confidence, cancellationToken);
@@ -116,16 +122,16 @@ public class ChatbotService : IChatbotService
     {
         var triggers = new[]
         {
-            "tôi cần",
+            "tÃ´i cáº§n",
             "toi can",
-            "cần mua",
+            "cáº§n mua",
             "can mua",
-            "muốn mua",
+            "muá»‘n mua",
             "muon mua",
-            "tìm",
+            "tÃ¬m",
             "tim",
             "mua",
-            "cần"
+            "cáº§n"
         };
 
         foreach (var trigger in triggers)
@@ -134,9 +140,9 @@ public class ChatbotService : IChatbotService
             if (idx < 0) continue;
 
             var after = normalized[(idx + trigger.Length)..].Trim();
-            if (after.StartsWith("sản phẩm "))
+            if (after.StartsWith("sáº£n pháº©m "))
             {
-                after = after["sản phẩm ".Length..].Trim();
+                after = after["sáº£n pháº©m ".Length..].Trim();
             }
             else if (after.StartsWith("san pham "))
             {
@@ -167,7 +173,7 @@ public class ChatbotService : IChatbotService
             .OrderByDescending(l => l.CreatedAt)
             .Select(l => new ChatbotListingSuggestion(
                 l.ListingId,
-                l.Title ?? "Sản phẩm",
+                l.Title ?? "Sáº£n pháº©m",
                 l.Price,
                 l.Condition,
                 l.Brand))
@@ -186,6 +192,30 @@ public class ChatbotService : IChatbotService
             current = current.Parent;
         }
         return string.Empty;
+    }
+
+    private async Task<string?> TryGeminiFallbackAsync(string question, string? context, long? userId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var contextBlock = string.IsNullOrWhiteSpace(context)
+                ? string.Empty
+                : $"Ngữ cảnh trước đó: {context}\n";
+            var prompt =
+                "Bạn là trợ lý CSKH cho sàn mua bán đồ cũ. " +
+                "Trả lời ngắn gọn bằng tiếng Việt. " +
+                "Nếu không chắc chắn, hãy nói rõ là chưa có thông tin.\n" +
+                $"{contextBlock}Câu hỏi: {question}";
+            var userKey = userId?.ToString();
+            var text = await _geminiService.GenerateAsync(prompt, userKey, cancellationToken);
+            _logger.LogInformation("Gemini fallback used. userId={UserId}", userId);
+            return string.IsNullOrWhiteSpace(text) ? null : text.Trim();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Gemini fallback failed. userId={UserId}", userId);
+            return null;
+        }
     }
 
     private async Task LogAsync(long? userId, string question, string answer, string? intent, string confidence, CancellationToken cancellationToken)
