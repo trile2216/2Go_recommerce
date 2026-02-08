@@ -65,6 +65,62 @@ public class GeminiService : IGeminiService
         return ExtractText(body);
     }
 
+    public async Task<string> GenerateFromImageAsync(string prompt, string imageUrl, string? userKey = null, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_settings.ApiKey))
+        {
+            throw new InvalidOperationException("Gemini API key is not configured.");
+        }
+
+        if (!TryConsumeQuota(DateTime.UtcNow, userKey, _settings.MaxRequestsPerMinute, _settings.MaxRequestsPerDay))
+        {
+            throw new InvalidOperationException("Gemini rate limit exceeded.");
+        }
+
+        var image = await TryReadImageAsync(imageUrl, cancellationToken);
+        if (image == null)
+        {
+            throw new InvalidOperationException("Image download failed.");
+        }
+
+        var request = new
+        {
+            contents = new[]
+            {
+                new
+                {
+                    parts = new object[]
+                    {
+                        new { text = prompt },
+                        new
+                        {
+                            inline_data = new
+                            {
+                                mime_type = image.Value.MimeType,
+                                data = Convert.ToBase64String(image.Value.Bytes)
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        var url = $"{_settings.BaseUrl.TrimEnd('/')}/models/{_settings.Model}:generateContent";
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
+        httpRequest.Headers.Add("x-goog-api-key", _settings.ApiKey);
+        httpRequest.Content = JsonContent.Create(request);
+
+        using var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("Gemini Vision API error {Status}: {Body}", response.StatusCode, body);
+            throw new InvalidOperationException("Gemini API request failed.");
+        }
+
+        return ExtractText(body);
+    }
+
     private static bool TryConsumeQuota(DateTime now, string? userKey, int perMinute, int perDay)
     {
         var key = string.IsNullOrWhiteSpace(userKey) ? "anonymous" : userKey.Trim();
@@ -118,6 +174,57 @@ public class GeminiService : IGeminiService
         catch
         {
             return string.Empty;
+        }
+    }
+
+    private async Task<(byte[] Bytes, string MimeType)?> TryReadImageAsync(string imageUrl, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (!Uri.TryCreate(imageUrl, UriKind.Absolute, out var uri))
+            {
+                return null;
+            }
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            request.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36");
+            using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            var mimeType = response.Content.Headers.ContentType?.MediaType;
+            if (string.IsNullOrWhiteSpace(mimeType) || !mimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            var contentLength = response.Content.Headers.ContentLength;
+            const int maxBytes = 4 * 1024 * 1024;
+            if (contentLength.HasValue && contentLength.Value > maxBytes)
+            {
+                return null;
+            }
+
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using var memory = new MemoryStream();
+            var buffer = new byte[8192];
+            int read;
+            while ((read = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken)) > 0)
+            {
+                if (memory.Length + read > maxBytes)
+                {
+                    return null;
+                }
+                memory.Write(buffer, 0, read);
+            }
+
+            return (memory.ToArray(), mimeType);
+        }
+        catch
+        {
+            return null;
         }
     }
 }

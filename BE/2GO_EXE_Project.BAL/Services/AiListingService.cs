@@ -19,6 +19,7 @@ public class AiListingService : IAiListingService
     private readonly IUserPrecheckService _precheckService;
     private readonly INoteGenerationService _noteGenerationService;
     private readonly INotificationService _notificationService;
+    private readonly IGeminiService _geminiService;
     private readonly AppDbContext _db;
 
     public AiListingService(
@@ -28,6 +29,7 @@ public class AiListingService : IAiListingService
         IUserPrecheckService precheckService,
         INoteGenerationService noteGenerationService,
         INotificationService notificationService,
+        IGeminiService geminiService,
         AppDbContext db)
     {
         _qualityCheckService = qualityCheckService;
@@ -36,6 +38,7 @@ public class AiListingService : IAiListingService
         _precheckService = precheckService;
         _noteGenerationService = noteGenerationService;
         _notificationService = notificationService;
+        _geminiService = geminiService;
         _db = db;
     }
 
@@ -43,7 +46,7 @@ public class AiListingService : IAiListingService
     {
         var quality = await _qualityCheckService.CheckAsync(request.MediaUrls, cancellationToken);
 
-        var conditionAi = InferCondition(request.Title, request.Description);
+        var conditionAi = await InferConditionAsync(request.Title, request.Description, request.MediaUrls, request.UserId, cancellationToken);
         var productKey = await BuildProductKeyAsync(request.CategoryId, request.Brand, request.Title, cancellationToken);
         var market = await _marketPriceProvider.GetMarketPriceAsync(
             new MarketPriceInput(productKey, request.CategoryId, conditionAi),
@@ -81,7 +84,7 @@ public class AiListingService : IAiListingService
     {
         var quality = await _qualityCheckService.CheckAsync(request.MediaUrls, cancellationToken);
 
-        var conditionAi = InferCondition(request.Title, request.Description);
+        var conditionAi = await InferConditionAsync(request.Title, request.Description, request.MediaUrls, request.UserId, cancellationToken);
         var productKey = await BuildProductKeyAsync(request.CategoryId, request.Brand, request.Title, cancellationToken);
         var market = await _marketPriceProvider.GetMarketPriceAsync(
             new MarketPriceInput(productKey, request.CategoryId, conditionAi),
@@ -183,8 +186,14 @@ public class AiListingService : IAiListingService
             emailVerified);
     }
 
-    private static string InferCondition(string title, string description)
+    private async Task<string> InferConditionAsync(string title, string description, IReadOnlyList<string> mediaUrls, string userId, CancellationToken cancellationToken)
     {
+        var vision = await TryGeminiConditionAsync(title, description, mediaUrls, userId, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(vision))
+        {
+            return vision!;
+        }
+
         var text = $"{title} {description}".ToLowerInvariant();
         if (text.Contains("mới") || text.Contains("like new") || text.Contains("99%"))
         {
@@ -199,6 +208,62 @@ public class AiListingService : IAiListingService
             return "POOR";
         }
         return "GOOD";
+    }
+
+    private async Task<string?> TryGeminiConditionAsync(string title, string description, IReadOnlyList<string> mediaUrls, string userId, CancellationToken cancellationToken)
+    {
+        if (mediaUrls == null || mediaUrls.Count == 0) return null;
+        try
+        {
+            var cached = await _db.AiImageVisionCaches
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.ImageUrl == mediaUrls[0], cancellationToken);
+            if (!string.IsNullOrWhiteSpace(cached?.ConditionLabel))
+            {
+                return cached.ConditionLabel;
+            }
+
+            var prompt =
+                "Hãy phân loại tình trạng sản phẩm theo 1 trong 4 nhãn: NEW, GOOD, FAIR, POOR. " +
+                "Chỉ trả về đúng 1 nhãn.\n" +
+                $"Tiêu đề: {title}\nMô tả: {description}";
+            var text = await _geminiService.GenerateFromImageAsync(prompt, mediaUrls[0], userId, cancellationToken);
+            if (string.IsNullOrWhiteSpace(text)) return null;
+            var normalized = text.Trim().ToUpperInvariant();
+            string? label = null;
+            if (normalized.Contains("NEW")) label = "NEW";
+            else if (normalized.Contains("GOOD")) label = "GOOD";
+            else if (normalized.Contains("FAIR")) label = "FAIR";
+            else if (normalized.Contains("POOR")) label = "POOR";
+
+            if (!string.IsNullOrWhiteSpace(label))
+            {
+                var existing = await _db.AiImageVisionCaches.FirstOrDefaultAsync(x => x.ImageUrl == mediaUrls[0], cancellationToken);
+                if (existing == null)
+                {
+                    _db.AiImageVisionCaches.Add(new DAL.Entities.AiImageVisionCache
+                    {
+                        ImageUrl = mediaUrls[0],
+                        ConditionLabel = label,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    });
+                }
+                else
+                {
+                    existing.ConditionLabel = label;
+                    existing.UpdatedAt = DateTime.UtcNow;
+                    _db.AiImageVisionCaches.Update(existing);
+                }
+                await _db.SaveChangesAsync(cancellationToken);
+            }
+
+            return label;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static string ResolveRecommendation(AiQualityResult quality, AiRiskResult risk)

@@ -1,8 +1,10 @@
+using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using _2GO_EXE_Project.BAL.DTOs.Ai;
 using _2GO_EXE_Project.BAL.Services;
 using _2GO_EXE_Project.DAL.Context;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace _2GO_EXE_Project.Tests;
