@@ -45,21 +45,25 @@ public class PayOSService : IPayOSService
             throw new ArgumentException("Reference code is required.", nameof(referenceCode));
         }
 
-        // Generate unique order code from timestamp
-        var orderCode = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        // Generate unique order code from timestamp + random to avoid duplicates
+        var orderCode = long.Parse(DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString() + Random.Shared.Next(100, 999).ToString());
+
+        // PayOS requires description <= 25 characters
+        var desc = description ?? $"Payment {referenceCode}";
+        if (desc.Length > 25) desc = desc[..25];
 
         var paymentRequest = new CreatePaymentLinkRequest
         {
             OrderCode = orderCode,
             Amount = amount,
-            Description = description ?? $"Payment {referenceCode}",
-            ReturnUrl = returnUrl ?? _settings.ReturnUrl ?? $"{frontendBaseUrl}/payment/success", 
-            CancelUrl = cancelUrl ?? _settings.CancelUrl ?? $"{frontendBaseUrl}/payment/cancel",
+            Description = desc,
+            ReturnUrl = returnUrl ?? $"{frontendBaseUrl}/payment/result", 
+            CancelUrl = cancelUrl ?? $"{frontendBaseUrl}/payment/result",
             Items = new List<PaymentLinkItem>
             {
                 new PaymentLinkItem
                 {
-                    Name = description ?? "Payment",
+                    Name = desc,
                     Quantity = 1,
                     Price = amount
                 }

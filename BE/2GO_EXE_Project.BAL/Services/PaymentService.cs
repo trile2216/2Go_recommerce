@@ -70,11 +70,62 @@ public class PaymentService : IPaymentService
             string? existingPayUrl = null;
             if (string.Equals(existing.Method, "PAYOS", StringComparison.OrdinalIgnoreCase))
             {
+                // Try to get from PaymentLog first
                 var log = await _uow.PaymentLogs.Query()
                     .Where(l => l.PaymentId == existing.PaymentId && l.RawResponse != null)
                     .OrderByDescending(l => l.LogId)
                     .FirstOrDefaultAsync(cancellationToken);
                 existingPayUrl = ExtractCheckoutUrl(log?.RawResponse);
+                
+                // Fallback to Payment.PayosCheckoutUrl if not found in log
+                if (string.IsNullOrWhiteSpace(existingPayUrl))
+                {
+                    existingPayUrl = existing.PayosCheckoutUrl;
+                }
+
+                // If still no checkout URL and payment is still Pending, re-create PayOS link
+                if (string.IsNullOrWhiteSpace(existingPayUrl) && 
+                    string.Equals(existing.Status, PaymentStatuses.Pending, StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        var payosAmount = Convert.ToInt64(decimal.Round(existing.Amount ?? 0, 0));
+                        var (checkoutUrl, orderCodeStr) = await _payosService.CreatePaymentLinkAsync(
+                            existing.PaymentId,
+                            existing.ReferenceCode!,
+                            payosAmount,
+                            $"Payment for order {existing.OrderId}",
+                            null,
+                            null,
+                            cancellationToken);
+
+                        if (long.TryParse(orderCodeStr, out var orderCode))
+                        {
+                            order.OrderCode = orderCode;
+                            existing.PayosOrderCode = orderCode;
+                        }
+                        order.CheckoutUrl = checkoutUrl;
+                        existing.PayosCheckoutUrl = checkoutUrl;
+
+                        _uow.Orders.Update(order);
+                        _uow.Payments.Update(existing);
+                        await _uow.SaveChangesAsync(cancellationToken);
+
+                        existingPayUrl = checkoutUrl;
+
+                        await _uow.PaymentLogs.AddAsync(new PaymentLog
+                        {
+                            PaymentId = existing.PaymentId,
+                            RawResponse = System.Text.Json.JsonSerializer.Serialize(new { checkoutUrl, orderCode = orderCodeStr }),
+                            CreatedAt = DateTime.UtcNow
+                        }, cancellationToken);
+                        await _uow.SaveChangesAsync(cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidOperationException($"PayOS payment link re-creation failed: {ex.Message}");
+                    }
+                }
             }
             return new PaymentResponse(existing.PaymentId, existing.Amount, existing.Method, existing.Status, existing.ReferenceCode, existing.CreatedAt, existingPayUrl);
         }
@@ -120,10 +171,13 @@ public class PaymentService : IPaymentService
                 if (long.TryParse(orderCodeStr, out var orderCode))
                 {
                     order.OrderCode = orderCode;
+                    payment.PayosOrderCode = orderCode;
                 }
                 order.CheckoutUrl = checkoutUrl;
+                payment.PayosCheckoutUrl = checkoutUrl;
                 
                 _uow.Orders.Update(order);
+                _uow.Payments.Update(payment);
                 await _uow.SaveChangesAsync(cancellationToken);
 
                 payUrl = checkoutUrl;
