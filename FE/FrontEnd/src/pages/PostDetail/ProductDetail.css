@@ -182,8 +182,15 @@
   gap: 12px;
 }
 
+.product-actions-secondary {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-buy-now,
 .btn-add-cart,
-.btn-compare {
+.btn-compare,
+.btn-save-listing {
   flex: 1;
   padding: 12px 20px;
   border: none;
@@ -192,6 +199,17 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+}
+
+.btn-buy-now {
+  background-color: #dc2626;
+  color: white;
+}
+
+.btn-buy-now:hover {
+  background-color: #b91c1c;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
 }
 
 .btn-add-cart {
@@ -237,6 +255,36 @@
   background-color: #2563eb;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-save-listing {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.btn-save-listing:hover {
+  background-color: #e5e7eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.btn-save-listing.saved {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+.btn-save-listing.saved:hover {
+  background-color: #fee2e2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+}
+
+.btn-save-listing:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .seller-section {

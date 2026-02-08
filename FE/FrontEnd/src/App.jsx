@@ -16,6 +16,7 @@ import Listings from './pages/Listings/Listings';
 import PostListing from './pages/PostListing/PostListing';
 import Chat from './pages/Chat/Chat';
 import CompareFloatingButton from './components/CompareFloatingButton';
+import ScrollToTop from './components/ScrollToTop';
 
 // Admin Pages
 import AdminDashboard from './pages/Admin/AdminDashboard/AdminDashboard';
@@ -29,11 +30,15 @@ import ProtectedRoute from './context/ProtectedRoute';
 import Orders from './pages/Order/Order';
 import OrderDetail from './pages/OrderDetail/OrderDetail';
 import Checkout from './pages/Checkout/Checkout';
+import PaymentResult from './pages/PaymentResult/PaymentResult';
+import SellerListings from './pages/SellerListings/SellerListings';
+import SavedListings from './pages/SavedListings/SavedListings';
 
 function App() {
   return (
     <Provider store={store}>
       <Router>
+        <ScrollToTop />
         <ToastProvider>
         <SearchProvider>
         <CartProvider>
@@ -52,6 +57,9 @@ function App() {
             <Route path="/orders" element={<Orders />} />
             <Route path="/order/:orderId" element={<OrderDetail />} />
             <Route path="/checkout" element={<Checkout />} />
+            <Route path="/payment/result" element={<PaymentResult />} />
+            <Route path="/seller/listings" element={<SellerListings />} />
+            <Route path="/saved-listings" element={<SavedListings />} />
             <Route path="/post/listing" element={
               <UserLayout>
                 <PostListing />

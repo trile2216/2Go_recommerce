@@ -186,7 +186,7 @@
 
 .status-item {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: 3fr 7fr;
   gap: 0.5rem;
   align-items: center;
   margin-bottom: 0.75rem;
@@ -204,6 +204,9 @@
   border-radius: 20px;
   font-size: 0.8rem;
   font-weight: 600;
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .status-badge.active,
@@ -552,4 +555,36 @@
     width: 100%;
     justify-content: center;
   }
+}
+
+/* Avatar Upload Field */
+.avatar-upload-field {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.avatar-upload-btn {
+  white-space: nowrap;
+}
+
+.avatar-upload-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.avatar-upload-preview img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e0e0e0;
+}
+
+.avatar-upload-filename {
+  font-size: 0.85rem;
+  color: #52c41a;
+  font-weight: 500;
 }

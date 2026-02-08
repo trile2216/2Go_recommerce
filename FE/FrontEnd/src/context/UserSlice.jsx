@@ -20,7 +20,6 @@ const userSlice = createSlice({
       state.refreshToken = refreshToken || null;
       state.user = user;
       state.role = role || user?.role || null;
-        console.log("Storing user data:", { token, refreshToken, user, role });
       localStorage.setItem("token", token);
       if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
       if (user) localStorage.setItem("user", JSON.stringify(user));

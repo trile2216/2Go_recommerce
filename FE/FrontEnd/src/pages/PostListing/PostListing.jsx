@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     Form,
@@ -13,18 +13,21 @@ import {
     Col,
     message,
     Typography,
+    Image,
 } from "antd";
 import {
     Upload as UploadIcon,
     Video,
     ChevronRight,
     MapPin,
-    Check
+    Check,
+    X,
+    Star,
 } from "lucide-react";
 import "./PostListing.css";
 import Header from "../../components/Header";
-import { uploadImageAndGetUrl } from "../../service/upload/api.upload";
-import { createListing } from "../../service/home/api.lishting";
+import { uploadImageAndGetUrl, uploadVideoAndGetUrl } from "../../service/upload/api.upload";
+import { createListing } from "../../service/home/api.sellerListing";
 import { fetchAllCategories, fetchSubCategoriesByCategoryId } from "../../service/home/api.category";
 import { fetchAllDistricts, fetchAllWards } from "../../service/home/api.ward";
 
@@ -43,8 +46,8 @@ export default function PostListing() {
     const [expandedCategoryId, setExpandedCategoryId] = useState(null);
 
     // Upload State
-    const [fileList, setFileList] = useState([]);
-    const [videoFile, setVideoFile] = useState(null);
+    const [imageList, setImageList] = useState([]); // [{ uid, file, preview, isPrimary }]
+    const [videoList, setVideoList] = useState([]); // [{ uid, file, preview }]
     const [isFree, setIsFree] = useState(false);
 
     // Categories State
@@ -177,14 +180,100 @@ export default function PostListing() {
         });
     };
 
-    const handleImageChange = ({ fileList: newFileList }) => {
-        setFileList(newFileList);
-    };
+    // --- Image handlers ---
+    const handleImageUpload = useCallback((e) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        const remainingSlots = 6 - imageList.length;
+        if (remainingSlots <= 0) {
+            message.warning('Tối đa 6 ảnh!');
+            return;
+        }
+
+        const filesToAdd = files.slice(0, remainingSlots);
+        const newImages = filesToAdd.map((file) => ({
+            uid: `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            file,
+            preview: URL.createObjectURL(file),
+            isPrimary: false,
+        }));
+
+        setImageList((prev) => {
+            const updated = [...prev, ...newImages];
+            // If no primary yet, set the first image as primary
+            if (!updated.some((img) => img.isPrimary) && updated.length > 0) {
+                updated[0].isPrimary = true;
+            }
+            return updated;
+        });
+
+        // Reset input
+        e.target.value = '';
+    }, [imageList]);
+
+    const handleRemoveImage = useCallback((uid) => {
+        setImageList((prev) => {
+            const updated = prev.filter((img) => img.uid !== uid);
+            // If the removed image was primary, auto-set first remaining as primary
+            if (updated.length > 0 && !updated.some((img) => img.isPrimary)) {
+                updated[0].isPrimary = true;
+            }
+            return updated;
+        });
+    }, []);
+
+    const handleSetPrimary = useCallback((uid) => {
+        setImageList((prev) =>
+            prev.map((img) => ({
+                ...img,
+                isPrimary: img.uid === uid,
+            }))
+        );
+    }, []);
+
+    // --- Video handlers ---
+    const handleVideoUpload = useCallback((e) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        const remainingSlots = 1 - videoList.length;
+        if (remainingSlots <= 0) {
+            message.warning('Tối đa 1 video!');
+            return;
+        }
+
+        const file = files[0];
+        if (file.size > 50 * 1024 * 1024) {
+            message.error('Video không được vượt quá 50MB!');
+            return;
+        }
+
+        setVideoList([{
+            uid: `vid-${Date.now()}`,
+            file,
+            preview: URL.createObjectURL(file),
+        }]);
+
+        e.target.value = '';
+    }, [videoList]);
+
+    const handleRemoveVideo = useCallback((uid) => {
+        setVideoList((prev) => prev.filter((v) => v.uid !== uid));
+    }, []);
 
 
     const onFinish = async (values) => {
-        if (fileList.length === 0) {
+        // Validation: at least 1 image required
+        if (imageList.length === 0) {
             message.error("Vui lòng tải lên ít nhất 1 hình ảnh!");
+            return;
+        }
+
+        // Validation: exactly 1 primary image
+        const primaryCount = imageList.filter((img) => img.isPrimary).length;
+        if (primaryCount !== 1) {
+            message.error("Phải có đúng 1 ảnh bìa!");
             return;
         }
 
@@ -197,37 +286,54 @@ export default function PostListing() {
         const hideLoadingMsg = message.loading("Đang xử lý tin đăng của bạn...", 0);
 
         try {
-            // Upload all images and get URLs
-            const uploadedFiles = fileList.map(file => file.originFileObj || file).filter(f => f instanceof File);
-            const imageUrls = await uploadImageAndGetUrl(uploadedFiles);
+            // Upload images
+            const imageFiles = imageList.map((img) => img.file).filter(Boolean);
+            const imageUrls = await uploadImageAndGetUrl(imageFiles);
+            const imageUrlArr = Array.isArray(imageUrls) ? imageUrls : [imageUrls];
 
-            // Format images data with primary image
-            const imagesData = imageUrls.map((url, index) => ({
-                imageUrl: url,
-                isPrimary: index === 0 // First image is primary
+            // Build media array for images
+            const mediaData = imageUrlArr.map((url, index) => ({
+                url,
+                mediaType: "IMAGE",
+                isPrimary: imageList[index]?.isPrimary || false,
+                sortOrder: index,
             }));
 
-            // Prepare request body
+            // Upload video if present
+            if (videoList.length > 0) {
+                const videoFile = videoList[0].file;
+                if (videoFile) {
+                    const videoUrl = await uploadVideoAndGetUrl(videoFile);
+                    mediaData.push({
+                        url: videoUrl,
+                        mediaType: "VIDEO",
+                        isPrimary: false, // isPrimary never true for video
+                        sortOrder: mediaData.length,
+                    });
+                }
+            }
+
+            // Prepare request body matching CreateSellerListingRequest DTO
             const requestData = {
                 title: values.title,
                 description: values.description,
                 subCategoryId: selectedSubcategory.id,
-                wardId: selectedWard || 0,
-                price: values.isFree ? 0 : parseInt(values.price) || 0,
-                listingType: "SELLING", // Default listing type
+                wardId: selectedWard || null,
+                price: values.isFree ? 0 : parseFloat(values.price) || 0,
+                listingType: "Single",
                 availableQuantity: 1,
                 hasNegotiation: true,
                 condition: values.condition,
                 brand: values.brand || "",
-                dimensions: "",
-                weight: 0,
-                images: imagesData,
+                dimensions: null,
+                weight: null,
+                media: mediaData,
                 attributes: [
                     { name: "Màu sắc", value: values.color || "" },
                     { name: "Dung lượng", value: values.capacity || "" },
                     { name: "Bảo hành", value: values.warranty || "" },
                     { name: "Xuất xứ", value: values.origin || "" }
-                ].filter(attr => attr.value) // Remove empty attributes
+                ].filter(attr => attr.value)
             };
 
             // Call API to create listing
@@ -264,29 +370,102 @@ export default function PostListing() {
                     }}
                 >
                     {/* Images & Video Section */}
-                    <Card title="Hình ảnh và Video" className="mb-4" bordered={false} style={{ marginBottom: 16, borderRadius: 8 }}>
-                        <Row gutter={24}>
-                            <Col span={24}>
-                                <Form.Item label="Hình ảnh" tooltip="Đăng tin có hình ảnh để bán nhanh hơn">
-                                    <Upload
-                                        listType="picture-card"
-                                        fileList={fileList}
-                                        onChange={handleImageChange}
-                                        beforeUpload={() => false}
-                                        multiple
-                                        accept="image/*"
-                                    >
-                                        {fileList.length >= 8 ? null : (
-                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                                                <UploadIcon size={24} style={{ color: '#999', marginBottom: 8 }} />
-                                                <div style={{ marginTop: 8, color: '#666' }}>Thêm ảnh</div>
-                                            </div>
+                    <Card
+                        title={`Hình ảnh và Video (tối đa 6 ảnh và 1 video)`}
+                        className="mb-4"
+                        bordered={false}
+                        style={{ marginBottom: 16, borderRadius: 8 }}
+                    >
+                        {/* Images */}
+                        <Form.Item
+                            label="Hình ảnh"
+                            required
+                            tooltip="Ảnh đầu tiên sẽ là ảnh bìa. Bấm vào ảnh để chọn ảnh bìa."
+                        >
+                            <div className="media-upload-grid">
+                                {imageList.map((img) => (
+                                    <div key={img.uid} className={`media-upload-item${img.isPrimary ? ' primary' : ''}`}>
+                                        <img src={img.preview} alt="preview" className="media-upload-preview" />
+                                        {/* Remove button */}
+                                        <button
+                                            type="button"
+                                            className="media-upload-remove"
+                                            onClick={() => handleRemoveImage(img.uid)}
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                        {/* Primary badge */}
+                                        {img.isPrimary && (
+                                            <div className="media-upload-primary-badge">Ảnh bìa</div>
                                         )}
-                                    </Upload>
-                                </Form.Item>
-                            </Col>
+                                        {/* Set as primary */}
+                                        {!img.isPrimary && (
+                                            <button
+                                                type="button"
+                                                className="media-upload-set-primary"
+                                                onClick={() => handleSetPrimary(img.uid)}
+                                                title="Đặt làm ảnh bìa"
+                                            >
+                                                <Star size={14} /> Ảnh bìa
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
 
-                        </Row>
+                                {/* Upload button */}
+                                {imageList.length < 6 && (
+                                    <label className="media-upload-add">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            multiple
+                                            onChange={handleImageUpload}
+                                            style={{ display: 'none' }}
+                                        />
+                                        <UploadIcon size={24} color="#999" />
+                                        <span style={{ marginTop: 8, color: '#666', fontSize: 13 }}>Thêm ảnh</span>
+                                    </label>
+                                )}
+                            </div>
+                            {imageList.length === 0 && (
+                                <div style={{ color: '#ff4d4f', fontSize: 13, marginTop: 4 }}>Bắt buộc có ít nhất 1 ảnh</div>
+                            )}
+                        </Form.Item>
+
+                        {/* Video */}
+                        <Form.Item
+                            label="Video"
+                            tooltip="Tối đa 1 video (50MB)"
+                        >
+                            <div className="media-upload-grid">
+                                {videoList.map((vid) => (
+                                    <div key={vid.uid} className="media-upload-item">
+                                        <video src={vid.preview} className="media-upload-preview" muted />
+                                        <button
+                                            type="button"
+                                            className="media-upload-remove"
+                                            onClick={() => handleRemoveVideo(vid.uid)}
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                        <div className="media-upload-video-badge">Video</div>
+                                    </div>
+                                ))}
+
+                                {videoList.length < 1 && (
+                                    <label className="media-upload-add">
+                                        <input
+                                            type="file"
+                                            accept="video/*"
+                                            onChange={handleVideoUpload}
+                                            style={{ display: 'none' }}
+                                        />
+                                        <Video size={24} color="#999" />
+                                        <span style={{ marginTop: 8, color: '#666', fontSize: 13 }}>Thêm video</span>
+                                    </label>
+                                )}
+                            </div>
+                        </Form.Item>
                     </Card>
 
                     {/* Product Details Section */}

@@ -1,72 +1,93 @@
 import api from '../../config/axios.js';
 
+// --- Helpers ---
+
+const buildFormData = (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return formData;
+};
+
 /**
- * Upload ảnh lên Cloudinary thông qua backend
- * @param {File} file - File ảnh cần upload
- * @returns {Promise} - Response từ backend chứa URL ảnh
+ * Trích xuất secure URL từ CloudinaryUploadResult
+ * Backend trả về: { publicId, url, secureUrl }
+ */
+const extractUrl = (result) => result.secureUrl || result.url;
+
+// --- Image ---
+
+/**
+ * Upload 1 ảnh lên Cloudinary (max 10 MB)
+ * @param {File} file
+ * @returns {Promise<{publicId: string, url: string, secureUrl: string}>}
  */
 export const uploadImage = async (file) => {
-    try {
-        if (!file) {
-            throw new Error('File is required');
-        }
+    if (!file) throw new Error('File is required');
 
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const response = await api.post('/uploads/image', formData);
-
-        return response.data;
-    } catch (error) {
-        console.error('Error uploading image:', error);
-        throw error;
-    }
+    const { data } = await api.post('/uploads/image', buildFormData(file));
+    return data;
 };
 
 /**
  * Upload nhiều ảnh cùng lúc
- * @param {FileList|File[]} files - Danh sách file ảnh cần upload
- * @returns {Promise} - Promise mảng các response
+ * @param {FileList|File[]} files
+ * @returns {Promise<Array<{publicId: string, url: string, secureUrl: string}>>}
  */
 export const uploadMultipleImages = async (files) => {
-    try {
-        if (!files || files.length === 0) {
-            throw new Error('Files are required');
-        }
+    const list = Array.from(files);
+    if (list.length === 0) throw new Error('Files are required');
 
-        const uploadPromises = Array.from(files).map((file) =>
-            uploadImage(file)
-        );
-
-        const results = await Promise.all(uploadPromises);
-        return results;
-    } catch (error) {
-        console.error('Error uploading multiple images:', error);
-        throw error;
-    }
+    return Promise.all(list.map(uploadImage));
 };
 
 /**
- * Upload ảnh và trả về URL
- * @param {File|File[]} files - File ảnh hoặc mảng file ảnh cần upload
- * @returns {Promise<string|string[]>} - URL của ảnh đã upload (hoặc mảng URL nếu input là mảng)
+ * Upload ảnh và chỉ trả về URL (secureUrl ưu tiên)
+ * @param {File|File[]} files
+ * @returns {Promise<string|string[]>}
  */
 export const uploadImageAndGetUrl = async (files) => {
-    try {
-        // Nếu là mảng files
-        if (Array.isArray(files)) {
-            if (files.length === 0) {
-                throw new Error('Files are required');
-            }
-            const results = await uploadMultipleImages(files);
-            return results.map(response => response.url || response.imageUrl || response.data);
-        } else {
-            // Nếu là single file
-            const response = await uploadImage(files);
-            return response.url || response.imageUrl || response.data;
-        }
-    } catch (error) {
-        console.error('Error uploading image and getting URL:', error);
-        throw error;
+    if (Array.isArray(files)) {
+        const results = await uploadMultipleImages(files);
+        return results.map(extractUrl);
     }
+    return extractUrl(await uploadImage(files));
+};
+
+// --- Video ---
+
+/**
+ * Upload 1 video lên Cloudinary (max 50 MB)
+ * @param {File} file
+ * @returns {Promise<{publicId: string, url: string, secureUrl: string}>}
+ */
+export const uploadVideo = async (file) => {
+    if (!file) throw new Error('File is required');
+
+    const { data } = await api.post('/uploads/video', buildFormData(file));
+    return data;
+};
+
+/**
+ * Upload nhiều video cùng lúc
+ * @param {FileList|File[]} files
+ * @returns {Promise<Array<{publicId: string, url: string, secureUrl: string}>>}
+ */
+export const uploadMultipleVideos = async (files) => {
+    const list = Array.from(files);
+    if (list.length === 0) throw new Error('Files are required');
+
+    return Promise.all(list.map(uploadVideo));
+};
+
+/**
+ * Upload video và chỉ trả về URL (secureUrl ưu tiên)
+ * @param {File|File[]} files
+ * @returns {Promise<string|string[]>}
+ */
+export const uploadVideoAndGetUrl = async (files) => {
+    if (Array.isArray(files)) {
+        const results = await uploadMultipleVideos(files);
+        return results.map(extractUrl);
+    }
+    return extractUrl(await uploadVideo(files));
 };

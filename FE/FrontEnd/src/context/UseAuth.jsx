@@ -1,6 +1,7 @@
 import { useDispatch, useSelector } from "react-redux";
-import { loginSuccess, logout as logoutAction } from "./UserSlice";
+import { loginSuccess, logout as logoutAction, updateUser } from "./UserSlice";
 import { logout as logoutAPI } from "../service/auth/api.auth";
+import { getUserInfo } from "../service/home/api.user";
 import api from "../config/axios";
 import { useNavigate } from "react-router-dom";
 
@@ -26,6 +27,14 @@ const useAuth = () => {
     };
 
     dispatch(loginSuccess({ token: accessToken, refreshToken, user: userData, role }));
+
+    // Fetch full user profile and update store
+    try {
+      const fullProfile = await getUserInfo();
+      dispatch(updateUser(fullProfile));
+    } catch (err) {
+      console.error("Failed to fetch user profile after login:", err);
+    }
 
     switch (role) {
         case "Admin":
@@ -57,6 +66,14 @@ const useAuth = () => {
     };
 
     dispatch(loginSuccess({ token: accessToken, refreshToken, user: userData, role }));
+
+    // Fetch full user profile and update store
+    try {
+      const fullProfile = await getUserInfo();
+      dispatch(updateUser(fullProfile));
+    } catch (err) {
+      console.error("Failed to fetch user profile after OAuth login:", err);
+    }
 
     switch (role) {
         case "Admin":

@@ -761,6 +761,14 @@
   flex-shrink: 0;
 }
 
+.item-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f4f6;
+  color: #9ca3af;
+}
+
 .item-info {
   flex: 1;
   min-width: 0;

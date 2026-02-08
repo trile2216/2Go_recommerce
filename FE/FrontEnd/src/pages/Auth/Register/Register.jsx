@@ -51,7 +51,7 @@ const Register = () => {
         }));
       }
       
-      navigate('/');
+      navigate('/login');
     } catch (err) {
       console.error('Registration error:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Đăng ký thất bại. Vui lòng thử lại.';

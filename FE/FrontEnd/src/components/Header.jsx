@@ -483,10 +483,16 @@ export default function Header() {
                     <div className="dropdown-list">
                       {cartItems.slice(0, 4).map((item) => (
                         <div key={item.cartItemId} className="dropdown-item">
-                          <img src={item.primaryImageUrl || item.image} alt={item.title} className="item-image" />
+                          {item.imageUrl ? (
+                            <img src={item.imageUrl} alt={item.title} className="item-image" />
+                          ) : (
+                            <div className="item-image item-image-placeholder">
+                              <ShoppingCart size={16} />
+                            </div>
+                          )}
                           <div className="item-info">
                             <p className="item-title">{item.title}</p>
-                            <p className="item-price">{Number(item.priceSnapshot || item.price).toLocaleString('vi-VN')}₫</p>
+                            <p className="item-price">{Number(item.priceSnapshot || 0).toLocaleString('vi-VN')}₫</p>
                           </div>
                           <button
                             className="remove-item-btn"
@@ -616,9 +622,9 @@ export default function Header() {
                   <>
                     <div className="dropdown-header user-header">
                       <div className="user-menu-header">
-                        <div className="user-avatar-lg">{getInitials(user.fullName || user.email)}</div>
+                        <div className="user-avatar-lg">{getInitials(user.profile?.fullName || user.fullName || user.email)}</div>
                         <div className="user-info">
-                          <div className="user-name">{user.fullName || user.email}</div>
+                          <div className="user-name">{user.profile?.fullName || user.fullName || user.email}</div>
                           <div className="user-email">{user.email}</div>
                         </div>
                       </div>
@@ -634,26 +640,25 @@ export default function Header() {
 
                     <div className="menu-section">
                       <div className="menu-section-title">Tài khoản</div>
-                      <a href="/user/info" className="menu-item" onClick={(e) => { closeAllMenus(); }}>Hồ sơ cá nhân</a>
-                      <a href="#" className="menu-item" onClick={(e) => { e.preventDefault(); closeAllMenus(); }}>Cài đặt tài khoản</a>
+                      <button className="menu-item" onClick={() => { navigate('/user/info'); closeAllMenus(); }}>Hồ sơ cá nhân</button>
                     </div>
 
                     <div className="dropdown-divider"></div>
 
                     <div className="menu-section">
                       <div className="menu-section-title">Tiện ích</div>
-                      <a href="#" className="menu-item" onClick={(e) => { e.preventDefault(); closeAllMenus(); }}>Tin đăng đã lưu</a>
-                      <a href="#" className="menu-item" onClick={(e) => { e.preventDefault(); closeAllMenus(); }}>Lịch sử xem tin</a>
-                      <a href="#" className="menu-item" onClick={(e) => { e.preventDefault(); closeAllMenus(); }}>Đơn của tôi</a>
-                      <a href="#" className="menu-item" onClick={(e) => { e.preventDefault(); closeAllMenus(); }}>Đánh giá từ tôi</a>
+                      <button className="menu-item" onClick={() => { navigate('/orders'); closeAllMenus(); }}>Đơn của tôi</button>
+                      <button className="menu-item" onClick={() => { navigate('/seller/listings'); closeAllMenus(); }}>Bài đăng của tôi</button>
+                      <button className="menu-item" onClick={() => { navigate('/saved-listings'); closeAllMenus(); }}>Tin đã lưu</button>
+                      <button className="menu-item" onClick={() => { navigate('/reviews'); closeAllMenus(); }}>Đánh giá của tôi</button>
                     </div>
 
                     <div className="dropdown-divider"></div>
 
                     <div className="menu-section">
                       <div className="menu-section-title">Khác</div>
-                      <a href="#" className="menu-item" onClick={(e) => { e.preventDefault(); closeAllMenus(); }}>Trợ giúp</a>
-                      <a href="#" className="menu-item" onClick={(e) => { e.preventDefault(); closeAllMenus(); }}>Đóng góp ý kiến</a>
+                      <button className="menu-item" onClick={() => { navigate('/chat'); closeAllMenus(); }}>Trung tâm tin nhắn</button>
+                      <button className="menu-item" onClick={() => { navigate('/reports'); closeAllMenus(); }}>Báo cáo người bán</button>
                     </div>
 
                     <div className="dropdown-divider"></div>

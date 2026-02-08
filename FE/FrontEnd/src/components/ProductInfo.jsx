@@ -1,15 +1,35 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCompare, removeFromCompare } from '../store/slices/compareSlice';
 import { useToast } from '../context/ToastContext';
+import { getSavedStatus, saveListing, removeSavedListing } from '../service/home/api.savedListing';
 
 export default function ProductInfo({ product, listingId, primaryImageUrl, rawPrice }) {
   const { addToCart, isInCart } = useCart();
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const toast = useToast();
   const compareItems = useSelector(state => state.compare.items);
   const addedToCart = listingId ? isInCart(listingId) : false;
   const isInCompare = listingId ? compareItems.some(item => item.id === listingId) : false;
+
+  const [isSaved, setIsSaved] = useState(false);
+  const [savingListing, setSavingListing] = useState(false);
+
+  useEffect(() => {
+    if (!listingId) return;
+    const checkSavedStatus = async () => {
+      try {
+        const res = await getSavedStatus(listingId);
+        setIsSaved(res.isSaved);
+      } catch {
+        setIsSaved(false);
+      }
+    };
+    checkSavedStatus();
+  }, [listingId]);
 
   const handleAddToCart = async () => {
     if (!listingId || addedToCart) return;
@@ -18,6 +38,41 @@ export default function ProductInfo({ product, listingId, primaryImageUrl, rawPr
       toast.success('Đã thêm vào giỏ hàng');
     } else {
       toast.error(typeof result.message === 'string' ? result.message : 'Thêm vào giỏ hàng thất bại');
+    }
+  };
+
+  const handleBuyNow = () => {
+    if (!listingId) return;
+    navigate('/checkout', {
+      state: {
+        item: {
+          listingId,
+          title: product.title,
+          priceSnapshot: rawPrice,
+          primaryImageUrl,
+          quantity: 1,
+        },
+      },
+    });
+  };
+
+  const handleToggleSave = async () => {
+    if (!listingId || savingListing) return;
+    setSavingListing(true);
+    try {
+      if (isSaved) {
+        await removeSavedListing(listingId);
+        setIsSaved(false);
+        toast.info('Đã bỏ lưu bài đăng');
+      } else {
+        await saveListing(listingId);
+        setIsSaved(true);
+        toast.success('Đã lưu bài đăng');
+      }
+    } catch (err) {
+      toast.error('Thao tác thất bại, vui lòng thử lại');
+    } finally {
+      setSavingListing(false);
     }
   };
 
@@ -88,8 +143,17 @@ export default function ProductInfo({ product, listingId, primaryImageUrl, rawPr
       </div>
 
       <div className="product-actions-detail">
+        <button className="btn-buy-now" onClick={handleBuyNow}>
+          ⚡ Mua ngay
+        </button>
         <button className={`btn-add-cart ${addedToCart ? 'added' : ''}`} onClick={handleAddToCart}>
           🛒 {addedToCart ? 'Đã thêm vào giỏ' : 'Thêm vào giỏ hàng'}
+        </button>
+      </div>
+
+      <div className="product-actions-secondary">
+        <button className={`btn-save-listing ${isSaved ? 'saved' : ''}`} onClick={handleToggleSave} disabled={savingListing}>
+          {isSaved ? '❤️ Đã lưu' : '🤍 Lưu tin'}
         </button>
         <button className={`btn-compare ${isInCompare ? 'added' : ''}`} onClick={handleCompare}>
           ⚖️ {isInCompare ? 'Đã thêm so sánh' : 'So sánh sản phẩm'}

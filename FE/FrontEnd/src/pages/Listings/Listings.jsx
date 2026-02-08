@@ -127,15 +127,24 @@ export default function Listings() {
   }, [loadProducts]);
 
   // Update URL when filters change from within the page
-  const applyFilters = () => {
+  const applyFilters = (overrides = {}) => {
+    const s = {
+      search: overrides.search !== undefined ? overrides.search : searchQuery,
+      categoryId: overrides.categoryId !== undefined ? overrides.categoryId : selectedCategory,
+      subCategoryId: overrides.subCategoryId !== undefined ? overrides.subCategoryId : selectedSubCategory,
+      condition: overrides.condition !== undefined ? overrides.condition : condition,
+      minPrice: overrides.minPrice !== undefined ? overrides.minPrice : minPrice,
+      maxPrice: overrides.maxPrice !== undefined ? overrides.maxPrice : maxPrice,
+      sort: overrides.sort !== undefined ? overrides.sort : sort,
+    };
     const params = new URLSearchParams();
-    if (searchQuery.trim()) params.set('search', searchQuery.trim());
-    if (selectedCategory) params.set('categoryId', selectedCategory);
-    if (selectedSubCategory) params.set('subCategoryId', selectedSubCategory);
-    if (condition) params.set('condition', condition);
-    if (minPrice) params.set('minPrice', minPrice);
-    if (maxPrice) params.set('maxPrice', maxPrice);
-    if (sort) params.set('sort', sort);
+    if (s.search.trim()) params.set('search', s.search.trim());
+    if (s.categoryId) params.set('categoryId', s.categoryId);
+    if (s.subCategoryId) params.set('subCategoryId', s.subCategoryId);
+    if (s.condition) params.set('condition', s.condition);
+    if (s.minPrice) params.set('minPrice', s.minPrice);
+    if (s.maxPrice) params.set('maxPrice', s.maxPrice);
+    if (s.sort) params.set('sort', s.sort);
     const wardId = searchParams.get('ward');
     if (wardId) params.set('ward', wardId);
     setSearchParams(params);
@@ -157,14 +166,10 @@ export default function Listings() {
 
   const handleCategoryClick = (categoryId) => {
     const newId = String(categoryId);
-    if (selectedCategory === newId) {
-      setSelectedCategory('');
-      setSelectedSubCategory('');
-    } else {
-      setSelectedCategory(newId);
-      setSelectedSubCategory('');
-    }
-    setTimeout(applyFilters, 0);
+    const newCategory = selectedCategory === newId ? '' : newId;
+    setSelectedCategory(newCategory);
+    setSelectedSubCategory('');
+    applyFilters({ categoryId: newCategory, subCategoryId: '' });
   };
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
@@ -198,7 +203,7 @@ export default function Listings() {
           <div className="listings-categories">
             <button
               className={`listings-category-btn ${!selectedCategory ? 'active' : ''}`}
-              onClick={() => { setSelectedCategory(''); setSelectedSubCategory(''); setTimeout(applyFilters, 0); }}
+              onClick={() => { setSelectedCategory(''); setSelectedSubCategory(''); applyFilters({ categoryId: '', subCategoryId: '' }); }}
             >
               <div className="listings-category-icon-placeholder">
                 <span>🏷️</span>
@@ -229,7 +234,7 @@ export default function Listings() {
               <select
                 className="listings-sort-select"
                 value={sort}
-                onChange={(e) => { setSort(e.target.value); setTimeout(applyFilters, 0); }}
+                onChange={(e) => { setSort(e.target.value); applyFilters({ sort: e.target.value }); }}
               >
                 {SORT_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -324,7 +329,7 @@ export default function Listings() {
               {selectedCategory && (
                 <span className="filter-tag">
                   {getCategoryName(selectedCategory)}
-                  <button onClick={() => { setSelectedCategory(''); setSelectedSubCategory(''); applyFilters(); }}>
+                  <button onClick={() => { setSelectedCategory(''); setSelectedSubCategory(''); applyFilters({ categoryId: '', subCategoryId: '' }); }}>
                     <X size={12} />
                   </button>
                 </span>
@@ -332,7 +337,7 @@ export default function Listings() {
               {condition && (
                 <span className="filter-tag">
                   {CONDITION_OPTIONS.find(o => o.value === condition)?.label}
-                  <button onClick={() => { setCondition(''); applyFilters(); }}>
+                  <button onClick={() => { setCondition(''); applyFilters({ condition: '' }); }}>
                     <X size={12} />
                   </button>
                 </span>
@@ -342,7 +347,7 @@ export default function Listings() {
                   {minPrice ? `${Number(minPrice).toLocaleString('vi-VN')}₫` : '0'}
                   {' - '}
                   {maxPrice ? `${Number(maxPrice).toLocaleString('vi-VN')}₫` : '∞'}
-                  <button onClick={() => { setMinPrice(''); setMaxPrice(''); applyFilters(); }}>
+                  <button onClick={() => { setMinPrice(''); setMaxPrice(''); applyFilters({ minPrice: '', maxPrice: '' }); }}>
                     <X size={12} />
                   </button>
                 </span>

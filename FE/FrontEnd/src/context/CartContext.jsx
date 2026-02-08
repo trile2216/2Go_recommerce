@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { fetchCart, addCartItem, removeCartItem, updateCartItem, clearCart as clearCartAPI } from "../service/home/api.cart";
+import { fetchProductById } from "../service/home/api.product";
 
 const CartContext = createContext();
 
@@ -17,12 +18,38 @@ export const CartProvider = ({ children }) => {
     return cartData.groups.flatMap(group => group.items || []);
   };
 
+  // Enrich cart items with listing details (title, image, etc.)
+  const enrichCartItems = async (items) => {
+    const enriched = await Promise.all(
+      items.map(async (item) => {
+        try {
+          const listing = await fetchProductById(item.listingId);
+          return {
+            ...item,
+            title: listing.title || `Sản phẩm #${item.listingId}`,
+            imageUrl: listing.primaryImageUrl || listing.images?.[0]?.imageUrl || null,
+            sellerName: listing.sellerName || null,
+          };
+        } catch {
+          return {
+            ...item,
+            title: `Sản phẩm #${item.listingId}`,
+            imageUrl: null,
+            sellerName: null,
+          };
+        }
+      })
+    );
+    return enriched;
+  };
+
   const fetchCartData = useCallback(async () => {
     try {
       const data = await fetchCart();
       setCart(data);
       const items = flattenCart(data);
-      setCartItems(items);
+      const enrichedItems = await enrichCartItems(items);
+      setCartItems(enrichedItems);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching cart data:", error);
