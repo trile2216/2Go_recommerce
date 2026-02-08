@@ -429,6 +429,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
 
             entity.HasOne(d => d.Order).WithMany(p => p.ShippingRequests).HasConstraintName("FK_Shipping_Orders");
+            entity.HasIndex(e => e.OrderId)
+                .IsUnique()
+                .HasDatabaseName("UX_ShippingRequests_OrderId");
         });
 
         modelBuilder.Entity<SubCategory>(entity =>

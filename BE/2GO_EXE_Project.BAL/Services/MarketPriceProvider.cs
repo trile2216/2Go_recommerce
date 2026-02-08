@@ -10,7 +10,7 @@ namespace _2GO_EXE_Project.BAL.Services;
 
 public class MarketPriceProvider : IMarketPriceProvider
 {
-    private const int SampleThreshold = 5;
+    private const int SampleThreshold = 10;
     private static readonly Regex SpaceRegex = new(@"\s+", RegexOptions.Compiled);
     private readonly AppDbContext _db;
     private readonly ILogger<MarketPriceProvider> _logger;
@@ -26,7 +26,7 @@ public class MarketPriceProvider : IMarketPriceProvider
         var productKey = NormalizeKey(input.ProductKey);
         if (string.IsNullOrWhiteSpace(productKey))
         {
-            return Fail("empty_product_key");
+            return Fail("empty_product_key", 0);
         }
 
         var condition = NormalizeCondition(input.Condition);
@@ -41,21 +41,26 @@ public class MarketPriceProvider : IMarketPriceProvider
         var record = await query.FirstOrDefaultAsync(cancellationToken);
         if (record != null && record.SampleCount >= SampleThreshold && record.AvgPrice > 0)
         {
-            var confidence = record.SampleCount >= 10 ? "HIGH" : "MEDIUM";
+            var confidence = record.SampleCount >= 20 ? "HIGH" : "MEDIUM";
             return new MarketPriceResult(record.AvgPrice, record.MinPrice, record.MaxPrice, record.SampleCount, "internal_market", confidence, null);
         }
 
         if (record != null && record.SampleCount > 0)
         {
-            return RuleBased(input.ReferencePrice, condition, "insufficient_samples");
+            return Fail("insufficient_samples", record.SampleCount);
         }
 
-        return RuleBased(input.ReferencePrice, condition, "no_data");
+        return Fail("no_data", 0);
     }
 
-    public async Task TrackListingAsync(Listing listing, string source, CancellationToken cancellationToken = default)
+    public async Task TrackListingAsync(Listing listing, decimal? soldPrice, string source, CancellationToken cancellationToken = default)
     {
-        if (listing.Price is null || listing.Price <= 0)
+        if (!string.Equals(source, "completed_sale", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (!soldPrice.HasValue || soldPrice.Value <= 0)
         {
             return;
         }
@@ -80,7 +85,11 @@ public class MarketPriceProvider : IMarketPriceProvider
                 x.Condition == condition,
             cancellationToken);
 
-        var price = listing.Price.Value;
+        var price = soldPrice.Value;
+        if (await IsOutlierPriceAsync(price, productKey, categoryId, condition, cancellationToken))
+        {
+            return;
+        }
         if (record == null)
         {
             record = new MarketPrice
@@ -107,35 +116,74 @@ public class MarketPriceProvider : IMarketPriceProvider
         record.AvgPrice = ((record.AvgPrice * record.SampleCount) + price) / newCount;
         record.SampleCount = newCount;
         record.Source = source;
-        record.Confidence = newCount >= 10 ? "HIGH" : newCount >= SampleThreshold ? "MEDIUM" : "LOW";
+        record.Confidence = newCount >= 20 ? "HIGH" : newCount >= SampleThreshold ? "MEDIUM" : "LOW";
         record.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
     }
 
-    private static MarketPriceResult RuleBased(decimal? referencePrice, string condition, string reason)
+    private static MarketPriceResult Fail(string reason, int sampleCount)
+        => new(null, null, null, sampleCount, "insufficient_data", "LOW", reason);
+
+    private async Task<bool> IsOutlierPriceAsync(decimal price, string productKey, int? categoryId, string condition, CancellationToken cancellationToken)
     {
-        if (!referencePrice.HasValue || referencePrice.Value <= 0)
+        try
         {
-            return Fail("no_reference_price");
+            var fromDate = DateTime.UtcNow.AddMonths(-6);
+            var ordersQuery = _db.Orders
+                .AsNoTracking()
+                .Include(o => o.Listing)
+                .ThenInclude(l => l!.SubCategory)
+                .ThenInclude(sc => sc!.Category)
+                .Where(o => o.Status == "Completed")
+                .Where(o => o.CreatedAt.HasValue && o.CreatedAt.Value >= fromDate)
+                .Where(o => o.Listing != null);
+
+            if (categoryId.HasValue)
+            {
+                ordersQuery = ordersQuery.Where(o => o.Listing!.SubCategory != null && o.Listing.SubCategory.CategoryId == categoryId.Value);
+            }
+
+            var prices = (await ordersQuery.ToListAsync(cancellationToken))
+                .Select(o =>
+                {
+                    var listing = o.Listing!;
+                    var categoryName = listing.SubCategory?.Category?.Name;
+                    var key = BuildProductKey(listing.Brand, categoryName, listing.Title);
+                    var normalizedCondition = NormalizeCondition(listing.Condition);
+                    return new { key, normalizedCondition, price = o.TotalAmount ?? 0m };
+                })
+                .Where(x => x.price > 0)
+                .Where(x => x.normalizedCondition == condition && x.key == productKey)
+                .Select(x => x.price)
+                .OrderBy(x => x)
+                .ToList();
+
+            if (prices.Count < 20)
+            {
+                return false;
+            }
+
+            var p5 = Percentile(prices, 0.05);
+            var p95 = Percentile(prices, 0.95);
+            return price < p5 || price > p95;
         }
-
-        var (minRate, maxRate) = condition switch
+        catch (Exception ex)
         {
-            "NEW" => (0.80m, 0.90m),
-            "GOOD" => (0.65m, 0.75m),
-            "FAIR" => (0.45m, 0.60m),
-            "POOR" => (0.25m, 0.40m),
-            _ => (0.65m, 0.75m)
-        };
-
-        var min = Math.Round(referencePrice.Value * minRate, 0);
-        var max = Math.Round(referencePrice.Value * maxRate, 0);
-        var avg = Math.Round((min + max) / 2m, 0);
-        return new MarketPriceResult(avg, min, max, 0, "rule_estimation", "LOW", reason);
+            _logger.LogWarning(ex, "Outlier filter failed. Price accepted by default.");
+            return false;
+        }
     }
 
-    private static MarketPriceResult Fail(string reason)
-        => new(0, 0, 0, 0, "insufficient_data", "LOW", reason);
+    private static decimal Percentile(IReadOnlyList<decimal> sorted, double percentile)
+    {
+        if (sorted.Count == 0) return 0;
+        var pos = (sorted.Count - 1) * percentile;
+        var lower = (int)Math.Floor(pos);
+        var upper = (int)Math.Ceiling(pos);
+        if (lower == upper) return sorted[lower];
+        var weight = (decimal)(pos - lower);
+        return sorted[lower] + (sorted[upper] - sorted[lower]) * weight;
+    }
 
     private static string NormalizeCondition(string? condition)
     {

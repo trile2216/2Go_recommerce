@@ -87,7 +87,15 @@ public class AdminUserService : IAdminUserService
         var profile = user.UserProfiles.FirstOrDefault();
         var profileInfo = profile == null
             ? null
-            : new UserProfileInfo(profile.FullName, profile.DateOfBirth, profile.Gender, profile.AddressLine, profile.Bio, profile.AvatarUrl);
+            : new UserProfileInfo(
+                profile.FullName,
+                profile.DateOfBirth,
+                profile.Gender,
+                profile.AddressLine,
+                profile.Bio,
+                profile.AvatarUrl,
+                profile.BankAccountNumber,
+                profile.BankAccountName);
 
         return new AdminUserDetail(
             user.UserId,
@@ -173,7 +181,15 @@ public class AdminUserService : IAdminUserService
         await _uow.SaveChangesAsync(cancellationToken);
         await LogAdminActionAsync(adminPrincipal, "CreateUser", new { TargetUserId = user.UserId, request.Email, request.Phone, Role = normalizedRole, request.Status }, cancellationToken);
 
-        var profileInfo = new UserProfileInfo(profile.FullName, profile.DateOfBirth, profile.Gender, profile.AddressLine, profile.Bio, profile.AvatarUrl);
+        var profileInfo = new UserProfileInfo(
+            profile.FullName,
+            profile.DateOfBirth,
+            profile.Gender,
+            profile.AddressLine,
+            profile.Bio,
+            profile.AvatarUrl,
+            profile.BankAccountNumber,
+            profile.BankAccountName);
 
         return new AdminUserDetail(
             user.UserId,
@@ -236,7 +252,15 @@ public class AdminUserService : IAdminUserService
         await _uow.SaveChangesAsync(cancellationToken);
 
         var verification = user.UserVerifications.FirstOrDefault();
-        var profileInfo = new UserProfileInfo(profile.FullName, profile.DateOfBirth, profile.Gender, profile.AddressLine, profile.Bio, profile.AvatarUrl);
+        var profileInfo = new UserProfileInfo(
+            profile.FullName,
+            profile.DateOfBirth,
+            profile.Gender,
+            profile.AddressLine,
+            profile.Bio,
+            profile.AvatarUrl,
+            profile.BankAccountNumber,
+            profile.BankAccountName);
 
         await LogAdminActionAsync(adminPrincipal, "UpdateUser", new { TargetUserId = userId, request.Email, request.Phone, request.Status }, cancellationToken);
 

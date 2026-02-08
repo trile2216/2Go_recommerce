@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using _2GO_EXE_Project.DAL.Context;
@@ -11,9 +12,11 @@ using _2GO_EXE_Project.DAL.Context;
 namespace _2GO_EXE_Project.DAL.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260208095129_AddUserProfileBankFields")]
+    partial class AddUserProfileBankFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1621,9 +1624,7 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.HasKey("ShipId")
                         .HasName("PK__Shipping__2A05CAB3FA7A5C07");
 
-                    b.HasIndex("OrderId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_ShippingRequests_OrderId");
+                    b.HasIndex("OrderId");
 
                     b.ToTable("ShippingRequests");
                 });

@@ -1,0 +1,33 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using _2GO_EXE_Project.BAL.DTOs.Ai;
+using _2GO_EXE_Project.BAL.Services;
+using _2GO_EXE_Project.DAL.Context;
+using Xunit;
+
+namespace _2GO_EXE_Project.Tests;
+
+public class PricingTests
+{
+    [Fact]
+    public async Task NoMarketData_ReturnsLowConfidenceAndNoSuggestedRange()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase($"pricing-{Guid.NewGuid()}")
+            .Options;
+
+        await using var db = new AppDbContext(options);
+        var logger = LoggerFactory.Create(builder => { }).CreateLogger<MarketPriceProvider>();
+        var marketProvider = new MarketPriceProvider(db, logger);
+
+        var market = await marketProvider.GetMarketPriceAsync(new MarketPriceInput("iphone 12", null, "GOOD"));
+        var pricing = new AiPricingResult("iphone 12", market.MarketAvg, market.Confidence, "GOOD", null, null);
+        var pricingService = new PricingService();
+        var result = pricingService.BuildSuggestedRange(pricing);
+
+        Assert.Equal("LOW", market.Confidence);
+        Assert.Null(market.MarketAvg);
+        Assert.Null(result.SuggestedMin);
+        Assert.Null(result.SuggestedMax);
+    }
+}

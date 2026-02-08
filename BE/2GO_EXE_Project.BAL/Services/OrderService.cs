@@ -46,6 +46,10 @@ public class OrderService : IOrderService
         {
             throw new InvalidOperationException("Payment method is required.");
         }
+        if (string.IsNullOrWhiteSpace(request.DeliveryAddress))
+        {
+            throw new InvalidOperationException("Delivery address is required.");
+        }
         var method = NormalizePaymentMethod(request.PaymentMethod);
 
         var listing = await _uow.Listings.Query()
@@ -116,6 +120,16 @@ public class OrderService : IOrderService
         await _uow.OrderItems.AddAsync(orderItem, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
 
+        var shipping = new ShippingRequest
+        {
+            OrderId = order.OrderId,
+            DeliveryAddress = request.DeliveryAddress,
+            Status = null,
+            CreatedAt = DateTime.UtcNow
+        };
+        await _uow.ShippingRequests.AddAsync(shipping, cancellationToken);
+        await _uow.SaveChangesAsync(cancellationToken);
+
         await LogOrderActionAsync(buyerId, "OrderCreated", new { order.OrderId, order.ListingId, order.Status }, cancellationToken);
         await NotifyAsync(listing.SellerId.Value, "ORDER", "Có đơn hàng mới", $"Đơn hàng #{order.OrderId} vừa được tạo.", $"/orders/{order.OrderId}", cancellationToken);
         await NotifyAsync(buyerId, "ORDER", "Đã tạo đơn hàng", $"Đơn hàng #{order.OrderId} của bạn đã được tạo.", $"/orders/{order.OrderId}", cancellationToken);
@@ -134,7 +148,8 @@ public class OrderService : IOrderService
             order.CheckoutUrl,
             order.QrCodeUrl,
             order.PaymentExpiredAt,
-            order.CreatedAt);
+            order.CreatedAt,
+            request.DeliveryAddress);
     }
 
     public async Task<OrderListResponse> GetMyOrdersAsync(ClaimsPrincipal userPrincipal, int skip, int take, CancellationToken cancellationToken = default)
@@ -142,6 +157,7 @@ public class OrderService : IOrderService
         var userId = GetUserId(userPrincipal);
         var query = _uow.Orders.Query()
             .Include(o => o.Listing)
+            .Include(o => o.ShippingRequests)
             .Where(o => o.BuyerId == userId || o.SellerId == userId);
 
         var total = await query.CountAsync(cancellationToken);
@@ -164,7 +180,8 @@ public class OrderService : IOrderService
                 o.PaymentExpiredAt,
                 o.CreatedAt,
                 o.Listing != null ? o.Listing.Title : null,
-                o.Listing != null ? o.Listing.Price : null))
+                o.Listing != null ? o.Listing.Price : null,
+                o.ShippingRequests.Select(s => s.DeliveryAddress).FirstOrDefault()))
             .ToListAsync(cancellationToken);
 
         return new OrderListResponse(total, items);
@@ -177,6 +194,7 @@ public class OrderService : IOrderService
             .Include(o => o.Listing)
             .Include(o => o.Buyer)
             .Include(o => o.Seller)
+            .Include(o => o.ShippingRequests)
             .FirstOrDefaultAsync(o => o.OrderId == orderId, cancellationToken);
         if (order == null) return null;
         if (order.BuyerId != userId && order.SellerId != userId)
@@ -204,7 +222,8 @@ public class OrderService : IOrderService
             order.Buyer?.Email,
             order.Buyer?.Phone,
             order.Seller?.Email,
-            order.Seller?.Phone);
+            order.Seller?.Phone,
+            order.ShippingRequests.Select(s => s.DeliveryAddress).FirstOrDefault());
     }
 
     public async Task<BasicResponse> CancelAsync(ClaimsPrincipal userPrincipal, long orderId, CancellationToken cancellationToken = default)
@@ -401,7 +420,10 @@ public class OrderService : IOrderService
             listing.AvailableQuantity = 0;
             listing.UpdatedAt = DateTime.UtcNow;
             _uow.Listings.Update(listing);
-            await _marketPriceProvider.TrackListingAsync(listing, "completed_sale", cancellationToken);
+            var soldPrice = order.ListingId.HasValue && order.ListingId.Value == listing.ListingId
+                ? order.TotalAmount
+                : listing.Price;
+            await _marketPriceProvider.TrackListingAsync(listing, soldPrice, "completed_sale", cancellationToken);
         }
         await _uow.SaveChangesAsync(cancellationToken);
     }
@@ -448,6 +470,7 @@ public class OrderService : IOrderService
             .Include(o => o.Listing)
             .Include(o => o.Buyer)
             .Include(o => o.Seller)
+            .Include(o => o.ShippingRequests)
             .FirstOrDefaultAsync(o => o.OrderCode == orderCode);
 
         if (order == null)
@@ -474,7 +497,8 @@ public class OrderService : IOrderService
             order.Buyer?.Email,
             order.Buyer?.Phone,
             order.Seller?.Email,
-            order.Seller?.Phone);
+            order.Seller?.Phone,
+            order.ShippingRequests.Select(s => s.DeliveryAddress).FirstOrDefault());
     
     }
 

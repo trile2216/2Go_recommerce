@@ -388,7 +388,9 @@ public class AuthService : IAuthService
                 profile.Gender,
                 profile.AddressLine,
                 profile.Bio,
-                profile.AvatarUrl);
+                profile.AvatarUrl,
+                profile.BankAccountNumber,
+                profile.BankAccountName);
 
         return new UserInfoResponse(
             user.UserId,
@@ -441,6 +443,8 @@ public class AuthService : IAuthService
         profile.AddressLine = request.Address ?? profile.AddressLine;
         profile.Bio = request.Bio ?? profile.Bio;
         profile.AvatarUrl = request.AvatarUrl ?? profile.AvatarUrl;
+        profile.BankAccountNumber = request.BankAccountNumber ?? profile.BankAccountNumber;
+        profile.BankAccountName = request.BankAccountName ?? profile.BankAccountName;
 
         if (!isNewProfile)
         {
@@ -459,7 +463,9 @@ public class AuthService : IAuthService
             profile.Gender,
             profile.AddressLine,
             profile.Bio,
-            profile.AvatarUrl);
+            profile.AvatarUrl,
+            profile.BankAccountNumber,
+            profile.BankAccountName);
 
         return new UserInfoResponse(
             user.UserId,

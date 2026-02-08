@@ -18,13 +18,11 @@ public record AiQualityResult(
 
 public record AiPricingResult(
     string DetectedProduct,
-    decimal MarketAvg,
-    string ConditionAI,
-    decimal SuggestedMin,
-    decimal SuggestedMax,
-    string Source,
+    decimal? MarketAvg,
     string Confidence,
-    string? Reason);
+    string ConditionAI,
+    decimal? SuggestedMin,
+    decimal? SuggestedMax);
 
 public record AiUserRiskInfo(
     int AccountAgeDays,
@@ -39,7 +37,8 @@ public record AiUserRiskInfo(
 public record AiRiskResult(
     double RiskScore,
     IReadOnlyList<string> Flags,
-    string Action);
+    string Action,
+    string RiskConfidence = "HIGH");
 
 public record AiListingAnalyzeResponse(
     AiQualityResult Quality,

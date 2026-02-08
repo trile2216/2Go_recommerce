@@ -16,8 +16,8 @@ public class UserPrecheckService : IUserPrecheckService
         string title,
         string description,
         decimal? listingPrice,
-        decimal suggestedMin,
-        decimal suggestedMax,
+        decimal? suggestedMin,
+        decimal? suggestedMax,
         AiUserRiskInfo userInfo)
     {
         var adminRisk = _moderationService.AnalyzeRisk(
