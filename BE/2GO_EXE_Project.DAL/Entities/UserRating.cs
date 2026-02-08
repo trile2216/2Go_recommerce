@@ -11,6 +11,8 @@ public partial class UserRating
     [Key]
     public long RatingId { get; set; }
 
+    public long? OrderId { get; set; }
+
     public long? RaterId { get; set; }
 
     public long? RatedUserId { get; set; }
@@ -20,6 +22,9 @@ public partial class UserRating
     public string? Comment { get; set; }
 
     public DateTime? CreatedAt { get; set; }
+
+    [ForeignKey("OrderId")]
+    public virtual Order? Order { get; set; }
 
     [ForeignKey("RatedUserId")]
     [InverseProperty("UserRatingRatedUsers")]

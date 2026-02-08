@@ -1,6 +1,6 @@
 namespace _2GO_EXE_Project.BAL.DTOs.Shipping;
 
-public record CreateShippingRequest(long OrderId, string Provider, string PickupAddress, string DeliveryAddress);
+public record CreateShippingRequest(long OrderId, string Provider, string PickupAddress, string? DeliveryAddress);
 
 public record GhnItemRequest(
     string Name,

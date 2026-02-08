@@ -46,18 +46,16 @@ public class AiListingService : IAiListingService
         var conditionAi = InferCondition(request.Title, request.Description);
         var productKey = await BuildProductKeyAsync(request.CategoryId, request.Brand, request.Title, cancellationToken);
         var market = await _marketPriceProvider.GetMarketPriceAsync(
-            new MarketPriceInput(productKey, request.CategoryId, conditionAi, request.Price),
+            new MarketPriceInput(productKey, request.CategoryId, conditionAi),
             cancellationToken);
 
         var pricing = new AiPricingResult(
             productKey,
             market.MarketAvg,
-            conditionAi,
-            0,
-            0,
-            market.Source,
             market.Confidence,
-            market.Reason);
+            conditionAi,
+            null,
+            null);
         pricing = _pricingService.BuildSuggestedRange(pricing);
 
         var userInfo = await BuildUserRiskInfoAsync(request.UserId, cancellationToken);
@@ -86,18 +84,16 @@ public class AiListingService : IAiListingService
         var conditionAi = InferCondition(request.Title, request.Description);
         var productKey = await BuildProductKeyAsync(request.CategoryId, request.Brand, request.Title, cancellationToken);
         var market = await _marketPriceProvider.GetMarketPriceAsync(
-            new MarketPriceInput(productKey, request.CategoryId, conditionAi, request.Price),
+            new MarketPriceInput(productKey, request.CategoryId, conditionAi),
             cancellationToken);
 
         var pricing = new AiPricingResult(
             productKey,
             market.MarketAvg,
-            conditionAi,
-            0,
-            0,
-            market.Source,
             market.Confidence,
-            market.Reason);
+            conditionAi,
+            null,
+            null);
         pricing = _pricingService.BuildSuggestedRange(pricing);
 
         var userInfo = await BuildUserRiskInfoAsync(request.UserId, cancellationToken);

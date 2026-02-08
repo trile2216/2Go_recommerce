@@ -7,9 +7,18 @@ public class PricingService : IPricingService
 {
     public AiPricingResult BuildSuggestedRange(AiPricingResult marketResult)
     {
-        if (marketResult.MarketAvg <= 0)
+        if (!marketResult.MarketAvg.HasValue || marketResult.MarketAvg.Value <= 0)
         {
             return marketResult;
+        }
+
+        if (string.Equals(marketResult.Confidence, "LOW", StringComparison.OrdinalIgnoreCase))
+        {
+            return marketResult with
+            {
+                SuggestedMin = null,
+                SuggestedMax = null
+            };
         }
 
         var (minRate, maxRate) = marketResult.ConditionAI switch
@@ -21,8 +30,8 @@ public class PricingService : IPricingService
             _ => (0.65m, 0.75m)
         };
 
-        var suggestedMin = Math.Round(marketResult.MarketAvg * minRate, 0);
-        var suggestedMax = Math.Round(marketResult.MarketAvg * maxRate, 0);
+        var suggestedMin = Math.Round(marketResult.MarketAvg.Value * minRate, 0);
+        var suggestedMax = Math.Round(marketResult.MarketAvg.Value * maxRate, 0);
 
         return marketResult with
         {

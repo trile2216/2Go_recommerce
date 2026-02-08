@@ -1,6 +1,6 @@
 namespace _2GO_EXE_Project.BAL.DTOs.Orders;
 
-public record CreateOrderRequest(long ListingId, string PaymentMethod);
+public record CreateOrderRequest(long ListingId, string PaymentMethod, string DeliveryAddress);
 
 public record OrderResponse(
     long OrderId,
@@ -16,7 +16,8 @@ public record OrderResponse(
     string? CheckoutUrl,
     string? QrCodeUrl,
     DateTime? PaymentExpiredAt,
-    DateTime? CreatedAt);
+    DateTime? CreatedAt,
+    string? DeliveryAddress);
 
 public record OrderListItem(
     long OrderId,
@@ -33,7 +34,8 @@ public record OrderListItem(
     DateTime? PaymentExpiredAt,
     DateTime? CreatedAt,
     string? ListingTitle,
-    decimal? ListingPrice);
+    decimal? ListingPrice,
+    string? DeliveryAddress);
 
 public record OrderListResponse(int Total, IReadOnlyList<OrderListItem> Items);
 
@@ -57,4 +59,5 @@ public record OrderDetailResponse(
     string? BuyerEmail,
     string? BuyerPhone,
     string? SellerEmail,
-    string? SellerPhone);
+    string? SellerPhone,
+    string? DeliveryAddress);

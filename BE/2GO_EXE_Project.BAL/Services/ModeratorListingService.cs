@@ -155,7 +155,6 @@ public class ModeratorListingService : IModeratorListingService
         _uow.Listings.Update(listing);
         await _uow.SaveChangesAsync(cancellationToken);
 
-        await _marketPriceProvider.TrackListingAsync(listing, "approved_listing", cancellationToken);
         if (listing.SellerId.HasValue)
         {
             await NotifyAsync(listing.SellerId.Value, "LISTING", "Bài đăng đã được duyệt", $"Bài đăng #{listingId} đã được duyệt.", $"/listings/{listingId}", cancellationToken);

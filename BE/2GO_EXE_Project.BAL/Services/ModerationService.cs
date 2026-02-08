@@ -15,8 +15,8 @@ public class ModerationService : IModerationService
         string title,
         string description,
         decimal? listingPrice,
-        decimal suggestedMin,
-        decimal suggestedMax,
+        decimal? suggestedMin,
+        decimal? suggestedMax,
         AiUserRiskInfo userInfo)
     {
         var flags = new List<string>();
@@ -26,13 +26,13 @@ public class ModerationService : IModerationService
         var normalizedDescription = NormalizeText(description);
         var content = $"{normalizedTitle} {normalizedDescription}";
 
-        // a) Price anomalies
-        if (listingPrice.HasValue && suggestedMin > 0 && listingPrice.Value < suggestedMin * 0.4m)
+        // a) Price anomalies (only when pricing has confidence)
+        if (listingPrice.HasValue && suggestedMin.HasValue && suggestedMin.Value > 0 && listingPrice.Value < suggestedMin.Value * 0.4m)
         {
             flags.Add("PRICE_TOO_LOW");
             score += 40;
         }
-        if (listingPrice.HasValue && suggestedMax > 0 && listingPrice.Value > suggestedMax * 2.0m)
+        if (listingPrice.HasValue && suggestedMax.HasValue && suggestedMax.Value > 0 && listingPrice.Value > suggestedMax.Value * 2.0m)
         {
             flags.Add("PRICE_TOO_HIGH");
             score += 20;
@@ -78,17 +78,17 @@ public class ModerationService : IModerationService
         if (!userInfo.PhoneVerified)
         {
             flags.Add("UNVERIFIED_PHONE");
-            score += 20;
+            score += 5;
         }
         if (!userInfo.EmailVerified)
         {
             flags.Add("UNVERIFIED_EMAIL");
-            score += 10;
+            score += 5;
         }
         if (userInfo.CompletedSalesCount == 0 && userInfo.TotalListingsCount >= 5)
         {
             flags.Add("NO_SALES_HISTORY");
-            score += 20;
+            score += 5;
         }
         if (userInfo.ReportsCount >= 3)
         {
@@ -99,6 +99,25 @@ public class ModerationService : IModerationService
         {
             flags.Add("MANY_DEVICES_NEW_ACCOUNT");
             score += 20;
+        }
+
+        var severeFlags = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "PRICE_TOO_LOW",
+            "PRICE_TOO_HIGH",
+            "KEYWORD_SPAM",
+            "DUPLICATE_CONTENT",
+            "PHONE_NUMBER",
+            "EXTERNAL_LINK",
+            "MASS_POSTING",
+            "MULTIPLE_REPORTS",
+            "MANY_DEVICES_NEW_ACCOUNT"
+        };
+
+        var hasSevere = flags.Any(f => severeFlags.Contains(f));
+        if (!hasSevere && flags.All(f => f is "UNVERIFIED_PHONE" or "UNVERIFIED_EMAIL" or "NO_SALES_HISTORY" or "NEW_USER_RISK"))
+        {
+            score = 0;
         }
 
         var action = score switch

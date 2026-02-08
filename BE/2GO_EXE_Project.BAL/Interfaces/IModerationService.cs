@@ -8,7 +8,7 @@ public interface IModerationService
         string title,
         string description,
         decimal? listingPrice,
-        decimal suggestedMin,
-        decimal suggestedMax,
+        decimal? suggestedMin,
+        decimal? suggestedMax,
         AiUserRiskInfo userInfo);
 }

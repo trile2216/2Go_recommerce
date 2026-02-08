@@ -9,6 +9,7 @@ using _2GO_EXE_Project.BAL.Settings;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -18,13 +19,15 @@ public class ShippingService : IShippingService
     private readonly IGhnShippingService _ghnShippingService;
     private readonly GhnSettings _ghnSettings;
     private readonly INotificationService _notificationService;
+    private readonly ILogger<ShippingService> _logger;
 
-    public ShippingService(IUnitOfWork uow, IGhnShippingService ghnShippingService, IOptions<GhnSettings> options, INotificationService notificationService)
+    public ShippingService(IUnitOfWork uow, IGhnShippingService ghnShippingService, IOptions<GhnSettings> options, INotificationService notificationService, ILogger<ShippingService> logger)
     {
         _uow = uow;
         _ghnShippingService = ghnShippingService;
         _ghnSettings = options.Value ?? new GhnSettings();
         _notificationService = notificationService;
+        _logger = logger;
     }
 
     private static long GetUserId(ClaimsPrincipal principal)
@@ -51,23 +54,53 @@ public class ShippingService : IShippingService
             .FirstOrDefaultAsync(s => s.OrderId == request.OrderId, cancellationToken);
         if (existing != null)
         {
-            return new ShippingResponse(
-                existing.ShipId,
-                existing.OrderId ?? 0,
-                existing.Provider,
-                existing.TrackingCode,
-                existing.PickupAddress,
-                existing.DeliveryAddress,
-                existing.Status,
-                existing.CreatedAt,
-                existing.LabelA5Url,
-                existing.Label80x80Url,
-                existing.Label52x70Url);
+            var updated = false;
+            var notify = false;
+            if (string.IsNullOrWhiteSpace(existing.Provider) && !string.IsNullOrWhiteSpace(request.Provider))
+            {
+                existing.Provider = request.Provider;
+                updated = true;
+            }
+            if (string.IsNullOrWhiteSpace(existing.PickupAddress) && !string.IsNullOrWhiteSpace(request.PickupAddress))
+            {
+                existing.PickupAddress = request.PickupAddress;
+                updated = true;
+            }
+            if (string.IsNullOrWhiteSpace(existing.DeliveryAddress))
+            {
+                if (string.IsNullOrWhiteSpace(request.DeliveryAddress))
+                {
+                    throw new InvalidOperationException("Delivery address is required.");
+                }
+                existing.DeliveryAddress = request.DeliveryAddress;
+                updated = true;
+            }
+            if (string.IsNullOrWhiteSpace(existing.Status))
+            {
+                existing.Status = ShippingStatuses.Requested;
+                updated = true;
+                notify = true;
+            }
+            if (updated)
+            {
+                _uow.ShippingRequests.Update(existing);
+                await _uow.SaveChangesAsync(cancellationToken);
+                if (notify)
+                {
+                    await NotifyShippingStatusAsync(order, ShippingStatuses.Requested, cancellationToken);
+                }
+            }
+            return MapShippingResponse(existing);
         }
 
         if (!string.Equals(order.Status, OrderStatuses.Confirmed, StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException("Shipping can only be created when order status is Confirmed.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.DeliveryAddress))
+        {
+            throw new InvalidOperationException("Delivery address is required.");
         }
 
         var ship = new ShippingRequest
@@ -81,21 +114,25 @@ public class ShippingService : IShippingService
         };
 
         await _uow.ShippingRequests.AddAsync(ship, cancellationToken);
-        await _uow.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _uow.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogWarning(ex, "Shipping request already exists for order {OrderId}. Returning existing record.", request.OrderId);
+            // In case of a concurrent request, return the existing shipping record
+            var concurrent = await _uow.ShippingRequests.Query()
+                .FirstOrDefaultAsync(s => s.OrderId == request.OrderId, cancellationToken);
+            if (concurrent != null)
+            {
+                return MapShippingResponse(concurrent);
+            }
+            throw;
+        }
         await NotifyShippingStatusAsync(order, ShippingStatuses.Requested, cancellationToken);
 
-        return new ShippingResponse(
-            ship.ShipId,
-            ship.OrderId ?? 0,
-            ship.Provider,
-            ship.TrackingCode,
-            ship.PickupAddress,
-            ship.DeliveryAddress,
-            ship.Status,
-            ship.CreatedAt,
-            ship.LabelA5Url,
-            ship.Label80x80Url,
-            ship.Label52x70Url);
+        return MapShippingResponse(ship);
     }
 
     public async Task<ShippingResponse> CreateGhnAsync(ClaimsPrincipal userPrincipal, CreateGhnShippingRequest request, CancellationToken cancellationToken = default)
@@ -108,20 +145,9 @@ public class ShippingService : IShippingService
 
         var existing = await _uow.ShippingRequests.Query()
             .FirstOrDefaultAsync(s => s.OrderId == request.OrderId, cancellationToken);
-        if (existing != null)
+        if (existing != null && !string.IsNullOrWhiteSpace(existing.TrackingCode))
         {
-            return new ShippingResponse(
-                existing.ShipId,
-                existing.OrderId ?? 0,
-                existing.Provider,
-                existing.TrackingCode,
-                existing.PickupAddress,
-                existing.DeliveryAddress,
-                existing.Status,
-                existing.CreatedAt,
-                existing.LabelA5Url,
-                existing.Label80x80Url,
-                existing.Label52x70Url);
+            return MapShippingResponse(existing);
         }
 
         if (!string.Equals(order.Status, OrderStatuses.Confirmed, StringComparison.OrdinalIgnoreCase))
@@ -130,6 +156,43 @@ public class ShippingService : IShippingService
         }
 
         var orderCode = await _ghnShippingService.CreateOrderAsync(request, cancellationToken);
+
+        if (existing != null)
+        {
+            var updated = false;
+            if (string.IsNullOrWhiteSpace(existing.Provider))
+            {
+                existing.Provider = "GHN";
+                updated = true;
+            }
+            if (string.IsNullOrWhiteSpace(existing.TrackingCode) && !string.IsNullOrWhiteSpace(orderCode))
+            {
+                existing.TrackingCode = orderCode;
+                updated = true;
+            }
+            if (string.IsNullOrWhiteSpace(existing.PickupAddress) && !string.IsNullOrWhiteSpace(request.FromAddress))
+            {
+                existing.PickupAddress = request.FromAddress;
+                updated = true;
+            }
+            if (string.IsNullOrWhiteSpace(existing.DeliveryAddress) && !string.IsNullOrWhiteSpace(request.ToAddress))
+            {
+                existing.DeliveryAddress = request.ToAddress;
+                updated = true;
+            }
+            if (string.IsNullOrWhiteSpace(existing.Status))
+            {
+                existing.Status = ShippingStatuses.Requested;
+                updated = true;
+            }
+            if (updated)
+            {
+                _uow.ShippingRequests.Update(existing);
+                await _uow.SaveChangesAsync(cancellationToken);
+            }
+            await NotifyShippingStatusAsync(order, ShippingStatuses.Requested, cancellationToken);
+            return MapShippingResponse(existing);
+        }
 
         var ship = new ShippingRequest
         {
@@ -143,21 +206,25 @@ public class ShippingService : IShippingService
         };
 
         await _uow.ShippingRequests.AddAsync(ship, cancellationToken);
-        await _uow.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _uow.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogWarning(ex, "GHN shipping request already exists for order {OrderId}. Returning existing record.", request.OrderId);
+            // In case of a concurrent request, return the existing shipping record
+            var concurrent = await _uow.ShippingRequests.Query()
+                .FirstOrDefaultAsync(s => s.OrderId == request.OrderId, cancellationToken);
+            if (concurrent != null)
+            {
+                return MapShippingResponse(concurrent);
+            }
+            throw;
+        }
         await NotifyShippingStatusAsync(order, ShippingStatuses.Requested, cancellationToken);
 
-        return new ShippingResponse(
-            ship.ShipId,
-            ship.OrderId ?? 0,
-            ship.Provider,
-            ship.TrackingCode,
-            ship.PickupAddress,
-            ship.DeliveryAddress,
-            ship.Status,
-            ship.CreatedAt,
-            ship.LabelA5Url,
-            ship.Label80x80Url,
-            ship.Label52x70Url);
+        return MapShippingResponse(ship);
     }
 
     public async Task<IReadOnlyList<GhnProvinceResponse>> GetGhnProvincesAsync(CancellationToken cancellationToken = default)
@@ -360,18 +427,7 @@ public class ShippingService : IShippingService
             .FirstOrDefaultAsync(s => s.OrderId == orderId, cancellationToken);
         if (ship == null) return null;
 
-        return new ShippingResponse(
-            ship.ShipId,
-            ship.OrderId ?? 0,
-            ship.Provider,
-            ship.TrackingCode,
-            ship.PickupAddress,
-            ship.DeliveryAddress,
-            ship.Status,
-            ship.CreatedAt,
-            ship.LabelA5Url,
-            ship.Label80x80Url,
-            ship.Label52x70Url);
+        return MapShippingResponse(ship);
     }
 
     public async Task<BasicResponse> UpdateStatusAsync(ClaimsPrincipal userPrincipal, long shipId, UpdateShippingStatusRequest request, CancellationToken cancellationToken = default)
@@ -471,6 +527,22 @@ public class ShippingService : IShippingService
 
         order.Status = OrderStatuses.Completed;
         _uow.Orders.Update(order);
+    }
+
+    private static ShippingResponse MapShippingResponse(ShippingRequest ship)
+    {
+        return new ShippingResponse(
+            ship.ShipId,
+            ship.OrderId ?? 0,
+            ship.Provider,
+            ship.TrackingCode,
+            ship.PickupAddress,
+            ship.DeliveryAddress,
+            ship.Status,
+            ship.CreatedAt,
+            ship.LabelA5Url,
+            ship.Label80x80Url,
+            ship.Label52x70Url);
     }
 
     private async Task NotifyShippingStatusAsync(Order order, string status, CancellationToken cancellationToken)

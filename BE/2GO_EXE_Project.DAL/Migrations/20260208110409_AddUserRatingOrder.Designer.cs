@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using _2GO_EXE_Project.DAL.Context;
@@ -11,9 +12,11 @@ using _2GO_EXE_Project.DAL.Context;
 namespace _2GO_EXE_Project.DAL.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260208110409_AddUserRatingOrder")]
+    partial class AddUserRatingOrder
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1692,123 +1695,6 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.ToTable("SupportTickets");
                 });
 
-            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.Transfer", b =>
-                {
-                    b.Property<long>("TransferId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("TransferId"));
-
-                    b.Property<string>("ApprovalState")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("Category")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("PayoutId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("ReferenceId")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<int?>("TotalCredit")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<long?>("UserId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("TransferId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Transfers");
-                });
-
-            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.TransferTransaction", b =>
-                {
-                    b.Property<long>("TransferTransactionId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("TransferTransactionId"));
-
-                    b.Property<long>("Amount")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("ErrorCode")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("ErrorMessage")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("PayoutTransactionId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("Reference")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("ReferenceId")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("State")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("ToAccountName")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("ToAccountNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("ToBin")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime?>("TransactionDatetime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<long>("TransferId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("TransferTransactionId");
-
-                    b.HasIndex("TransferId");
-
-                    b.ToTable("TransferTransactions");
-                });
-
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.User", b =>
                 {
                     b.Property<long>("UserId")
@@ -2656,26 +2542,6 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.Transfer", b =>
-                {
-                    b.HasOne("_2GO_EXE_Project.DAL.Entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.TransferTransaction", b =>
-                {
-                    b.HasOne("_2GO_EXE_Project.DAL.Entities.Transfer", "Transfer")
-                        .WithMany("Transactions")
-                        .HasForeignKey("TransferId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Transfer");
-                });
-
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.UserDevice", b =>
                 {
                     b.HasOne("_2GO_EXE_Project.DAL.Entities.User", "User")
@@ -2861,11 +2727,6 @@ namespace _2GO_EXE_Project.DAL.Migrations
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.SubCategory", b =>
                 {
                     b.Navigation("Listings");
-                });
-
-            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.Transfer", b =>
-                {
-                    b.Navigation("Transactions");
                 });
 
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.User", b =>

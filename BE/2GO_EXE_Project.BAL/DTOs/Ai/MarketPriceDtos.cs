@@ -3,13 +3,12 @@
 public record MarketPriceInput(
     string ProductKey,
     int? CategoryId,
-    string Condition,
-    decimal? ReferencePrice);
+    string Condition);
 
 public record MarketPriceResult(
-    decimal MarketAvg,
-    decimal MinPrice,
-    decimal MaxPrice,
+    decimal? MarketAvg,
+    decimal? MinPrice,
+    decimal? MaxPrice,
     int SampleCount,
     string Source,
     string Confidence,
