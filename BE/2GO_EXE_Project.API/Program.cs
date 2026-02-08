@@ -73,6 +73,7 @@ builder.Services.AddScoped<IPaymentGateway, HmacPaymentGateway>();
 builder.Services.AddHttpClient<IPayosPaymentGateway, PayosPaymentGateway>();
 builder.Services.AddScoped<IEscrowService, EscrowService>();
 builder.Services.AddScoped<IShippingService, ShippingService>();
+builder.Services.AddScoped<IRatingService, RatingService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IDistrictService, DistrictService>();
 builder.Services.AddScoped<IWardService, WardService>();

@@ -491,9 +491,15 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
 
+            entity.HasOne(d => d.Order).WithMany().HasConstraintName("FK_UserRatings_Orders");
+
             entity.HasOne(d => d.RatedUser).WithMany(p => p.UserRatingRatedUsers).HasConstraintName("FK_UserRatings_Rated");
 
             entity.HasOne(d => d.Rater).WithMany(p => p.UserRatingRaters).HasConstraintName("FK_UserRatings_Rater");
+
+            entity.HasIndex(e => e.OrderId)
+                .IsUnique()
+                .HasDatabaseName("UX_UserRatings_OrderId");
         });
 
         modelBuilder.Entity<UserVerification>(entity =>
