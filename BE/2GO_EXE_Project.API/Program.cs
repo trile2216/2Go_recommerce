@@ -89,6 +89,10 @@ builder.Services.AddScoped<INoteGenerationService, NoteGenerationService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IChatbotService, ChatbotService>();
 builder.Services.AddScoped<IMarketPriceProvider, MarketPriceProvider>();
+builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+builder.Services.AddScoped<ISubscriptionPlanService, SubscriptionPlanService>();
+builder.Services.AddScoped<IAdminSubscriptionPlanService, AdminSubscriptionPlanService>();
+builder.Services.AddScoped<IAdminMarketPriceService, AdminMarketPriceService>();
 // Configure PayOS
 builder.Services.AddKeyedSingleton("OrderClient", (serviceProvider, key) =>
 {

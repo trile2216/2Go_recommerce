@@ -37,6 +37,10 @@ public partial class Payment
 
     public int? SubscriptionDays { get; set; }
 
+    [StringLength(50)]
+    [Unicode(false)]
+    public string? SubscriptionPlanCode { get; set; }
+
     public DateTime? SubscriptionValidFrom { get; set; }
 
     public DateTime? SubscriptionValidUntil { get; set; }

@@ -7,11 +7,14 @@ namespace _2GO_EXE_Project.DAL.Repositories.Implementations;
 public class ActivityLogRepository : GenericRepository<ActivityLog>, IActivityLogRepository { public ActivityLogRepository(AppDbContext ctx) : base(ctx) { } }
 public class AiModerationLogRepository : GenericRepository<AiModerationLog>, IAiModerationLogRepository { public AiModerationLogRepository(AppDbContext ctx) : base(ctx) { } }
 public class AiScanResultRepository : GenericRepository<AiScanResult>, IAiScanResultRepository { public AiScanResultRepository(AppDbContext ctx) : base(ctx) { } }
+public class AiAnalysisLogRepository : GenericRepository<AiAnalysisLog>, IAiAnalysisLogRepository { public AiAnalysisLogRepository(AppDbContext ctx) : base(ctx) { } }
+public class AiImageVisionCacheRepository : GenericRepository<AiImageVisionCache>, IAiImageVisionCacheRepository { public AiImageVisionCacheRepository(AppDbContext ctx) : base(ctx) { } }
 public class ApiLogRepository : GenericRepository<ApiLog>, IApiLogRepository { public ApiLogRepository(AppDbContext ctx) : base(ctx) { } }
 public class CategoryRepository : GenericRepository<Category>, ICategoryRepository { public CategoryRepository(AppDbContext ctx) : base(ctx) { } }
 public class CartRepository : GenericRepository<Cart>, ICartRepository { public CartRepository(AppDbContext ctx) : base(ctx) { } }
 public class CartItemRepository : GenericRepository<CartItem>, ICartItemRepository { public CartItemRepository(AppDbContext ctx) : base(ctx) { } }
 public class ChatRepository : GenericRepository<Chat>, IChatRepository { public ChatRepository(AppDbContext ctx) : base(ctx) { } }
+public class ChatbotLogRepository : GenericRepository<ChatbotLog>, IChatbotLogRepository { public ChatbotLogRepository(AppDbContext ctx) : base(ctx) { } }
 public class CityRepository : GenericRepository<City>, ICityRepository { public CityRepository(AppDbContext ctx) : base(ctx) { } }
 public class DeviceLogRepository : GenericRepository<DeviceLog>, IDeviceLogRepository { public DeviceLogRepository(AppDbContext ctx) : base(ctx) { } }
 public class DistrictRepository : GenericRepository<District>, IDistrictRepository { public DistrictRepository(AppDbContext ctx) : base(ctx) { } }
@@ -24,7 +27,10 @@ public class ListingRepository : GenericRepository<Listing>, IListingRepository 
 public class ListingAttributeRepository : GenericRepository<ListingAttribute>, IListingAttributeRepository { public ListingAttributeRepository(AppDbContext ctx) : base(ctx) { } }
 public class ListingMediaRepository : GenericRepository<ListingMedia>, IListingMediaRepository { public ListingMediaRepository(AppDbContext ctx) : base(ctx) { } }
 public class ListingViewRepository : GenericRepository<ListingView>, IListingViewRepository { public ListingViewRepository(AppDbContext ctx) : base(ctx) { } }
+public class ManualReviewQueueRepository : GenericRepository<ManualReviewQueue>, IManualReviewQueueRepository { public ManualReviewQueueRepository(AppDbContext ctx) : base(ctx) { } }
+public class MarketPriceRepository : GenericRepository<MarketPrice>, IMarketPriceRepository { public MarketPriceRepository(AppDbContext ctx) : base(ctx) { } }
 public class MessageRepository : GenericRepository<Message>, IMessageRepository { public MessageRepository(AppDbContext ctx) : base(ctx) { } }
+public class NotificationRepository : GenericRepository<Notification>, INotificationRepository { public NotificationRepository(AppDbContext ctx) : base(ctx) { } }
 public class OrderRepository : GenericRepository<Order>, IOrderRepository { public OrderRepository(AppDbContext ctx) : base(ctx) { } }
 public class OrderItemRepository : GenericRepository<OrderItem>, IOrderItemRepository { public OrderItemRepository(AppDbContext ctx) : base(ctx) { } }
 public class OrderTransactionRepository : GenericRepository<OrderTransaction>, IOrderTransactionRepository { public OrderTransactionRepository(AppDbContext ctx) : base(ctx) { } }
@@ -39,6 +45,8 @@ public class SavedListingRepository : GenericRepository<SavedListing>, ISavedLis
 public class SearchHistoryRepository : GenericRepository<SearchHistory>, ISearchHistoryRepository { public SearchHistoryRepository(AppDbContext ctx) : base(ctx) { } }
 public class ShippingRequestRepository : GenericRepository<ShippingRequest>, IShippingRequestRepository { public ShippingRequestRepository(AppDbContext ctx) : base(ctx) { } }
 public class SubCategoryRepository : GenericRepository<SubCategory>, ISubCategoryRepository { public SubCategoryRepository(AppDbContext ctx) : base(ctx) { } }
+public class SubscriptionPlanRepository : GenericRepository<SubscriptionPlan>, ISubscriptionPlanRepository { public SubscriptionPlanRepository(AppDbContext ctx) : base(ctx) { } }
+public class SubscriptionPlanAuditRepository : GenericRepository<SubscriptionPlanAudit>, ISubscriptionPlanAuditRepository { public SubscriptionPlanAuditRepository(AppDbContext ctx) : base(ctx) { } }
 public class SupportTicketRepository : GenericRepository<SupportTicket>, ISupportTicketRepository { public SupportTicketRepository(AppDbContext ctx) : base(ctx) { } }
 public class UserRepository : GenericRepository<User>, IUserRepository { public UserRepository(AppDbContext ctx) : base(ctx) { } }
 public class UserDeviceRepository : GenericRepository<UserDevice>, IUserDeviceRepository { public UserDeviceRepository(AppDbContext ctx) : base(ctx) { } }
@@ -61,11 +69,14 @@ public class UnitOfWork : IUnitOfWork
         ActivityLogs = new ActivityLogRepository(_context);
         AiModerationLogs = new AiModerationLogRepository(_context);
         AiScanResults = new AiScanResultRepository(_context);
+        AiAnalysisLogs = new AiAnalysisLogRepository(_context);
+        AiImageVisionCaches = new AiImageVisionCacheRepository(_context);
         ApiLogs = new ApiLogRepository(_context);
         Categories = new CategoryRepository(_context);
         Carts = new CartRepository(_context);
         CartItems = new CartItemRepository(_context);
         Chats = new ChatRepository(_context);
+        ChatbotLogs = new ChatbotLogRepository(_context);
         Cities = new CityRepository(_context);
         DeviceLogs = new DeviceLogRepository(_context);
         Districts = new DistrictRepository(_context);
@@ -78,7 +89,10 @@ public class UnitOfWork : IUnitOfWork
         ListingAttributes = new ListingAttributeRepository(_context);
         ListingMedias = new ListingMediaRepository(_context);
         ListingViews = new ListingViewRepository(_context);
+        ManualReviewQueues = new ManualReviewQueueRepository(_context);
+        MarketPrices = new MarketPriceRepository(_context);
         Messages = new MessageRepository(_context);
+        Notifications = new NotificationRepository(_context);
         Orders = new OrderRepository(_context);
         OrderItems = new OrderItemRepository(_context);
         OrderTransactions = new OrderTransactionRepository(_context);
@@ -93,6 +107,8 @@ public class UnitOfWork : IUnitOfWork
         SearchHistories = new SearchHistoryRepository(_context);
         ShippingRequests = new ShippingRequestRepository(_context);
         SubCategories = new SubCategoryRepository(_context);
+        SubscriptionPlans = new SubscriptionPlanRepository(_context);
+        SubscriptionPlanAudits = new SubscriptionPlanAuditRepository(_context);
         SupportTickets = new SupportTicketRepository(_context);
         Users = new UserRepository(_context);
         UserDevices = new UserDeviceRepository(_context);
@@ -108,11 +124,14 @@ public class UnitOfWork : IUnitOfWork
     public IActivityLogRepository ActivityLogs { get; }
     public IAiModerationLogRepository AiModerationLogs { get; }
     public IAiScanResultRepository AiScanResults { get; }
+    public IAiAnalysisLogRepository AiAnalysisLogs { get; }
+    public IAiImageVisionCacheRepository AiImageVisionCaches { get; }
     public IApiLogRepository ApiLogs { get; }
     public ICategoryRepository Categories { get; }
     public ICartRepository Carts { get; }
     public ICartItemRepository CartItems { get; }
     public IChatRepository Chats { get; }
+    public IChatbotLogRepository ChatbotLogs { get; }
     public ICityRepository Cities { get; }
     public IDeviceLogRepository DeviceLogs { get; }
     public IDistrictRepository Districts { get; }
@@ -125,7 +144,10 @@ public class UnitOfWork : IUnitOfWork
     public IListingAttributeRepository ListingAttributes { get; }
     public IListingMediaRepository ListingMedias { get; }
     public IListingViewRepository ListingViews { get; }
+    public IManualReviewQueueRepository ManualReviewQueues { get; }
+    public IMarketPriceRepository MarketPrices { get; }
     public IMessageRepository Messages { get; }
+    public INotificationRepository Notifications { get; }
     public IOrderRepository Orders { get; }
     public IOrderItemRepository OrderItems { get; }
     public IOrderTransactionRepository OrderTransactions { get; }
@@ -140,6 +162,8 @@ public class UnitOfWork : IUnitOfWork
     public ISearchHistoryRepository SearchHistories { get; }
     public IShippingRequestRepository ShippingRequests { get; }
     public ISubCategoryRepository SubCategories { get; }
+    public ISubscriptionPlanRepository SubscriptionPlans { get; }
+    public ISubscriptionPlanAuditRepository SubscriptionPlanAudits { get; }
     public ISupportTicketRepository SupportTickets { get; }
     public IUserRepository Users { get; }
     public IUserDeviceRepository UserDevices { get; }
@@ -150,6 +174,11 @@ public class UnitOfWork : IUnitOfWork
     public IWardRepository Wards { get; }
     public IRefreshTokenRepository RefreshTokens { get; }
     public IVerificationCodeRepository VerificationCodes { get; }
+
+    public Task<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
+    {
+        return _context.Database.BeginTransactionAsync(cancellationToken);
+    }
 
     public int SaveChanges()
     {

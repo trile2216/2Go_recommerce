@@ -14,7 +14,6 @@ public class SellerListingService : ISellerListingService
 {
     private readonly IUnitOfWork _uow;
     private readonly INotificationService _notificationService;
-    private const int FreeListingLimit = 2;
     public SellerListingService(IUnitOfWork uow, INotificationService notificationService)
     {
         _uow = uow;
@@ -433,18 +432,25 @@ public class SellerListingService : ISellerListingService
         if (user == null) return new BasicResponse(false, "User not found.");
 
         var now = DateTime.UtcNow;
-        var hasActiveSubscription = user.SubscriptionUntil.HasValue && user.SubscriptionUntil.Value > now;
-        if (!hasActiveSubscription)
+        var plan = await ResolveCurrentPlanAsync(user.UserId, now, cancellationToken);
+        if (plan?.MonthlyListingLimit is int limit)
         {
-            if (user.FreeListingUsed >= FreeListingLimit)
+            var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var nextMonthStart = monthStart.AddMonths(1);
+            var publishedCount = await _uow.Listings.Query()
+                .Where(l => l.SellerId == sellerId &&
+                            l.PublishedAt.HasValue &&
+                            l.PublishedAt.Value >= monthStart &&
+                            l.PublishedAt.Value < nextMonthStart)
+                .CountAsync(cancellationToken);
+            if (publishedCount >= limit)
             {
-                return new BasicResponse(false, "Free publish limit reached. Please purchase a subscription to continue.");
+                return new BasicResponse(false, "Publish limit reached for your current plan. Please upgrade to continue.");
             }
-            user.FreeListingUsed += 1;
-            _uow.Users.Update(user);
         }
 
         listing.Status = ListingStatuses.PendingReview;
+        listing.PublishedAt = now;
         listing.UpdatedAt = now;
         _uow.Listings.Update(listing);
         await _uow.SaveChangesAsync(cancellationToken);
@@ -623,5 +629,56 @@ public class SellerListingService : ISellerListingService
         {
             // ignore notification failures
         }
+    }
+
+    private async Task<SubscriptionPlan?> ResolveCurrentPlanAsync(long userId, DateTime now, CancellationToken cancellationToken)
+    {
+        var hasActiveSubscription = await _uow.Users.Query()
+            .AnyAsync(u => u.UserId == userId && u.SubscriptionUntil.HasValue && u.SubscriptionUntil.Value > now, cancellationToken);
+
+        if (hasActiveSubscription)
+        {
+            var payment = await _uow.Payments.Query()
+                .Where(p => p.UserId == userId &&
+                            p.PaymentType == PaymentTypes.Subscription &&
+                            p.Status == PaymentStatuses.Paid &&
+                            p.SubscriptionValidUntil.HasValue &&
+                            p.SubscriptionValidUntil.Value > now)
+                .OrderByDescending(p => p.SubscriptionValidUntil)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var plan = await ResolvePlanForPaymentAsync(payment, cancellationToken);
+            if (plan != null) return plan;
+            return null;
+        }
+
+        var freePlan = await _uow.SubscriptionPlans.Query()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.IsActive && p.Price <= 0, cancellationToken);
+        return freePlan;
+    }
+
+    private async Task<SubscriptionPlan?> ResolvePlanForPaymentAsync(Payment? payment, CancellationToken cancellationToken)
+    {
+        if (payment == null) return null;
+
+        if (!string.IsNullOrWhiteSpace(payment.SubscriptionPlanCode))
+        {
+            var code = payment.SubscriptionPlanCode.Trim().ToUpperInvariant();
+            return await _uow.SubscriptionPlans.Query()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Code == code, cancellationToken);
+        }
+
+        if (payment.Amount.HasValue && payment.SubscriptionDays.HasValue)
+        {
+            return await _uow.SubscriptionPlans.Query()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p =>
+                    p.DurationDays == payment.SubscriptionDays.Value &&
+                    p.Price == payment.Amount.Value, cancellationToken);
+        }
+
+        return null;
     }
 }

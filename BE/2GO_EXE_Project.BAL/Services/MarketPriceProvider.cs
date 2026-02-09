@@ -3,8 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using _2GO_EXE_Project.BAL.DTOs.Ai;
 using _2GO_EXE_Project.BAL.Interfaces;
-using _2GO_EXE_Project.DAL.Context;
 using _2GO_EXE_Project.DAL.Entities;
+using _2GO_EXE_Project.DAL.Repositories.Interfaces;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -12,12 +12,12 @@ public class MarketPriceProvider : IMarketPriceProvider
 {
     private const int SampleThreshold = 10;
     private static readonly Regex SpaceRegex = new(@"\s+", RegexOptions.Compiled);
-    private readonly AppDbContext _db;
+    private readonly IUnitOfWork _uow;
     private readonly ILogger<MarketPriceProvider> _logger;
 
-    public MarketPriceProvider(AppDbContext db, ILogger<MarketPriceProvider> logger)
+    public MarketPriceProvider(IUnitOfWork uow, ILogger<MarketPriceProvider> logger)
     {
-        _db = db;
+        _uow = uow;
         _logger = logger;
     }
 
@@ -30,7 +30,7 @@ public class MarketPriceProvider : IMarketPriceProvider
         }
 
         var condition = NormalizeCondition(input.Condition);
-        var query = _db.MarketPrices.AsQueryable();
+        var query = _uow.MarketPrices.Query();
         query = query.Where(x => x.ProductKey == productKey && x.Condition == condition);
         if (input.CategoryId.HasValue)
         {
@@ -65,7 +65,7 @@ public class MarketPriceProvider : IMarketPriceProvider
             return;
         }
 
-        var category = await _db.SubCategories
+        var category = await _uow.SubCategories.Query()
             .Include(sc => sc.Category)
             .Where(sc => sc.SubCategoryId == listing.SubCategoryId)
             .Select(sc => new { sc.CategoryId, CategoryName = sc.Category != null ? sc.Category.Name : null })
@@ -79,7 +79,7 @@ public class MarketPriceProvider : IMarketPriceProvider
         }
 
         var condition = NormalizeCondition(listing.Condition);
-        var record = await _db.MarketPrices.FirstOrDefaultAsync(x =>
+        var record = await _uow.MarketPrices.Query().FirstOrDefaultAsync(x =>
                 x.ProductKey == productKey &&
                 x.CategoryId == categoryId &&
                 x.Condition == condition,
@@ -105,8 +105,8 @@ public class MarketPriceProvider : IMarketPriceProvider
                 Confidence = "LOW",
                 UpdatedAt = DateTime.UtcNow
             };
-            _db.MarketPrices.Add(record);
-            await _db.SaveChangesAsync(cancellationToken);
+            await _uow.MarketPrices.AddAsync(record, cancellationToken);
+            await _uow.SaveChangesAsync(cancellationToken);
             return;
         }
 
@@ -118,7 +118,8 @@ public class MarketPriceProvider : IMarketPriceProvider
         record.Source = source;
         record.Confidence = newCount >= 20 ? "HIGH" : newCount >= SampleThreshold ? "MEDIUM" : "LOW";
         record.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync(cancellationToken);
+        _uow.MarketPrices.Update(record);
+        await _uow.SaveChangesAsync(cancellationToken);
     }
 
     private static MarketPriceResult Fail(string reason, int sampleCount)
@@ -129,7 +130,7 @@ public class MarketPriceProvider : IMarketPriceProvider
         try
         {
             var fromDate = DateTime.UtcNow.AddMonths(-6);
-            var ordersQuery = _db.Orders
+            var ordersQuery = _uow.Orders.Query()
                 .AsNoTracking()
                 .Include(o => o.Listing)
                 .ThenInclude(l => l!.SubCategory)
