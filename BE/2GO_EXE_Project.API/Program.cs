@@ -228,7 +228,14 @@ app.Use(async (context, next) =>
     catch (ValidationException ex)
     {
         context.Response.StatusCode = StatusCodes.Status400BadRequest;
-        await context.Response.WriteAsJsonAsync(new { errors = ex.Errors });
+        if (!string.IsNullOrWhiteSpace(ex.Code))
+        {
+            await context.Response.WriteAsJsonAsync(new { code = ex.Code, errors = ex.Errors });
+        }
+        else
+        {
+            await context.Response.WriteAsJsonAsync(new { errors = ex.Errors });
+        }
     }
 });
 
@@ -262,4 +269,5 @@ static string SanitizeConnectionString(string? connectionString)
         return "<invalid connection string>";
     }
 }
+
 

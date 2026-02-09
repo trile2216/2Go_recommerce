@@ -50,10 +50,19 @@ public class SellerListingService : ISellerListingService
     private async Task EnsureWardValidAsync(int wardId, CancellationToken cancellationToken)
     {
         var ward = await _uow.Wards.Query()
+            .AsNoTracking()
             .FirstOrDefaultAsync(w => w.WardId == wardId, cancellationToken);
         if (ward == null)
         {
-            throw new InvalidOperationException("Ward not found.");
+            var result = new ValidationResult();
+            result.Add("wardId", "WardId does not exist.");
+            throw new ValidationException(result.Errors, "INVALID_LOCATION");
+        }
+        if (!ward.DistrictId.HasValue || !ward.CityId.HasValue)
+        {
+            var result = new ValidationResult();
+            result.Add("wardId", "WardId is missing district or city.");
+            throw new ValidationException(result.Errors, "INVALID_LOCATION");
         }
     }
 
@@ -139,6 +148,8 @@ public class SellerListingService : ISellerListingService
             .ThenInclude(sc => sc!.Category)
             .Include(l => l.ListingMedias)
             .Include(l => l.ListingAttributes)
+            .Include(l => l.Ward)
+            .ThenInclude(w => w!.District)
             .Include(l => l.Seller)
             .ThenInclude(s => s!.UserProfiles)
             .Where(l => l.ListingId == listingId && l.SellerId == sellerId)
@@ -196,7 +207,9 @@ public class SellerListingService : ISellerListingService
             listing.Seller?.Phone,
             primary,
             media,
-            attributes);
+            attributes,
+            listing.Ward?.Name,
+            listing.Ward?.District?.Name);
     }
 
     public async Task<ListingDetail> CreateAsync(ClaimsPrincipal sellerPrincipal, CreateSellerListingRequest request, CancellationToken cancellationToken = default)
@@ -417,7 +430,7 @@ public class SellerListingService : ISellerListingService
         listing.UpdatedAt = now;
         _uow.Listings.Update(listing);
         await _uow.SaveChangesAsync(cancellationToken);
-        await NotifyAsync(sellerId, "LISTING", "Đã gửi duyệt bài đăng", $"Bài đăng #{listing.ListingId} đã được gửi để duyệt.", $"/seller/listings/{listing.ListingId}", cancellationToken);
+        await NotifyAsync(sellerId, "LISTING", ListingNotificationText.ForStatus(ListingStatuses.PendingReview).Title, ListingNotificationText.ForStatus(ListingStatuses.PendingReview).Message, $"/seller/listings/{listing.ListingId}", cancellationToken);
         await NotifyAdminsAsync("LISTING_REVIEW", "Có bài đăng cần duyệt", $"Bài đăng #{listing.ListingId} đang chờ duyệt.", $"/admin/listings/{listing.ListingId}", cancellationToken);
         return new BasicResponse(true, "Listing submitted for review.");
     }
@@ -438,7 +451,7 @@ public class SellerListingService : ISellerListingService
         listing.UpdatedAt = DateTime.UtcNow;
         _uow.Listings.Update(listing);
         await _uow.SaveChangesAsync(cancellationToken);
-        await NotifyAsync(sellerId, "LISTING", "Bài đăng đã lưu trữ", $"Bài đăng #{listing.ListingId} đã được lưu trữ.", $"/seller/listings/{listing.ListingId}", cancellationToken);
+        await NotifyAsync(sellerId, "LISTING", ListingNotificationText.ForStatus(ListingStatuses.Archived).Title, ListingNotificationText.ForStatus(ListingStatuses.Archived).Message, $"/seller/listings/{listing.ListingId}", cancellationToken);
         return new BasicResponse(true, "Listing archived.");
     }
 
@@ -458,7 +471,7 @@ public class SellerListingService : ISellerListingService
         listing.UpdatedAt = DateTime.UtcNow;
         _uow.Listings.Update(listing);
         await _uow.SaveChangesAsync(cancellationToken);
-        await NotifyAsync(sellerId, "LISTING", "Bài đăng đã xóa", $"Bài đăng #{listing.ListingId} đã bị xóa.", $"/seller/listings/{listing.ListingId}", cancellationToken);
+        await NotifyAsync(sellerId, "LISTING", ListingNotificationText.ForStatus(ListingStatuses.Deleted).Title, ListingNotificationText.ForStatus(ListingStatuses.Deleted).Message, $"/seller/listings/{listing.ListingId}", cancellationToken);
         return new BasicResponse(true, "Listing deleted (soft).");
     }
 
@@ -642,3 +655,4 @@ public class SellerListingService : ISellerListingService
         return null;
     }
 }
+

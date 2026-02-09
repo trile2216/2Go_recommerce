@@ -17,4 +17,7 @@ public partial class City
 
     [InverseProperty("City")]
     public virtual ICollection<District> Districts { get; set; } = new List<District>();
+
+    [InverseProperty("City")]
+    public virtual ICollection<Ward> Wards { get; set; } = new List<Ward>();
 }

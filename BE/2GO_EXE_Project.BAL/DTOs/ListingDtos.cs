@@ -40,10 +40,15 @@ public record ListingDetail(
     string? SellerPhone,
     string? PrimaryImageUrl,
     IReadOnlyList<ListingMediaItem> Media,
-    IReadOnlyList<ListingAttributeItem> Attributes);
+    IReadOnlyList<ListingAttributeItem> Attributes,
+    string? WardName,
+    string? DistrictName);
+
+
 
 public record ListingListResponse(int Total, IReadOnlyList<ListingListItem> Items);
 
 public record RejectListingRequest(string Reason);
 public record FlagListingRequest(string Reason);
 public record UpdateListingStatusRequest(string Status);
+
