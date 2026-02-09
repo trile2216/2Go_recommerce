@@ -8,6 +8,7 @@ using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
+using _2GO_EXE_Project.BAL.Validation;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -165,6 +166,7 @@ public class ModeratorListingService : IModeratorListingService
 
     public async Task<BasicResponse> RejectAsync(ClaimsPrincipal modPrincipal, long listingId, RejectListingRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateRejectListing(request));
         var listing = await _uow.Listings.GetByIdAsync(listingId);
         if (listing == null) return new BasicResponse(false, "Listing not found.");
 
@@ -188,6 +190,7 @@ public class ModeratorListingService : IModeratorListingService
 
     public async Task<BasicResponse> FlagAsync(ClaimsPrincipal modPrincipal, long listingId, FlagListingRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateFlagListing(request));
         var listing = await _uow.Listings.GetByIdAsync(listingId);
         if (listing == null) return new BasicResponse(false, "Listing not found.");
 

@@ -17,6 +17,8 @@ using System.Security.Claims;
 using Npgsql;
 using PayOS;
 using PayOS.Models;
+using Microsoft.AspNetCore.Http;
+using _2GO_EXE_Project.BAL.Validation;
 
 var builder = WebApplication.CreateBuilder(args);
 var corsName = "AllowAll";
@@ -216,6 +218,19 @@ if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("EnableS
 }
 
 app.UseCors(corsName);
+
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (ValidationException ex)
+    {
+        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+        await context.Response.WriteAsJsonAsync(new { errors = ex.Errors });
+    }
+});
 
 app.UseHttpsRedirection();
 

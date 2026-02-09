@@ -8,6 +8,7 @@ using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
+using _2GO_EXE_Project.BAL.Validation;
 using ReportListResponse = _2GO_EXE_Project.BAL.DTOs.Reports.ReportListResponse;
 
 namespace _2GO_EXE_Project.BAL.Services;
@@ -37,15 +38,8 @@ public class ReportService : IReportService
 
     public async Task<ReportResponse> CreateAsync(ClaimsPrincipal userPrincipal, CreateReportRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateCreateReport(request));
         var userId = GetUserId(userPrincipal);
-        if (string.IsNullOrWhiteSpace(request.Reason))
-        {
-            throw new InvalidOperationException("Reason is required.");
-        }
-        if (request.OrderId <= 0)
-        {
-            throw new InvalidOperationException("OrderId is required.");
-        }
 
         var order = await _uow.Orders.GetByIdAsync(request.OrderId);
         if (order == null)
@@ -135,11 +129,8 @@ public class ReportService : IReportService
 
     public async Task<BasicResponse> ReplyAsync(ClaimsPrincipal userPrincipal, long reportId, ReplyReportRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateReplyReport(request));
         var userId = GetUserId(userPrincipal);
-        if (string.IsNullOrWhiteSpace(request.Message))
-        {
-            return new BasicResponse(false, "Message is required.");
-        }
 
         var report = await _uow.Reports.GetByIdAsync(reportId);
         if (report == null)

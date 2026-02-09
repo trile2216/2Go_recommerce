@@ -6,6 +6,7 @@ using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
+using _2GO_EXE_Project.BAL.Validation;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -59,6 +60,7 @@ public class ChatService : IChatService
 
     public async Task<ChatThreadResponse> CreateOrGetChatAsync(ClaimsPrincipal userPrincipal, CreateChatRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateCreateChat(request));
         var userId = GetUserId(userPrincipal);
         if (request.OtherUserId == userId)
         {
@@ -116,16 +118,12 @@ public class ChatService : IChatService
 
     public async Task<BasicResponse> SendMessageAsync(ClaimsPrincipal userPrincipal, long chatId, SendMessageRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateSendMessage(request));
         var userId = GetUserId(userPrincipal);
         var chat = await _uow.Chats.GetByIdAsync(chatId);
         if (chat == null || (chat.User1Id != userId && chat.User2Id != userId))
         {
             return new BasicResponse(false, "Chat not found.");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Content) && string.IsNullOrWhiteSpace(request.ImageUrl))
-        {
-            return new BasicResponse(false, "Message content or image is required.");
         }
 
         var message = new Message

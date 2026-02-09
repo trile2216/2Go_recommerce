@@ -6,6 +6,7 @@ using _2GO_EXE_Project.BAL.DTOs.Listings;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
+using _2GO_EXE_Project.BAL.Validation;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -72,6 +73,7 @@ public class SavedListingService : ISavedListingService
 
     public async Task<BasicResponse> SaveAsync(ClaimsPrincipal userPrincipal, SaveListingRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateSaveListing(request));
         var userId = GetUserId(userPrincipal);
         var listing = await _uow.Listings.Query()
             .FirstOrDefaultAsync(l => l.ListingId == request.ListingId, cancellationToken);

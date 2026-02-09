@@ -8,6 +8,7 @@ using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
+using _2GO_EXE_Project.BAL.Validation;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -156,10 +157,11 @@ public class AdminListingService : IAdminListingService
 
     public async Task<BasicResponse> UpdateStatusAsync(ClaimsPrincipal adminPrincipal, long listingId, UpdateListingStatusRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateUpdateListingStatus(request));
         var listing = await _uow.Listings.GetByIdAsync(listingId);
         if (listing == null) return new BasicResponse(false, "Listing not found.");
 
-        if (string.IsNullOrWhiteSpace(request.Status) || !AllowedStatuses.Contains(request.Status))
+        if (!AllowedStatuses.Contains(request.Status))
         {
             return new BasicResponse(false, "Invalid status value.");
         }

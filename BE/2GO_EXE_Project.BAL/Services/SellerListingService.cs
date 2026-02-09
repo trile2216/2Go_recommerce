@@ -7,6 +7,7 @@ using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
+using _2GO_EXE_Project.BAL.Validation;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -87,35 +88,7 @@ public class SellerListingService : ISellerListingService
 
     private static void ValidateMediaRequests(IReadOnlyList<ListingMediaRequest> mediaRequests)
     {
-        if (mediaRequests.Count == 0)
-        {
-            throw new InvalidOperationException("At least one media item is required.");
-        }
-
-        var primaryImageCount = 0;
-        foreach (var item in mediaRequests)
-        {
-            if (string.IsNullOrWhiteSpace(item.Url))
-            {
-                throw new InvalidOperationException("Media url is required.");
-            }
-
-            var normalizedType = NormalizeMediaType(item.MediaType);
-            if (string.Equals(normalizedType, MediaTypes.Video, StringComparison.OrdinalIgnoreCase) && item.IsPrimary)
-            {
-                throw new InvalidOperationException("Primary media must be an image.");
-            }
-
-            if (string.Equals(normalizedType, MediaTypes.Image, StringComparison.OrdinalIgnoreCase) && item.IsPrimary)
-            {
-                primaryImageCount++;
-            }
-        }
-
-        if (primaryImageCount > 1)
-        {
-            throw new InvalidOperationException("Only one primary image is allowed.");
-        }
+        ValidationGuard.ThrowIfInvalid(ListingValidator.ValidateMedia(mediaRequests));
     }
 
     public async Task<SellerListingListResponse> GetMyListingsAsync(ClaimsPrincipal sellerPrincipal, string? status, int skip, int take, CancellationToken cancellationToken = default)
@@ -228,30 +201,19 @@ public class SellerListingService : ISellerListingService
 
     public async Task<ListingDetail> CreateAsync(ClaimsPrincipal sellerPrincipal, CreateSellerListingRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(ListingValidator.ValidateCreate(request));
         var sellerId = GetUserId(sellerPrincipal);
         await EnsureSubCategoryValidAsync(request.SubCategoryId, cancellationToken);
         if (request.WardId.HasValue)
         {
             await EnsureWardValidAsync(request.WardId.Value, cancellationToken);
         }
-        if (string.IsNullOrWhiteSpace(request.Title))
-        {
-            throw new InvalidOperationException("Title is required.");
-        }
-        if (!request.Price.HasValue || request.Price.Value <= 0)
-        {
-            throw new InvalidOperationException("Price must be greater than 0.");
-        }
         var mediaRequests = request.Media?.ToList() ?? new List<ListingMediaRequest>();
-        ValidateMediaRequests(mediaRequests);
         var imageRequests = mediaRequests
             .Where(m => string.IsNullOrWhiteSpace(m.MediaType) ||
                         m.MediaType == MediaTypes.Image)
             .ToList();
-        if (imageRequests.Count == 0)
-        {
-            throw new InvalidOperationException("At least one image is required.");
-        }
+        ValidateMediaRequests(mediaRequests);
         var listing = new Listing
         {
             SellerId = sellerId,
@@ -316,6 +278,7 @@ public class SellerListingService : ISellerListingService
 
     public async Task<ListingDetail?> UpdateAsync(ClaimsPrincipal sellerPrincipal, long listingId, UpdateSellerListingRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(ListingValidator.ValidateUpdate(request));
         var sellerId = GetUserId(sellerPrincipal);
         var listing = await _uow.Listings.Query()
             .FirstOrDefaultAsync(l => l.ListingId == listingId && l.SellerId == sellerId, cancellationToken);
@@ -501,6 +464,7 @@ public class SellerListingService : ISellerListingService
 
     public async Task<BasicResponse> UpdateMediaAsync(ClaimsPrincipal sellerPrincipal, long listingId, UpdateListingMediaRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(ListingValidator.ValidateMedia(request.Media));
         var sellerId = GetUserId(sellerPrincipal);
         var listing = await _uow.Listings.Query()
             .Include(l => l.ListingMedias)
@@ -531,10 +495,6 @@ public class SellerListingService : ISellerListingService
             .Where(m => string.IsNullOrWhiteSpace(m.MediaType) ||
                         m.MediaType == MediaTypes.Image)
             .ToList();
-        if (imageRequests.Count == 0)
-        {
-            throw new InvalidOperationException("At least one image is required.");
-        }
 
         var hasPrimaryImage = imageRequests.Any(i => i.IsPrimary);
         var newMedia = new List<ListingMedia>();
