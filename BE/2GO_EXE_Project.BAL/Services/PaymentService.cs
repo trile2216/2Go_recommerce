@@ -6,7 +6,6 @@ using _2GO_EXE_Project.BAL.DTOs.Auth;
 using _2GO_EXE_Project.BAL.DTOs.Payments;
 using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
-using _2GO_EXE_Project.DAL.Context;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
 using PayOS.Models.Webhooks;
@@ -16,7 +15,6 @@ namespace _2GO_EXE_Project.BAL.Services;
 public class PaymentService : IPaymentService
 {
     private readonly IUnitOfWork _uow;
-    private readonly AppDbContext _db;
     private readonly IPaymentGateway _gateway;
     private readonly IEscrowService _escrowService;
     private readonly IPayosPaymentGateway _payosGateway;
@@ -24,10 +22,9 @@ public class PaymentService : IPaymentService
     private readonly INotificationService _notificationService;
     private const decimal CommissionRateValue = 0.07m;
 
-    public PaymentService(IUnitOfWork uow, AppDbContext db, IPaymentGateway gateway, IEscrowService escrowService, IPayosPaymentGateway payosGateway, IPayOSService payosService, INotificationService notificationService)
+    public PaymentService(IUnitOfWork uow, IPaymentGateway gateway, IEscrowService escrowService, IPayosPaymentGateway payosGateway, IPayOSService payosService, INotificationService notificationService)
     {
         _uow = uow;
-        _db = db;
         _gateway = gateway;
         _escrowService = escrowService;
         _payosGateway = payosGateway;
@@ -574,7 +571,7 @@ public class PaymentService : IPaymentService
     private async Task<SubscriptionPlan> GetPlanByCodeAsync(string code, bool requireActive, CancellationToken cancellationToken)
     {
         var normalized = code.Trim().ToUpperInvariant();
-        var plan = await _db.SubscriptionPlans
+        var plan = await _uow.SubscriptionPlans.Query()
             .AsNoTracking()
             .FirstOrDefaultAsync(p =>
                 p.Code == normalized &&
@@ -592,14 +589,14 @@ public class PaymentService : IPaymentService
         if (!string.IsNullOrWhiteSpace(payment.SubscriptionPlanCode))
         {
             var code = payment.SubscriptionPlanCode.Trim().ToUpperInvariant();
-            return await _db.SubscriptionPlans
+            return await _uow.SubscriptionPlans.Query()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Code == code, cancellationToken);
         }
 
         if (payment.Amount.HasValue && payment.SubscriptionDays.HasValue)
         {
-            return await _db.SubscriptionPlans
+            return await _uow.SubscriptionPlans.Query()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p =>
                     p.DurationDays == payment.SubscriptionDays.Value &&

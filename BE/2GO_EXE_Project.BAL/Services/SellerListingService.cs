@@ -5,7 +5,6 @@ using _2GO_EXE_Project.BAL.DTOs.Auth;
 using _2GO_EXE_Project.BAL.DTOs.Listings;
 using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
-using _2GO_EXE_Project.DAL.Context;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
 
@@ -15,11 +14,9 @@ public class SellerListingService : ISellerListingService
 {
     private readonly IUnitOfWork _uow;
     private readonly INotificationService _notificationService;
-    private readonly AppDbContext _db;
-    public SellerListingService(IUnitOfWork uow, AppDbContext db, INotificationService notificationService)
+    public SellerListingService(IUnitOfWork uow, INotificationService notificationService)
     {
         _uow = uow;
-        _db = db;
         _notificationService = notificationService;
     }
 
@@ -655,7 +652,7 @@ public class SellerListingService : ISellerListingService
             return null;
         }
 
-        var freePlan = await _db.SubscriptionPlans
+        var freePlan = await _uow.SubscriptionPlans.Query()
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.IsActive && p.Price <= 0, cancellationToken);
         return freePlan;
@@ -668,14 +665,14 @@ public class SellerListingService : ISellerListingService
         if (!string.IsNullOrWhiteSpace(payment.SubscriptionPlanCode))
         {
             var code = payment.SubscriptionPlanCode.Trim().ToUpperInvariant();
-            return await _db.SubscriptionPlans
+            return await _uow.SubscriptionPlans.Query()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Code == code, cancellationToken);
         }
 
         if (payment.Amount.HasValue && payment.SubscriptionDays.HasValue)
         {
-            return await _db.SubscriptionPlans
+            return await _uow.SubscriptionPlans.Query()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p =>
                     p.DurationDays == payment.SubscriptionDays.Value &&

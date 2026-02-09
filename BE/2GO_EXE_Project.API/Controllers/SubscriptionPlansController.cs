@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using _2GO_EXE_Project.BAL.DTOs.Subscriptions;
-using _2GO_EXE_Project.DAL.Context;
+using _2GO_EXE_Project.BAL.Interfaces;
 
 namespace _2GO_EXE_Project.API.Controllers;
 
@@ -9,34 +8,17 @@ namespace _2GO_EXE_Project.API.Controllers;
 [Route("api/subscription-plans")]
 public class SubscriptionPlansController : ControllerBase
 {
-    private readonly AppDbContext _db;
+    private readonly ISubscriptionPlanService _planService;
 
-    public SubscriptionPlansController(AppDbContext db)
+    public SubscriptionPlansController(ISubscriptionPlanService planService)
     {
-        _db = db;
+        _planService = planService;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetActive(CancellationToken cancellationToken = default)
     {
-        var items = await _db.SubscriptionPlans
-            .AsNoTracking()
-            .Where(x => x.IsActive)
-            .OrderBy(x => x.SortOrder)
-            .ThenBy(x => x.Price)
-            .Select(x => new SubscriptionPlanItem(
-                x.PlanId,
-                x.Code,
-                x.Name,
-                x.Description,
-                x.Price,
-                x.DurationDays,
-                x.MonthlyListingLimit,
-                x.IsActive,
-                x.SortOrder,
-                x.UpdatedAt))
-            .ToListAsync(cancellationToken);
-
-        return Ok(new SubscriptionPlanListResponse(items.Count, items));
+        var result = await _planService.GetActiveAsync(cancellationToken);
+        return Ok(result);
     }
 }

@@ -5,8 +5,8 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using _2GO_EXE_Project.BAL.DTOs.Ai;
 using _2GO_EXE_Project.BAL.Interfaces;
-using _2GO_EXE_Project.DAL.Context;
 using _2GO_EXE_Project.DAL.Entities;
+using _2GO_EXE_Project.DAL.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace _2GO_EXE_Project.BAL.Services;
@@ -18,13 +18,13 @@ public class AiQualityCheckService : IAiQualityCheckService
     private const int MaxVisionChecks = 2;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IGeminiService _geminiService;
-    private readonly AppDbContext _db;
+    private readonly IUnitOfWork _uow;
 
-    public AiQualityCheckService(IHttpClientFactory httpClientFactory, IGeminiService geminiService, AppDbContext db)
+    public AiQualityCheckService(IHttpClientFactory httpClientFactory, IGeminiService geminiService, IUnitOfWork uow)
     {
         _httpClientFactory = httpClientFactory;
         _geminiService = geminiService;
-        _db = db;
+        _uow = uow;
     }
 
     public async Task<AiQualityResult> CheckAsync(IReadOnlyList<string> mediaUrls, CancellationToken cancellationToken = default)
@@ -128,7 +128,7 @@ public class AiQualityCheckService : IAiQualityCheckService
 
     private async Task UpsertCacheAsync(string imageUrl, Action<AiImageVisionCache> update, CancellationToken cancellationToken)
     {
-        var existing = await _db.AiImageVisionCaches.FirstOrDefaultAsync(x => x.ImageUrl == imageUrl, cancellationToken);
+        var existing = await _uow.AiImageVisionCaches.Query().FirstOrDefaultAsync(x => x.ImageUrl == imageUrl, cancellationToken);
         if (existing == null)
         {
             var cache = new AiImageVisionCache
@@ -138,22 +138,22 @@ public class AiQualityCheckService : IAiQualityCheckService
                 UpdatedAt = DateTime.UtcNow
             };
             update(cache);
-            _db.AiImageVisionCaches.Add(cache);
+            await _uow.AiImageVisionCaches.AddAsync(cache, cancellationToken);
         }
         else
         {
             update(existing);
             existing.UpdatedAt = DateTime.UtcNow;
-            _db.AiImageVisionCaches.Update(existing);
+            _uow.AiImageVisionCaches.Update(existing);
         }
-        await _db.SaveChangesAsync(cancellationToken);
+        await _uow.SaveChangesAsync(cancellationToken);
     }
 
         private async Task<(int Score, string Raw)?> TryGeminiVisionAsync(string imageUrl, CancellationToken cancellationToken)
     {
         try
         {
-            var cached = await _db.AiImageVisionCaches
+            var cached = await _uow.AiImageVisionCaches.Query()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.ImageUrl == imageUrl, cancellationToken);
             if (cached?.QualityScore != null)
@@ -187,7 +187,7 @@ public class AiQualityCheckService : IAiQualityCheckService
     {
         try
         {
-            var cached = await _db.AiImageVisionCaches
+            var cached = await _uow.AiImageVisionCaches.Query()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.ImageUrl == imageUrl, cancellationToken);
             if (!string.IsNullOrWhiteSpace(cached?.DamageLabels))
