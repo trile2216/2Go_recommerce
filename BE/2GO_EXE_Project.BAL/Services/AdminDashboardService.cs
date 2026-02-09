@@ -40,6 +40,9 @@ public class AdminDashboardService : IAdminDashboardService
         var reportsQuery = _uow.Reports.Query().AsNoTracking()
             .Where(r => r.CreatedAt.HasValue && r.CreatedAt.Value >= fromDate && r.CreatedAt.Value <= toDate);
 
+        var escrowQuery = _uow.EscrowContracts.Query().AsNoTracking()
+            .Where(e => e.CreatedAt.HasValue && e.CreatedAt.Value >= fromDate && e.CreatedAt.Value <= toDate);
+
         var ordersTotal = await ordersQuery.CountAsync(cancellationToken);
         var ordersCompleted = await ordersQuery.CountAsync(o => o.Status == OrderStatuses.Completed, cancellationToken);
         var ordersCancelled = await ordersQuery.CountAsync(o => o.Status == OrderStatuses.Cancelled, cancellationToken);
@@ -52,6 +55,21 @@ public class AdminDashboardService : IAdminDashboardService
         var subscriptionRevenue = await paymentsQuery
             .Where(p => p.PaymentType == PaymentTypes.Subscription && p.Status == PaymentStatuses.Paid)
             .SumAsync(p => p.Amount ?? 0m, cancellationToken);
+        var commissionRevenue = await paymentsQuery
+            .Where(p => p.PaymentType == PaymentTypes.Commission && p.Status == PaymentStatuses.Paid)
+            .SumAsync(p => (p.CommissionBaseAmount ?? 0m) * (p.CommissionRate ?? 0m), cancellationToken);
+        var escrowHeldAmount = await escrowQuery
+            .Where(e => e.Status == EscrowStatuses.Funded || e.Status == EscrowStatuses.Holding)
+            .SumAsync(e => e.DepositAmount ?? 0m, cancellationToken);
+        var escrowReleasedAmount = await escrowQuery
+            .Where(e => e.Status == EscrowStatuses.Released)
+            .SumAsync(e => e.DepositAmount ?? 0m, cancellationToken);
+
+        var ordersCancelledRate = ordersTotal == 0 ? 0m : (decimal)ordersCancelled / ordersTotal;
+        var paymentsTotal = paymentsPaid + paymentsFailed;
+        var paymentsFailedRate = paymentsTotal == 0 ? 0m : (decimal)paymentsFailed / paymentsTotal;
+
+        var usersByPlan = await BuildUsersByPlanAsync(cancellationToken);
 
         var listingsNew = await listingsQuery.CountAsync(cancellationToken);
         var listingsActive = await _uow.Listings.Query().AsNoTracking().CountAsync(l => l.Status == ListingStatuses.Active, cancellationToken);
@@ -72,6 +90,12 @@ public class AdminDashboardService : IAdminDashboardService
             paymentsPaid,
             paymentsFailed,
             subscriptionRevenue,
+            commissionRevenue,
+            escrowHeldAmount,
+            escrowReleasedAmount,
+            ordersCancelledRate,
+            paymentsFailedRate,
+            usersByPlan,
             reportsNew);
 
         return new AdminDashboardResponse(fromDate, toDate, summary);
@@ -122,6 +146,9 @@ public class AdminDashboardService : IAdminDashboardService
                 PaymentsFailed = g.Count(p => p.Status == PaymentStatuses.Failed || p.Status == PaymentStatuses.Cancelled),
                 SubscriptionRevenue = g.Where(p => p.PaymentType == PaymentTypes.Subscription && p.Status == PaymentStatuses.Paid)
                     .Sum(p => p.Amount ?? 0m)
+                ,
+                CommissionRevenue = g.Where(p => p.PaymentType == PaymentTypes.Commission && p.Status == PaymentStatuses.Paid)
+                    .Sum(p => (p.CommissionBaseAmount ?? 0m) * (p.CommissionRate ?? 0m))
             })
             .ToListAsync(cancellationToken);
 
@@ -155,6 +182,19 @@ public class AdminDashboardService : IAdminDashboardService
             })
             .ToListAsync(cancellationToken);
 
+        var escrowDaily = await _uow.EscrowContracts.Query().AsNoTracking()
+            .Where(e => e.CreatedAt.HasValue && e.CreatedAt.Value >= fromDate && e.CreatedAt.Value <= toDate)
+            .GroupBy(e => e.CreatedAt!.Value.Date)
+            .Select(g => new
+            {
+                Day = g.Key,
+                EscrowHeldAmount = g.Where(e => e.Status == EscrowStatuses.Funded || e.Status == EscrowStatuses.Holding)
+                    .Sum(e => e.DepositAmount ?? 0m),
+                EscrowReleasedAmount = g.Where(e => e.Status == EscrowStatuses.Released)
+                    .Sum(e => e.DepositAmount ?? 0m)
+            })
+            .ToListAsync(cancellationToken);
+
         var orderByPeriod = orderDaily
             .GroupBy(x => GetBucketStart(x.Day, bucketKey.Value))
             .ToDictionary(g => g.Key, g => new
@@ -171,7 +211,8 @@ public class AdminDashboardService : IAdminDashboardService
             {
                 PaymentsPaid = g.Sum(x => x.PaymentsPaid),
                 PaymentsFailed = g.Sum(x => x.PaymentsFailed),
-                SubscriptionRevenue = g.Sum(x => x.SubscriptionRevenue)
+                SubscriptionRevenue = g.Sum(x => x.SubscriptionRevenue),
+                CommissionRevenue = g.Sum(x => x.CommissionRevenue)
             });
 
         var listingByPeriod = listingDaily
@@ -195,6 +236,14 @@ public class AdminDashboardService : IAdminDashboardService
                 ReportsNew = g.Sum(x => x.ReportsNew)
             });
 
+        var escrowByPeriod = escrowDaily
+            .GroupBy(x => GetBucketStart(x.Day, bucketKey.Value))
+            .ToDictionary(g => g.Key, g => new
+            {
+                EscrowHeldAmount = g.Sum(x => x.EscrowHeldAmount),
+                EscrowReleasedAmount = g.Sum(x => x.EscrowReleasedAmount)
+            });
+
         var resultPoints = new List<AdminTimeseriesPoint>(points.Count);
         foreach (var periodStart in points)
         {
@@ -203,6 +252,7 @@ public class AdminDashboardService : IAdminDashboardService
             listingByPeriod.TryGetValue(periodStart, out var lg);
             userByPeriod.TryGetValue(periodStart, out var ug);
             reportByPeriod.TryGetValue(periodStart, out var rg);
+            escrowByPeriod.TryGetValue(periodStart, out var eg);
 
             resultPoints.Add(new AdminTimeseriesPoint(
                 periodStart,
@@ -215,6 +265,9 @@ public class AdminDashboardService : IAdminDashboardService
                 pg?.PaymentsPaid ?? 0,
                 pg?.PaymentsFailed ?? 0,
                 pg?.SubscriptionRevenue ?? 0m,
+                pg?.CommissionRevenue ?? 0m,
+                eg?.EscrowHeldAmount ?? 0m,
+                eg?.EscrowReleasedAmount ?? 0m,
                 rg?.ReportsNew ?? 0));
         }
 
@@ -300,5 +353,49 @@ public class AdminDashboardService : IAdminDashboardService
             Bucket.Year => new DateTime(utc.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             _ => utc
         };
+    }
+
+    private async Task<IReadOnlyList<AdminPlanCount>> BuildUsersByPlanAsync(CancellationToken cancellationToken)
+    {
+        var now = DateTime.UtcNow;
+        var totalUsers = await _uow.Users.Query().CountAsync(cancellationToken);
+
+        var activeSubs = await _uow.Payments.Query().AsNoTracking()
+            .Where(p => p.PaymentType == PaymentTypes.Subscription &&
+                        p.Status == PaymentStatuses.Paid &&
+                        p.UserId.HasValue &&
+                        p.SubscriptionValidUntil.HasValue &&
+                        p.SubscriptionValidUntil.Value > now)
+            .Select(p => new { p.UserId, p.SubscriptionPlanCode })
+            .ToListAsync(cancellationToken);
+
+        var activeUserIds = activeSubs.Select(x => x.UserId!.Value).Distinct().ToHashSet();
+        var activeByPlan = activeSubs
+            .Where(x => !string.IsNullOrWhiteSpace(x.SubscriptionPlanCode))
+            .GroupBy(x => x.SubscriptionPlanCode!.Trim().ToUpperInvariant())
+            .Select(g => new { Code = g.Key, Users = g.Select(x => x.UserId!.Value).Distinct().Count() })
+            .ToList();
+
+        var plans = await _uow.SubscriptionPlans.Query().AsNoTracking()
+            .Select(p => new { p.Code, p.Name, p.Price })
+            .ToListAsync(cancellationToken);
+
+        var planNameByCode = plans.ToDictionary(p => p.Code.Trim().ToUpperInvariant(), p => p.Name);
+
+        var results = new List<AdminPlanCount>();
+        foreach (var plan in activeByPlan)
+        {
+            var name = planNameByCode.TryGetValue(plan.Code, out var n) ? n : plan.Code;
+            results.Add(new AdminPlanCount(plan.Code, name, plan.Users));
+        }
+
+        var basicCode = plans.FirstOrDefault(p => p.Price <= 0)?.Code ?? "BASIC";
+        var basicName = plans.FirstOrDefault(p => p.Code == basicCode)?.Name ?? "Basic";
+        var basicUsers = Math.Max(0, totalUsers - activeUserIds.Count);
+        results.Add(new AdminPlanCount(basicCode, basicName, basicUsers));
+
+        return results
+            .OrderBy(r => r.Code)
+            .ToList();
     }
 }

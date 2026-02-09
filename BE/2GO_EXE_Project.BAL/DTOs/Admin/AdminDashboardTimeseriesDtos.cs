@@ -11,6 +11,9 @@ public record AdminTimeseriesPoint(
     int PaymentsPaid,
     int PaymentsFailed,
     decimal SubscriptionRevenue,
+    decimal CommissionRevenue,
+    decimal EscrowHeldAmount,
+    decimal EscrowReleasedAmount,
     int ReportsNew);
 
 public record AdminTimeseriesResponse(
