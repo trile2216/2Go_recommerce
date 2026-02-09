@@ -30,9 +30,13 @@ import ProtectedRoute from './context/ProtectedRoute';
 import Orders from './pages/Order/Order';
 import OrderDetail from './pages/OrderDetail/OrderDetail';
 import Checkout from './pages/Checkout/Checkout';
+<<<<<<< Updated upstream
 import PaymentResult from './pages/PaymentResult/PaymentResult';
 import SellerListings from './pages/SellerListings/SellerListings';
 import SavedListings from './pages/SavedListings/SavedListings';
+=======
+import Plan from './pages/Admin/Plan/Plan';
+>>>>>>> Stashed changes
 
 function App() {
   return (
@@ -80,6 +84,7 @@ function App() {
             <Route path="/admin/orders" element={<AdminOrders />} />
             <Route path="/admin/listings" element={<AdminListing />} />
             <Route path="/admin/categories" element={<AdminCategory />} />
+            <Route path="/admin/plans" element={<Plan />} />
           </Route>
         </Routes>
         </CartProvider>
