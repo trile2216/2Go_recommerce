@@ -6,6 +6,7 @@ using _2GO_EXE_Project.BAL.DTOs.Auth;
 using _2GO_EXE_Project.BAL.DTOs.Payments;
 using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
+using _2GO_EXE_Project.DAL.Context;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
 using PayOS.Models.Webhooks;
@@ -15,18 +16,18 @@ namespace _2GO_EXE_Project.BAL.Services;
 public class PaymentService : IPaymentService
 {
     private readonly IUnitOfWork _uow;
+    private readonly AppDbContext _db;
     private readonly IPaymentGateway _gateway;
     private readonly IEscrowService _escrowService;
     private readonly IPayosPaymentGateway _payosGateway;
     private readonly IPayOSService _payosService;
     private readonly INotificationService _notificationService;
     private const decimal CommissionRateValue = 0.07m;
-    private const int SubscriptionDaysDefault = 30;
-    private const decimal SubscriptionAmountDefault = 33000m;
 
-    public PaymentService(IUnitOfWork uow, IPaymentGateway gateway, IEscrowService escrowService, IPayosPaymentGateway payosGateway, IPayOSService payosService, INotificationService notificationService)
+    public PaymentService(IUnitOfWork uow, AppDbContext db, IPaymentGateway gateway, IEscrowService escrowService, IPayosPaymentGateway payosGateway, IPayOSService payosService, INotificationService notificationService)
     {
         _uow = uow;
+        _db = db;
         _gateway = gateway;
         _escrowService = escrowService;
         _payosGateway = payosGateway;
@@ -154,6 +155,10 @@ public class PaymentService : IPaymentService
         {
             throw new InvalidOperationException("Payment method is required.");
         }
+        if (string.IsNullOrWhiteSpace(request.PlanCode))
+        {
+            throw new InvalidOperationException("Subscription plan is required.");
+        }
         if (!PaymentMethods.All.Contains(request.Method, StringComparer.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException("Invalid payment method.");
@@ -163,20 +168,25 @@ public class PaymentService : IPaymentService
             throw new InvalidOperationException("COD is not supported for subscription.");
         }
 
-        var days = request.Days ?? SubscriptionDaysDefault;
-        if (days != SubscriptionDaysDefault)
+        var plan = await GetPlanByCodeAsync(request.PlanCode, requireActive: true, cancellationToken);
+        if (plan.DurationDays <= 0)
         {
-            throw new InvalidOperationException("Only 30-day subscriptions are supported.");
+            throw new InvalidOperationException("Invalid subscription duration.");
+        }
+        if (plan.Price <= 0)
+        {
+            throw new InvalidOperationException("Selected plan is free and does not require payment.");
         }
 
         var payment = new Payment
         {
             UserId = userId,
-            Amount = SubscriptionAmountDefault,
+            Amount = plan.Price,
             Method = request.Method,
             Status = PaymentStatuses.Pending,
             PaymentType = PaymentTypes.Subscription,
-            SubscriptionDays = days,
+            SubscriptionDays = plan.DurationDays,
+            SubscriptionPlanCode = plan.Code,
             ReferenceCode = Guid.NewGuid().ToString("N"),
             CreatedAt = DateTime.UtcNow
         };
@@ -194,7 +204,7 @@ public class PaymentService : IPaymentService
                     payment.PaymentId,
                     payment.ReferenceCode!,
                     payosAmount,
-                    "Subscription package (30 days)",
+                    $"Subscription package ({plan.Name}, {plan.DurationDays} days)",
                     null,
                     null,
                     cancellationToken);
@@ -544,11 +554,13 @@ public class PaymentService : IPaymentService
         var user = await _uow.Users.GetByIdAsync(userId);
         if (user == null) return;
 
+        var plan = await ResolvePlanForPaymentAsync(payment, cancellationToken);
         var now = DateTime.UtcNow;
         var start = user.SubscriptionUntil.HasValue && user.SubscriptionUntil.Value > now
             ? user.SubscriptionUntil.Value
             : now;
-        var until = start.AddDays(payment.SubscriptionDays.Value);
+        var durationDays = plan?.DurationDays ?? payment.SubscriptionDays.Value;
+        var until = start.AddDays(durationDays);
 
         payment.SubscriptionValidFrom = start;
         payment.SubscriptionValidUntil = until;
@@ -557,6 +569,44 @@ public class PaymentService : IPaymentService
         _uow.Payments.Update(payment);
         _uow.Users.Update(user);
         await _uow.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task<SubscriptionPlan> GetPlanByCodeAsync(string code, bool requireActive, CancellationToken cancellationToken)
+    {
+        var normalized = code.Trim().ToUpperInvariant();
+        var plan = await _db.SubscriptionPlans
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p =>
+                p.Code == normalized &&
+                (!requireActive || p.IsActive), cancellationToken);
+        if (plan == null)
+        {
+            throw new InvalidOperationException("Subscription plan not found.");
+        }
+
+        return plan;
+    }
+
+    private async Task<SubscriptionPlan?> ResolvePlanForPaymentAsync(Payment payment, CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(payment.SubscriptionPlanCode))
+        {
+            var code = payment.SubscriptionPlanCode.Trim().ToUpperInvariant();
+            return await _db.SubscriptionPlans
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Code == code, cancellationToken);
+        }
+
+        if (payment.Amount.HasValue && payment.SubscriptionDays.HasValue)
+        {
+            return await _db.SubscriptionPlans
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p =>
+                    p.DurationDays == payment.SubscriptionDays.Value &&
+                    p.Price == payment.Amount.Value, cancellationToken);
+        }
+
+        return null;
     }
 
     private async Task RestoreListingsForOrderAsync(Order order, CancellationToken cancellationToken)

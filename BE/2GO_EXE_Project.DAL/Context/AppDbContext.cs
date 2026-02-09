@@ -85,6 +85,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<ShippingRequest> ShippingRequests { get; set; }
 
+    public virtual DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
+
+    public virtual DbSet<SubscriptionPlanAudit> SubscriptionPlanAudits { get; set; }
+
 
     public virtual DbSet<SubCategory> SubCategories { get; set; }
 
@@ -443,6 +447,30 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.OrderId)
                 .IsUnique()
                 .HasDatabaseName("UX_ShippingRequests_OrderId");
+        });
+
+        modelBuilder.Entity<SubscriptionPlan>(entity =>
+        {
+            entity.HasKey(e => e.PlanId).HasName("PK_SubscriptionPlans");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("NOW()");
+
+            entity.HasIndex(e => e.Code)
+                .IsUnique()
+                .HasDatabaseName("UX_SubscriptionPlans_Code");
+        });
+
+        modelBuilder.Entity<SubscriptionPlanAudit>(entity =>
+        {
+            entity.HasKey(e => e.AuditId).HasName("PK_SubscriptionPlanAudits");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+
+            entity.HasOne(d => d.Plan)
+                .WithMany(p => p.Audits)
+                .HasForeignKey(d => d.PlanId)
+                .HasConstraintName("FK_SubscriptionPlanAudits_Plans");
         });
 
         modelBuilder.Entity<SubCategory>(entity =>

@@ -780,6 +780,9 @@ namespace _2GO_EXE_Project.DAL.Migrations
                         .IsUnicode(false)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int?>("SubCategoryId")
                         .HasColumnType("integer");
 
@@ -1369,6 +1372,11 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.Property<int?>("SubscriptionDays")
                         .HasColumnType("integer");
 
+                    b.Property<string>("SubscriptionPlanCode")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<DateTime?>("SubscriptionValidFrom")
                         .HasColumnType("timestamp with time zone");
 
@@ -1672,6 +1680,104 @@ namespace _2GO_EXE_Project.DAL.Migrations
                         .HasDatabaseName("UX_ShippingRequests_OrderId");
 
                     b.ToTable("ShippingRequests");
+                });
+
+            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.SubscriptionPlan", b =>
+                {
+                    b.Property<int>("PlanId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PlanId"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<int>("DurationDays")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("MonthlyListingLimit")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(15, 2)
+                        .HasColumnType("numeric(15,2)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.HasKey("PlanId")
+                        .HasName("PK_SubscriptionPlans");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("UX_SubscriptionPlans_Code");
+
+                    b.ToTable("SubscriptionPlans");
+                });
+
+            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.SubscriptionPlanAudit", b =>
+                {
+                    b.Property<long>("AuditId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("AuditId"));
+
+                    b.Property<long?>("ActorUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("AfterJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("BeforeJson")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<int>("PlanId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("AuditId")
+                        .HasName("PK_SubscriptionPlanAudits");
+
+                    b.HasIndex("PlanId");
+
+                    b.ToTable("SubscriptionPlanAudits");
                 });
 
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.SubCategory", b =>
@@ -2476,6 +2582,16 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.Navigation("Payment");
                 });
 
+            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.SubscriptionPlanAudit", b =>
+                {
+                    b.HasOne("_2GO_EXE_Project.DAL.Entities.SubscriptionPlan", "Plan")
+                        .WithMany("Audits")
+                        .HasForeignKey("PlanId")
+                        .HasConstraintName("FK_SubscriptionPlanAudits_Plans");
+
+                    b.Navigation("Plan");
+                });
+
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.PointTransaction", b =>
                 {
                     b.HasOne("_2GO_EXE_Project.DAL.Entities.User", "User")
@@ -2765,6 +2881,11 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.Navigation("OrderInvoices");
 
                     b.Navigation("PaymentLogs");
+                });
+
+            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.SubscriptionPlan", b =>
+                {
+                    b.Navigation("Audits");
                 });
 
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.SubCategory", b =>
