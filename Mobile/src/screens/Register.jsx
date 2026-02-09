@@ -14,41 +14,51 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
 
-const Login = ({ navigation }) => {
+const Register = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { register } = useAuth();
 
-  const handleLogin = async () => {
-    if (!email || !password) {
+  const validateForm = () => {
+    if (!email || !password || !confirmPassword || !phone || !fullName) {
       setError("Please fill in all fields");
-      return;
+      return false;
     }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return false;
+    }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return false;
+    }
+    return true;
+  };
+
+  const handleRegister = async () => {
+    if (!validateForm()) return;
 
     setError("");
     setLoading(true);
     try {
-      await login({ email, password });
+      await register({
+        email,
+        password,
+        phone,
+        fullName,
+      });
     } catch (err) {
-      console.error("❌ Login error:", err);
-      
-      const errorMessage = 
-        err.response?.data?.message || 
-        err.response?.data?.errors?.[0] ||
-        err.message ||
-        "Login failed. Please try again.";
-      
-      let displayError = errorMessage;
-      
-      // Additional info for debugging
-      if (err.response?.status === 400) {
-        displayError += "\n\n[400 Bad Request - Check email/password format]";
-      }
-      
-      setError(displayError);
+      console.error("Register error:", err);
+      setError(
+        err.response?.data?.message || "Registration failed. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -65,8 +75,8 @@ const Login = ({ navigation }) => {
           contentContainerStyle={styles.content}
         >
           <View style={styles.headerSection}>
-            <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Sign in to continue</Text>
+            <Text style={styles.title}>Create Account</Text>
+            <Text style={styles.subtitle}>Join us today</Text>
           </View>
 
           {error && (
@@ -77,6 +87,21 @@ const Login = ({ navigation }) => {
           )}
 
           <View style={styles.formSection}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Full Name</Text>
+              <View style={styles.inputContainer}>
+                <MaterialCommunityIcons name="account-outline" size={20} color="#9ca3af" />
+                <TextInput
+                  style={styles.input}
+                  placeholder="John Doe"
+                  placeholderTextColor="#d1d5db"
+                  value={fullName}
+                  onChangeText={setFullName}
+                  editable={!loading}
+                />
+              </View>
+            </View>
+
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Email</Text>
               <View style={styles.inputContainer}>
@@ -89,6 +114,22 @@ const Login = ({ navigation }) => {
                   autoCapitalize="none"
                   value={email}
                   onChangeText={setEmail}
+                  editable={!loading}
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Phone</Text>
+              <View style={styles.inputContainer}>
+                <MaterialCommunityIcons name="phone-outline" size={20} color="#9ca3af" />
+                <TextInput
+                  style={styles.input}
+                  placeholder="+84123456789"
+                  placeholderTextColor="#d1d5db"
+                  keyboardType="phone-pad"
+                  value={phone}
+                  onChangeText={setPhone}
                   editable={!loading}
                 />
               </View>
@@ -117,23 +158,46 @@ const Login = ({ navigation }) => {
               </View>
             </View>
 
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Confirm Password</Text>
+              <View style={styles.inputContainer}>
+                <MaterialCommunityIcons name="lock-outline" size={20} color="#9ca3af" />
+                <TextInput
+                  style={styles.input}
+                  placeholder="••••••••"
+                  placeholderTextColor="#d1d5db"
+                  secureTextEntry={!showConfirmPassword}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  editable={!loading}
+                />
+                <Pressable onPress={() => setShowConfirmPassword(!showConfirmPassword)} disabled={loading}>
+                  <MaterialCommunityIcons
+                    name={showConfirmPassword ? "eye" : "eye-off"}
+                    size={20}
+                    color="#9ca3af"
+                  />
+                </Pressable>
+              </View>
+            </View>
+
             <Pressable
-              onPress={handleLogin}
+              onPress={handleRegister}
               disabled={loading}
-              style={[styles.loginButton, loading && styles.disabledButton]}
+              style={[styles.registerButton, loading && styles.disabledButton]}
             >
               {loading ? (
                 <ActivityIndicator size="large" color="#fff" />
               ) : (
-                <Text style={styles.loginButtonText}>Sign In</Text>
+                <Text style={styles.registerButtonText}>Create Account</Text>
               )}
             </Pressable>
           </View>
 
           <View style={styles.footerSection}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
-            <Pressable onPress={() => navigation.navigate("Register")}>
-              <Text style={styles.signUpLink}>Sign Up</Text>
+            <Text style={styles.footerText}>Already have an account? </Text>
+            <Pressable onPress={() => navigation.navigate("Login")}>
+              <Text style={styles.signInLink}>Sign In</Text>
             </Pressable>
           </View>
         </ScrollView>
@@ -153,7 +217,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   headerSection: {
-    marginBottom: 40,
+    marginBottom: 30,
     alignItems: "center",
   },
   title: {
@@ -184,10 +248,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   formSection: {
-    marginBottom: 30,
+    marginBottom: 20,
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   label: {
     fontSize: 14,
@@ -211,7 +275,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#000",
   },
-  loginButton: {
+  registerButton: {
     backgroundColor: "#359EFF",
     borderRadius: 8,
     padding: 14,
@@ -221,7 +285,7 @@ const styles = StyleSheet.create({
   disabledButton: {
     opacity: 0.6,
   },
-  loginButtonText: {
+  registerButtonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
@@ -230,16 +294,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
+    marginTop: 20,
   },
   footerText: {
     color: "#666",
     fontSize: 14,
   },
-  signUpLink: {
+  signInLink: {
     color: "#359EFF",
     fontSize: 14,
     fontWeight: "600",
   },
 });
 
-export default Login;
+export default Register;

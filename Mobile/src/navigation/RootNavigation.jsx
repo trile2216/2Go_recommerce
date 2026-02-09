@@ -1,24 +1,48 @@
-import { createStackNavigator } from "@react-navigation/stack";
-import Home from "../screens/Home";
+import React from "react";
+import { ActivityIndicator, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
+import { createStackNavigator } from "@react-navigation/stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+
+import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
+
+// Screens
+import Login from "../screens/Login";
+import Register from "../screens/Register";
+import Home from "../screens/Home";
 import Detail from "../screens/Detail";
 import Favorites from "../screens/Favorites";
-import Login from "../screens/Login";
-import Profile from "../screens/Profile";
 import Chat from "../screens/Chat";
 import Conversation from "../screens/Conversation";
+import Profile from "../screens/Profile";
 import PostListing from "../screens/PostListing";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useState, useEffect } from "react";
-import { useFocusEffect } from "@react-navigation/native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Pressable, View } from "react-native";
+import Cart from "../screens/Cart";
+import Checkout from "../screens/Checkout";
+import Orders from "../screens/Orders";
+import OrderDetail from "../screens/OrderDetail";
 
 const Stack = createStackNavigator();
 const Tabs = createBottomTabNavigator();
 const ChatStack = createStackNavigator();
 
+// Auth Stack
+const AuthStack = () => {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        animationEnabled: true,
+      }}
+    >
+      <Stack.Screen name="Login" component={Login} />
+      <Stack.Screen name="Register" component={Register} />
+    </Stack.Navigator>
+  );
+};
+
+// Chat Stack
 const ChatStackNavigator = () => {
   return (
     <ChatStack.Navigator
@@ -32,33 +56,35 @@ const ChatStackNavigator = () => {
   );
 };
 
-const BottomTabs = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+// PostListing Stack
+const AddListingStack = () => {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen name="PostListingScreen" component={PostListing} />
+    </Stack.Navigator>
+  );
+};
 
-  useFocusEffect(() => {
-    checkLoginStatus();
-  });
-
-  const checkLoginStatus = async () => {
-    try {
-      const token = await AsyncStorage.getItem("token");
-      setIsLoggedIn(!!token);
-    } catch (error) {
-      console.error("Error checking login status:", error);
-      setIsLoggedIn(false);
-    }
-  };
+// Main User Stack
+const MainStack = () => {
+  const { cartCount } = useCart();
 
   return (
     <Tabs.Navigator
       screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color }) => {
+        tabBarIcon: ({ focused, color, size }) => {
           let iconName;
 
           if (route.name === "Home") {
             iconName = "home";
           } else if (route.name === "Favorites") {
             iconName = "heart";
+          } else if (route.name === "AddListing") {
+            iconName = "plus";
           } else if (route.name === "Chat") {
             iconName = "chat";
           } else if (route.name === "Profile") {
@@ -68,13 +94,13 @@ const BottomTabs = () => {
           return (
             <MaterialCommunityIcons
               name={iconName}
-              size={24}
+              size={size}
               color={color}
               style={{ fontVariationSettings: focused ? "'FILL' 1" : "'FILL' 0" }}
             />
           );
         },
-        tabBarActiveTintColor: "#389cfa",
+        tabBarActiveTintColor: "#359EFF",
         tabBarInactiveTintColor: "#9ca3af",
         tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
         tabBarStyle: {
@@ -87,25 +113,15 @@ const BottomTabs = () => {
         headerShown: false,
       })}
     >
-      <Tabs.Screen
-        name="Home"
-        component={Home}
-        options={{ title: "Home", headerShown: true }}
-      />
+      <Tabs.Screen name="Home" component={Home} options={{ title: "Home" }} />
       <Tabs.Screen
         name="Favorites"
         component={Favorites}
         options={{ title: "Wishlist" }}
       />
       <Tabs.Screen
-        name="PostListing"
-        component={PostListing}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            e.preventDefault();
-            navigation.navigate("PostListingStack");
-          },
-        })}
+        name="AddListing"
+        component={AddListingStack}
         options={{
           title: "",
           tabBarLabel: "",
@@ -135,52 +151,56 @@ const BottomTabs = () => {
       <Tabs.Screen
         name="Chat"
         component={ChatStackNavigator}
-        options={{ title: "Messages" }}
+        options={{ title: "Messages", headerShown: false }}
       />
       <Tabs.Screen
         name="Profile"
-        component={isLoggedIn ? Profile : Login}
-        options={{ title: isLoggedIn ? "Profile" : "Login" }}
+        component={Profile}
+        options={{ title: "Profile" }}
       />
     </Tabs.Navigator>
   );
 };
 
+// Root Navigator
 const RootNavigation = () => {
+  const { isLoggedIn, loading, token } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#359EFF" />
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer>
-      <Stack.Navigator>
-        <Stack.Screen
-          name="MainApp"
-          component={BottomTabs}
-          options={{
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="PostListingStack"
-          component={PostListing}
-          options={{
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="Detail"
-          component={Detail}
-          options={{
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="Login"
-          component={Login}
-          options={{
-            headerShown: false,
-          }}
-        />
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {!isLoggedIn || !token ? (
+          <Stack.Screen
+            name="Auth"
+            component={AuthStack}
+            options={{ animationEnabled: false }}
+          />
+        ) : (
+          <>
+            <Stack.Screen name="Main" component={MainStack} />
+            <Stack.Screen
+              name="Detail"
+              component={Detail}
+              options={{ presentation: "modal" }}
+            />
+            <Stack.Screen name="Cart" component={Cart} />
+            <Stack.Screen name="Checkout" component={Checkout} />
+            <Stack.Screen name="Orders" component={Orders} />
+            <Stack.Screen name="OrderDetail" component={OrderDetail} />
+          </>
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );
 };
 
 export default RootNavigation;
+
