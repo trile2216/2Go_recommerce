@@ -231,6 +231,8 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.DistrictId).HasName("PK__District__85FDA4C64D9546B6");
 
             entity.HasOne(d => d.City).WithMany(p => p.Districts).HasConstraintName("FK_Districts_Cities");
+
+            entity.HasAlternateKey(e => new { e.DistrictId, e.CityId }).HasName("AK_Districts_DistrictId_CityId");
         });
 
         modelBuilder.Entity<EscrowContract>(entity =>
@@ -589,7 +591,11 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.WardId).HasName("PK__Wards__C6BD9BCAC40737D0");
 
-            entity.HasOne(d => d.District).WithMany(p => p.Wards)   .HasConstraintName("FK_Wards_Districts");
+            entity.HasOne(d => d.City).WithMany(p => p.Wards).HasConstraintName("FK_Wards_Cities");
+            entity.HasOne(d => d.District).WithMany(p => p.Wards)
+                .HasForeignKey(d => new { d.DistrictId, d.CityId })
+                .HasPrincipalKey(p => new { p.DistrictId, p.CityId })
+                .HasConstraintName("FK_Wards_Districts_City");
         });
 
         OnModelCreatingPartial(modelBuilder);

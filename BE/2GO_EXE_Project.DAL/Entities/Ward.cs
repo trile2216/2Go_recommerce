@@ -13,9 +13,15 @@ public partial class Ward
 
     public int? DistrictId { get; set; }
 
+    public int? CityId { get; set; }
+
     [StringLength(255)]
     [Unicode(false)]
     public string? Name { get; set; }
+
+    [ForeignKey("CityId")]
+    [InverseProperty("Wards")]
+    public virtual City? City { get; set; }
 
     [ForeignKey("DistrictId")]
     [InverseProperty("Wards")]

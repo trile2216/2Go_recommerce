@@ -8,6 +8,7 @@ using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
+using _2GO_EXE_Project.BAL.Validation;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -83,6 +84,8 @@ public class ModeratorListingService : IModeratorListingService
             .ThenInclude(sc => sc!.Category)
             .Include(l => l.ListingMedias)
             .Include(l => l.ListingAttributes)
+            .Include(l => l.Ward)
+            .ThenInclude(w => w!.District)
             .Include(l => l.Seller)
             .ThenInclude(s => s!.UserProfiles)
             .FirstOrDefaultAsync(l => l.ListingId == listingId, cancellationToken);
@@ -137,7 +140,9 @@ public class ModeratorListingService : IModeratorListingService
             listing.Seller?.Phone,
             primary,
             media,
-            attributes);
+            attributes,
+            listing.Ward?.Name,
+            listing.Ward?.District?.Name);
     }
 
     public async Task<BasicResponse> ApproveAsync(ClaimsPrincipal modPrincipal, long listingId, CancellationToken cancellationToken = default)
@@ -157,7 +162,8 @@ public class ModeratorListingService : IModeratorListingService
 
         if (listing.SellerId.HasValue)
         {
-            await NotifyAsync(listing.SellerId.Value, "LISTING", "Bài đăng đã được duyệt", $"Bài đăng #{listingId} đã được duyệt.", $"/listings/{listingId}", cancellationToken);
+            var text = ListingNotificationText.ForStatus(ListingStatuses.Active);
+            await NotifyAsync(listing.SellerId.Value, "LISTING", text.Title, text.Message, $"/listings/{listingId}", cancellationToken);
         }
         await LogModActionAsync(modPrincipal, "ApproveListing", new { ListingId = listingId }, cancellationToken);
         return new BasicResponse(true, "Listing approved.");
@@ -165,6 +171,7 @@ public class ModeratorListingService : IModeratorListingService
 
     public async Task<BasicResponse> RejectAsync(ClaimsPrincipal modPrincipal, long listingId, RejectListingRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateRejectListing(request));
         var listing = await _uow.Listings.GetByIdAsync(listingId);
         if (listing == null) return new BasicResponse(false, "Listing not found.");
 
@@ -180,7 +187,8 @@ public class ModeratorListingService : IModeratorListingService
 
         if (listing.SellerId.HasValue)
         {
-            await NotifyAsync(listing.SellerId.Value, "LISTING", "Bài đăng bị từ chối", $"Bài đăng #{listingId} đã bị từ chối.", $"/listings/{listingId}", cancellationToken);
+            var text = ListingNotificationText.ForStatus(ListingStatuses.Active);
+            await NotifyAsync(listing.SellerId.Value, "LISTING", text.Title, text.Message, $"/listings/{listingId}", cancellationToken);
         }
         await LogModActionAsync(modPrincipal, "RejectListing", new { ListingId = listingId, request.Reason }, cancellationToken);
         return new BasicResponse(true, "Listing rejected.");
@@ -188,6 +196,7 @@ public class ModeratorListingService : IModeratorListingService
 
     public async Task<BasicResponse> FlagAsync(ClaimsPrincipal modPrincipal, long listingId, FlagListingRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateFlagListing(request));
         var listing = await _uow.Listings.GetByIdAsync(listingId);
         if (listing == null) return new BasicResponse(false, "Listing not found.");
 
@@ -203,7 +212,8 @@ public class ModeratorListingService : IModeratorListingService
 
         if (listing.SellerId.HasValue)
         {
-            await NotifyAsync(listing.SellerId.Value, "LISTING", "Bài đăng bị gắn cờ", $"Bài đăng #{listingId} đã bị gắn cờ.", $"/listings/{listingId}", cancellationToken);
+            var text = ListingNotificationText.ForStatus(ListingStatuses.Active);
+            await NotifyAsync(listing.SellerId.Value, "LISTING", text.Title, text.Message, $"/listings/{listingId}", cancellationToken);
         }
         await LogModActionAsync(modPrincipal, "FlagListing", new { ListingId = listingId, request.Reason }, cancellationToken);
         return new BasicResponse(true, "Listing flagged.");
@@ -247,3 +257,6 @@ public class ModeratorListingService : IModeratorListingService
         }
     }
 }
+
+
+

@@ -4,6 +4,7 @@ using _2GO_EXE_Project.BAL.DTOs.Subscriptions;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
+using _2GO_EXE_Project.BAL.Validation;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -100,11 +101,7 @@ public class AdminSubscriptionPlanService : IAdminSubscriptionPlanService
 
     public async Task<int> CreateAsync(CreateSubscriptionPlanRequest request, long? actorUserId, CancellationToken cancellationToken = default)
     {
-        var validationError = ValidatePlanRequest(request.Code, request.Name, request.Price, request.DurationDays, request.MonthlyListingLimit, request.SortOrder);
-        if (validationError != null)
-        {
-            throw new InvalidOperationException(validationError);
-        }
+        ValidationGuard.ThrowIfInvalid(SubscriptionPlanValidator.ValidateCreate(request));
 
         var code = request.Code.Trim().ToUpperInvariant();
         var exists = await _uow.SubscriptionPlans.Query().AnyAsync(x => x.Code == code, cancellationToken);
@@ -136,11 +133,7 @@ public class AdminSubscriptionPlanService : IAdminSubscriptionPlanService
 
     public async Task<bool> UpdateAsync(int id, UpdateSubscriptionPlanRequest request, long? actorUserId, CancellationToken cancellationToken = default)
     {
-        var validationError = ValidatePlanRequest("DUMMY", request.Name, request.Price, request.DurationDays, request.MonthlyListingLimit, request.SortOrder, validateCode: false);
-        if (validationError != null)
-        {
-            throw new InvalidOperationException(validationError);
-        }
+        ValidationGuard.ThrowIfInvalid(SubscriptionPlanValidator.ValidateUpdate(request));
 
         var plan = await _uow.SubscriptionPlans.Query().FirstOrDefaultAsync(x => x.PlanId == id, cancellationToken);
         if (plan == null) return false;
@@ -178,10 +171,7 @@ public class AdminSubscriptionPlanService : IAdminSubscriptionPlanService
 
     public async Task<bool> UpdatePriceAsync(int id, UpdateSubscriptionPlanPriceRequest request, long? actorUserId, CancellationToken cancellationToken = default)
     {
-        if (request.Price < 0)
-        {
-            throw new InvalidOperationException("Price must be >= 0.");
-        }
+        ValidationGuard.ThrowIfInvalid(SubscriptionPlanValidator.ValidatePrice(request));
 
         var plan = await _uow.SubscriptionPlans.Query().FirstOrDefaultAsync(x => x.PlanId == id, cancellationToken);
         if (plan == null) return false;
@@ -228,21 +218,4 @@ public class AdminSubscriptionPlanService : IAdminSubscriptionPlanService
         };
     }
 
-    private static string? ValidatePlanRequest(string code, string name, decimal price, int durationDays, int? monthlyLimit, int sortOrder, bool validateCode = true)
-    {
-        if (validateCode)
-        {
-            if (string.IsNullOrWhiteSpace(code)) return "Code is required.";
-            var trimmed = code.Trim();
-            if (trimmed.Length > 50) return "Code must be <= 50 chars.";
-        }
-
-        if (string.IsNullOrWhiteSpace(name)) return "Name is required.";
-        if (name.Trim().Length > 255) return "Name must be <= 255 chars.";
-        if (price < 0) return "Price must be >= 0.";
-        if (durationDays <= 0) return "DurationDays must be > 0.";
-        if (monthlyLimit.HasValue && monthlyLimit.Value <= 0) return "MonthlyListingLimit must be > 0 when provided.";
-        if (sortOrder < 0) return "SortOrder must be >= 0.";
-        return null;
-    }
 }

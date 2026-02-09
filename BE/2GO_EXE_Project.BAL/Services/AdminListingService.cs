@@ -8,6 +8,7 @@ using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
+using _2GO_EXE_Project.BAL.Validation;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -95,6 +96,8 @@ public class AdminListingService : IAdminListingService
             .ThenInclude(sc => sc!.Category)
             .Include(l => l.ListingMedias)
             .Include(l => l.ListingAttributes)
+            .Include(l => l.Ward)
+            .ThenInclude(w => w!.District)
             .Include(l => l.Seller)
             .ThenInclude(s => s!.UserProfiles)
             .Where(l => l.ListingId == listingId);
@@ -151,15 +154,18 @@ public class AdminListingService : IAdminListingService
             listing.Seller?.Phone,
             primary,
             media,
-            attributes);
+            attributes,
+            listing.Ward?.Name,
+            listing.Ward?.District?.Name);
     }
 
     public async Task<BasicResponse> UpdateStatusAsync(ClaimsPrincipal adminPrincipal, long listingId, UpdateListingStatusRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateUpdateListingStatus(request));
         var listing = await _uow.Listings.GetByIdAsync(listingId);
         if (listing == null) return new BasicResponse(false, "Listing not found.");
 
-        if (string.IsNullOrWhiteSpace(request.Status) || !AllowedStatuses.Contains(request.Status))
+        if (!AllowedStatuses.Contains(request.Status))
         {
             return new BasicResponse(false, "Invalid status value.");
         }
@@ -181,7 +187,7 @@ public class AdminListingService : IAdminListingService
 
         if (listing.SellerId.HasValue)
         {
-            await NotifyAsync(listing.SellerId.Value, "LISTING", "Trạng thái bài đăng thay đổi", $"Bài đăng #{listingId} đã chuyển sang trạng thái {request.Status}.", $"/listings/{listingId}", cancellationToken);
+            await NotifyAsync(listing.SellerId.Value, "LISTING", ListingNotificationText.ForStatus(request.Status).Title, ListingNotificationText.ForStatus(request.Status).Message, $"/listings/{listingId}", cancellationToken);
         }
         await LogAdminActionAsync(adminPrincipal, "UpdateListingStatus", new { ListingId = listingId, request.Status }, cancellationToken);
         return new BasicResponse(true, "Listing status updated.");
@@ -255,7 +261,7 @@ public class AdminListingService : IAdminListingService
 
         if (listing.SellerId.HasValue)
         {
-            await NotifyAsync(listing.SellerId.Value, "LISTING", "Bài đăng bị xóa", $"Bài đăng #{listingId} đã bị xóa bởi quản trị viên.", $"/listings/{listingId}", cancellationToken);
+            await NotifyAsync(listing.SellerId.Value, "LISTING", ListingNotificationText.ForStatus(ListingStatuses.Deleted).Title, ListingNotificationText.ForStatus(ListingStatuses.Deleted).Message, $"/listings/{listingId}", cancellationToken);
         }
         await LogAdminActionAsync(adminPrincipal, "DeleteListing", new { ListingId = listingId }, cancellationToken);
         return new BasicResponse(true, "Listing deleted (soft).");
@@ -299,3 +305,4 @@ public class AdminListingService : IAdminListingService
         }
     }
 }
+
