@@ -184,7 +184,7 @@ h1 {
 }
 
 /* Error Message */
-.error-message {
+.ep-error-message {
   text-align: center;
   color: #666;
   font-size: 1.1em;
@@ -194,7 +194,7 @@ h1 {
 }
 
 /* Button */
-.btn {
+.ep-btn {
   font-family: 'Open Sans', sans-serif;
   font-weight: 400;
   padding: 20px;
@@ -212,18 +212,18 @@ h1 {
 }
 
 @media screen and (max-width: 400px) {
-  .btn {
+  .ep-btn {
     margin-top: 60px;
     margin-bottom: 50px;
     width: 200px;
   }
 }
 
-.btn:hover {
+.ep-btn:hover {
   background-color: rgba(94, 127, 220, 0.8);
   transition: all 0.2s linear;
 }
 
-.btn:active {
+.ep-btn:active {
   transform: scale(0.98);
 }

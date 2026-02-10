@@ -1,6 +1,9 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import UserLayout from "../../layouts/UserLayout";
+import { useCart } from "../../context/CartContext";
+import { useToast } from "../../context/ToastContext";
+import { createOrder } from "../../service/home/api.order";
 import {
   Banknote,
   QrCode,
@@ -9,54 +12,31 @@ import {
   Phone,
   ShoppingBag,
   Trash2,
-  Check,
+  Loader2,
 } from "lucide-react";
 import "./Checkout.css";
-
-const DISTRICTS = [
-  "Phường Linh Xuân",
-  "Phường Bình Chiểu",
-  "Phường Hiệp Bình Phước",
-  "Phường Linh Trung",
-  "Phường Tam Bình",
-  "Phường Tam Phú",
-  "Phường Linh Đông",
-  "Phường Hiệp Bình Chánh",
-];
-
-// Mock cart items
-const MOCK_CART_ITEMS = [
-  {
-    id: 1,
-    title: "iPhone 14 Pro Max 256GB",
-    price: 25000000,
-    image: "https://images.unsplash.com/photo-1592286927505-1def25115558?w=100",
-    seller: "Nguyễn Văn B",
-    quantity: 1,
-  },
-  {
-    id: 2,
-    title: "MacBook Air M2 2022",
-    price: 28000000,
-    image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=100",
-    seller: "Trần Thị C",
-    quantity: 1,
-  },
-];
+import { createPayment } from "../../service/home/api.payment";
 
 export default function Checkout() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { cartItems, removeFromCart, getTotalPrice, clearCart, fetchCartData } = useCart();
+  const toast = useToast();
 
+  // Support single-item checkout via location state (from "Mua ngay" button)
+  const singleItem = location.state?.item || null;
+  const displayItems = singleItem ? [singleItem] : cartItems;
+
+  // Auto-fill buyer info from localStorage (stored after login)
+  const storedUser = JSON.parse(localStorage.getItem("user") || "null");
   const [buyerInfo, setBuyerInfo] = useState({
-    fullName: "",
-    phone: "",
-    ward: "",
-    detailedAddress: "",
+    fullName: storedUser?.profile?.fullName || storedUser?.fullName || "",
+    phone: storedUser?.phone || "",
+    address: storedUser?.profile?.address || "",
   });
 
-  const [paymentMethod, setPaymentMethod] = useState("cash");
-  const [cartItems, setCartItems] = useState(MOCK_CART_ITEMS);
-  const [toastMessage, setToastMessage] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("COD");
+  const [submitting, setSubmitting] = useState(false);
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -65,62 +45,95 @@ export default function Checkout() {
     }).format(price);
   };
 
-  const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+  const subtotal = displayItems.reduce(
+    (sum, item) => sum + (Number(item.priceSnapshot || item.price) || 0) * (item.quantity || 1),
     0
   );
-  const shippingFee = 30000;
-  const total = subtotal + shippingFee;
+  const total = subtotal;
 
-  const handleRemoveItem = (id) => {
-    setCartItems(cartItems.filter((item) => item.id !== id));
+  const handleRemoveItem = async (cartItemId) => {
+    if (singleItem) return; // can't remove single-item checkout
+    await removeFromCart(cartItemId);
   };
 
-  const showToast = (message) => {
-    setToastMessage(message);
-    setTimeout(() => setToastMessage(""), 3000);
-  };
-
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (
       !buyerInfo.fullName ||
       !buyerInfo.phone ||
-      !buyerInfo.ward ||
-      !buyerInfo.detailedAddress
+      !buyerInfo.address
     ) {
-      showToast("Vui lòng điền đầy đủ thông tin người mua");
+      toast.warning("Vui lòng điền đầy đủ thông tin người mua");
       return;
     }
 
-    if (cartItems.length === 0) {
-      showToast("Vui lòng thêm sản phẩm vào giỏ hàng");
+    if (displayItems.length === 0) {
+      toast.warning("Không có sản phẩm nào để thanh toán");
       return;
     }
 
-    showToast("Đặt hàng thành công!");
-    setTimeout(() => navigate("/orders"), 1500);
+    setSubmitting(true);
+
+    try {
+      // Use the free-text address as delivery address
+      const deliveryAddress = buyerInfo.address;
+
+      // Create an order for each listing
+      const orderResults = [];
+      for (const item of displayItems) {
+        const listingId = item.listingId || item.id;
+        const result = await createOrder(listingId, paymentMethod, deliveryAddress);
+        const paymentRequest = await createPayment(result.orderId, result.paymentMethod);
+        orderResults.push({
+          ...result,
+          paymentRequest,
+        });
+      }
+
+      // If PayOS, redirect to checkout URL from the first order (or last) that has one
+      if (paymentMethod === "PayOS") {
+        const payosOrder = orderResults.find((r) => r.paymentRequest?.payUrl);
+        if (payosOrder?.paymentRequest?.payUrl) {
+          // Clear cart after successful order creation
+          if (!singleItem) await clearCart();
+          window.location.href = payosOrder.paymentRequest.payUrl;
+          return;
+        }
+      }
+
+      // COD flow — orders created, clear cart and go to orders page
+      if (!singleItem) await clearCart();
+      toast.success("Đặt hàng thành công!");
+      navigate("/orders");
+    } catch (error) {
+      console.error("Checkout error:", error);
+      const message =
+        error.response?.data?.message ||
+        error.response?.data ||
+        "Đặt hàng thất bại. Vui lòng thử lại.";
+      toast.error(typeof message === "string" ? message : "Đặt hàng thất bại");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <UserLayout>
       <div className="checkout-container">
-        <h1 className="checkout-title">Thanh toán</h1>
-
         <div className="checkout-grid">
           {/* Left Column - Buyer Info & Payment Method */}
           <div className="checkout-left">
             {/* Buyer Information */}
             <div className="checkout-card">
-              <div className="card-header">
-                <h2 className="card-title">
+              <div className="checkout-card-header">
+                <h2 className="checkout-card-title">
                   <User size={20} />
                   Thông tin người mua
                 </h2>
               </div>
-              <div className="card-body">
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="fullName" className="form-label">
+              <div className="checkout-card-body">
+                <div className="checkout-form-row">
+                  <div className="checkout-form-group">
+                    <label htmlFor="fullName" className="checkout-form-label">
                       Họ và tên <span className="required">*</span>
                     </label>
                     <div className="input-group">
@@ -129,7 +142,7 @@ export default function Checkout() {
                         id="fullName"
                         type="text"
                         placeholder="Nhập họ và tên"
-                        className="form-input"
+                        className="checkout-form-input"
                         value={buyerInfo.fullName}
                         onChange={(e) =>
                           setBuyerInfo({
@@ -141,8 +154,8 @@ export default function Checkout() {
                     </div>
                   </div>
 
-                  <div className="form-group">
-                    <label htmlFor="phone" className="form-label">
+                  <div className="checkout-form-group">
+                    <label htmlFor="phone" className="checkout-form-label">
                       Số điện thoại <span className="required">*</span>
                     </label>
                     <div className="input-group">
@@ -151,7 +164,7 @@ export default function Checkout() {
                         id="phone"
                         type="tel"
                         placeholder="Nhập số điện thoại"
-                        className="form-input"
+                        className="checkout-form-input"
                         value={buyerInfo.phone}
                         onChange={(e) =>
                           setBuyerInfo({ ...buyerInfo, phone: e.target.value })
@@ -161,67 +174,32 @@ export default function Checkout() {
                   </div>
                 </div>
 
-                <div className="separator" />
-
                 <div className="address-section">
                   <div className="address-title">
                     <MapPin size={16} />
                     Địa chỉ nhận hàng
                   </div>
 
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="ward" className="form-label">
-                        Phường/Xã <span className="required">*</span>
-                      </label>
-                      <select
-                        id="ward"
-                        className="form-select"
-                        value={buyerInfo.ward}
-                        onChange={(e) =>
-                          setBuyerInfo({ ...buyerInfo, ward: e.target.value })
-                        }
-                      >
-                        <option value="">Chọn phường/xã</option>
-                        {DISTRICTS.map((district) => (
-                          <option key={district} value={district}>
-                            {district}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="form-group">
-                      <label htmlFor="city" className="form-label">
-                        Thành phố
-                      </label>
+                  <div className="checkout-form-group">
+                    <label htmlFor="address" className="checkout-form-label">
+                      Địa chỉ <span className="required">*</span>
+                    </label>
+                    <div className="input-group">
+                      <MapPin size={16} className="input-icon" />
                       <input
-                        id="city"
+                        id="address"
                         type="text"
-                        value="Thành phố Thủ Đức, TP. Hồ Chí Minh"
-                        disabled
-                        className="form-input disabled"
+                        placeholder="Số nhà, đường, phường, quận, thành phố..."
+                        className="checkout-form-input"
+                        value={buyerInfo.address}
+                        onChange={(e) =>
+                          setBuyerInfo({
+                            ...buyerInfo,
+                            address: e.target.value,
+                          })
+                        }
                       />
                     </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="detailedAddress" className="form-label">
-                      Địa chỉ chi tiết <span className="required">*</span>
-                    </label>
-                    <input
-                      id="detailedAddress"
-                      type="text"
-                      placeholder="Số nhà, tên đường, tòa nhà..."
-                      className="form-input"
-                      value={buyerInfo.detailedAddress}
-                      onChange={(e) =>
-                        setBuyerInfo({
-                          ...buyerInfo,
-                          detailedAddress: e.target.value,
-                        })
-                      }
-                    />
                   </div>
                 </div>
               </div>
@@ -229,27 +207,27 @@ export default function Checkout() {
 
             {/* Payment Method */}
             <div className="checkout-card">
-              <div className="card-header">
-                <h2 className="card-title">
+              <div className="checkout-card-header">
+                <h2 className="checkout-card-title">
                   <Banknote size={20} />
                   Phương thức thanh toán
                 </h2>
               </div>
-              <div className="card-body">
+              <div className="checkout-card-body">
                 <div className="payment-options">
                   <div
                     className={`payment-option ${
-                      paymentMethod === "cash" ? "active" : ""
+                      paymentMethod === "COD" ? "active" : ""
                     }`}
-                    onClick={() => setPaymentMethod("cash")}
+                    onClick={() => setPaymentMethod("COD")}
                   >
                     <input
                       type="radio"
                       id="cash"
                       name="payment"
-                      value="cash"
-                      checked={paymentMethod === "cash"}
-                      onChange={() => setPaymentMethod("cash")}
+                      value="COD"
+                      checked={paymentMethod === "COD"}
+                      onChange={() => setPaymentMethod("COD")}
                       className="radio-input"
                     />
                     <label htmlFor="cash" className="payment-label">
@@ -267,17 +245,17 @@ export default function Checkout() {
 
                   <div
                     className={`payment-option ${
-                      paymentMethod === "qr" ? "active" : ""
+                      paymentMethod === "PayOS" ? "active" : ""
                     }`}
-                    onClick={() => setPaymentMethod("qr")}
+                    onClick={() => setPaymentMethod("PayOS")}
                   >
                     <input
                       type="radio"
                       id="qr"
                       name="payment"
-                      value="qr"
-                      checked={paymentMethod === "qr"}
-                      onChange={() => setPaymentMethod("qr")}
+                      value="PayOS"
+                      checked={paymentMethod === "PayOS"}
+                      onChange={() => setPaymentMethod("PayOS")}
                       className="radio-input"
                     />
                     <label htmlFor="qr" className="payment-label">
@@ -285,22 +263,19 @@ export default function Checkout() {
                         <QrCode size={20} />
                       </div>
                       <div className="payment-text">
-                        <p className="payment-method">Quét mã QR</p>
+                        <p className="payment-method">Thanh toán online (PayOS)</p>
                         <p className="payment-desc">
-                          Thanh toán qua ứng dụng ngân hàng
+                          Thanh toán qua QR / ngân hàng trực tuyến
                         </p>
                       </div>
                     </label>
                   </div>
                 </div>
 
-                {paymentMethod === "qr" && (
+                {paymentMethod === "PayOS" && (
                   <div className="qr-section">
-                    <div className="qr-container">
-                      <QrCode size={80} />
-                    </div>
                     <p className="qr-text">
-                      Quét mã QR bằng ứng dụng ngân hàng để thanh toán
+                      Sau khi đặt hàng, bạn sẽ được chuyển đến trang thanh toán PayOS để hoàn tất.
                     </p>
                   </div>
                 )}
@@ -311,14 +286,14 @@ export default function Checkout() {
           {/* Right Column - Order Summary */}
           <div className="checkout-right">
             <div className="checkout-card sticky">
-              <div className="card-header">
-                <h2 className="card-title">
+              <div className="checkout-card-header">
+                <h2 className="checkout-card-title">
                   <ShoppingBag size={20} />
                   Thông tin đơn hàng
                 </h2>
               </div>
-              <div className="card-body">
-                {cartItems.length === 0 ? (
+              <div className="checkout-card-body">
+                {displayItems.length === 0 ? (
                   <div className="empty-cart">
                     <ShoppingBag size={48} />
                     <p>Giỏ hàng trống</p>
@@ -326,45 +301,49 @@ export default function Checkout() {
                 ) : (
                   <>
                     <div className="cart-items">
-                      {cartItems.map((item) => (
-                        <div key={item.id} className="cart-item">
-                          <img
-                            src={item.image}
-                            alt={item.title}
-                            className="item-image"
-                          />
+                      {displayItems.map((item) => (
+                        <div key={item.cartItemId || item.listingId || item.id} className="cart-item">
+                          {item.imageUrl ? (
+                            <img
+                              src={item.imageUrl}
+                              alt={item.title || "Sản phẩm"}
+                              className="item-image"
+                            />
+                          ) : (
+                            <div className="item-image item-image-placeholder">
+                              <ShoppingBag size={20} />
+                            </div>
+                          )}
                           <div className="item-details">
-                            <h4 className="item-title">{item.title}</h4>
-                            <p className="item-seller">
-                              Người bán: {item.seller}
-                            </p>
+                            <h4 className="item-title">{item.title || `Sản phẩm #${item.listingId}`}</h4>
                             <p className="item-price">
-                              {formatPrice(item.price)}
+                              {formatPrice(item.priceSnapshot || item.price || 0)}
                             </p>
+                            {item.quantity > 1 && (
+                              <p className="item-quantity">x{item.quantity}</p>
+                            )}
                           </div>
-                          <button
-                            className="btn-remove"
-                            onClick={() => handleRemoveItem(item.id)}
-                            title="Xóa sản phẩm"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          {!singleItem && (
+                            <button
+                              className="btn-remove"
+                              onClick={() => handleRemoveItem(item.cartItemId)}
+                              title="Xóa sản phẩm"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
 
-                    <div className="separator" />
+                    <div className="checkout-separator" />
 
                     <div className="price-summary">
                       <div className="price-row">
                         <span>Tạm tính</span>
                         <span>{formatPrice(subtotal)}</span>
                       </div>
-                      <div className="price-row">
-                        <span>Phí vận chuyển</span>
-                        <span>{formatPrice(shippingFee)}</span>
-                      </div>
-                      <div className="separator" />
+                      <div className="checkout-separator" />
                       <div className="price-row total">
                         <span>Tổng cộng</span>
                         <span>{formatPrice(total)}</span>
@@ -374,8 +353,17 @@ export default function Checkout() {
                     <button
                       className="btn-checkout"
                       onClick={handleSubmit}
+                      disabled={submitting}
                     >
-                      Đặt hàng
+                      {submitting ? (
+                        <>
+                          <Loader2 size={18} className="spin" /> Đang xử lý...
+                        </>
+                      ) : paymentMethod === "PayOS" ? (
+                        "Thanh toán với PayOS"
+                      ) : (
+                        "Đặt hàng"
+                      )}
                     </button>
 
                     <p className="terms">
@@ -392,15 +380,6 @@ export default function Checkout() {
           </div>
         </div>
       </div>
-
-      {toastMessage && (
-        <div className="toast">
-          <div className="toast-content">
-            <Check size={20} />
-            <span>{toastMessage}</span>
-          </div>
-        </div>
-      )}
     </UserLayout>
   );
 }

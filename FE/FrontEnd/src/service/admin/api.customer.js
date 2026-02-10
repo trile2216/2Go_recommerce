@@ -29,12 +29,12 @@ export const deleteCustomerById = async (id) => {
 };
 export const updateCustomerById = async (id, data) => {
     try {
-        const response = await api.put(`/admin/users/${id}`, data);
+        const response = await api.patch(`/admin/users/${id}`, data);
         return response.data;
     } catch (error) {
         console.error(`Error updating customer with id ${id}:`, error);
         throw error;
-    }   
+    }
 };
 export const updateCustomerRoleById = async (id, role) => {
     try {
@@ -42,6 +42,16 @@ export const updateCustomerRoleById = async (id, role) => {
         return response.data;
     } catch (error) {
         console.error(`Error updating role for customer with id ${id}:`, error);
+        throw error;
+    }
+};
+export const updateCustomerStatusById = async (id, status) => {
+    try {
+        const response = await api.patch(`/admin/users/${id}/status`, { status });
+        return response.data;
+    }
+    catch (error) {
+        console.error(`Error updating status for customer with id ${id}:`, error);
         throw error;
     }
 };

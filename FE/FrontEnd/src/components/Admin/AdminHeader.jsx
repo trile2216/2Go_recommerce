@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu, Bell, MessageSquare, Settings, LogOut, User, Search } from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth';
+import useAuth from '../../context/UseAuth';
 import '../../styles/Admin/admin-header.css';
 
 export default function AdminHeader({ onMenuToggle }) {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logoutUser } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logoutUser();
     navigate('/auth/login');
   };
 

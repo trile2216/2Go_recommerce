@@ -51,7 +51,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  animation: slideIn 0.3s ease;
+  animation: slideInUpSmall 0.3s ease;
 }
 
 .admin-alert-error {
@@ -78,17 +78,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateY(-10px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
 }
 
 /* Card Styles */
@@ -407,15 +396,6 @@
   animation: fadeIn 0.3s ease;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
 .admin-modal {
   background: white;
   border-radius: 8px;
@@ -425,17 +405,6 @@
   max-height: 90vh;
   overflow-y: auto;
   animation: slideUp 0.3s ease;
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
 }
 
 .admin-modal-header {
@@ -476,11 +445,11 @@
   padding: 1.5rem;
 }
 
-.form-group {
+.admin-form-group {
   margin-bottom: 1.5rem;
 }
 
-.form-group label {
+.admin-form-group label {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 600;
@@ -488,9 +457,9 @@
   color: var(--admin-text, #333);
 }
 
-.form-group input,
-.form-group textarea,
-.form-group select {
+.admin-form-group input,
+.admin-form-group textarea,
+.admin-form-group select {
   width: 100%;
   padding: 0.75rem;
   border: 1px solid var(--admin-border, #e0e0e0);
@@ -500,15 +469,15 @@
   transition: border-color 0.2s ease;
 }
 
-.form-group input:focus,
-.form-group textarea:focus,
-.form-group select:focus {
+.admin-form-group input:focus,
+.admin-form-group textarea:focus,
+.admin-form-group select:focus {
   outline: none;
   border-color: var(--admin-primary, #0066cc);
   box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
 }
 
-.form-group textarea {
+.admin-form-group textarea {
   resize: vertical;
   min-height: 80px;
 }

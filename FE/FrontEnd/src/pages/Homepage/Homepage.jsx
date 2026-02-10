@@ -8,8 +8,11 @@ import Footer from '../../components/Footer';
 import ErrorPage from '../ErrorPage/ErrorPage';
 import { fetchProducts } from '../../service/home/api.product';
 
+const PAGE_SIZE = 20;
+
 export default function Homepage() {
   const [products, setProducts] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -17,8 +20,9 @@ export default function Homepage() {
     const getProducts = async () => {
       try {
         setLoading(true);
-        const data = await fetchProducts();
+        const data = await fetchProducts({ take: PAGE_SIZE });
         setProducts(data.items);
+        setTotalCount(data.totalCount ?? data.items?.length ?? 0);
         setError(null);
       } catch (err) {
         console.error('Failed to fetch products:', err);
@@ -43,7 +47,7 @@ export default function Homepage() {
         </div>
       )}
       {error && <ErrorPage error={error} />}
-      {!loading && !error && <ProductGrid products={products} />}
+      {!loading && !error && <ProductGrid products={products} totalCount={totalCount} />}
       <Footer />
     </div>
   );

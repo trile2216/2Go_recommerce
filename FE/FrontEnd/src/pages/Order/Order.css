@@ -71,15 +71,6 @@
   animation: fadeIn 0.3s ease;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
 /* Orders List */
 .orders-list {
   display: flex;
@@ -217,7 +208,7 @@
   padding: 1rem 0;
 }
 
-.load-more-btn {
+.order-load-more-btn {
   padding: 0.75rem 2rem;
   border: 1px solid #ddd;
   background-color: white;
@@ -230,7 +221,7 @@
   min-width: 200px;
 }
 
-.load-more-btn:hover {
+.order-load-more-btn:hover {
   background-color: #f5f5f5;
   border-color: #999;
 }
@@ -386,4 +377,59 @@
   .tab-trigger.active {
     border-bottom-color: #ff6b35;
   }
+}
+
+/* Loading & Status Styles */
+.order-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1rem;
+  color: #6b7280;
+  gap: 1rem;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+.order-card-method {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin-top: 0.25rem;
+}
+
+.status-danger {
+  background-color: #fef2f2;
+  color: #dc2626;
+}
+
+.status-warning {
+  background-color: #fffbeb;
+  color: #d97706;
+}
+
+.status-info {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.status-success {
+  background-color: #f0fdf4;
+  color: #16a34a;
+}
+
+.status-default {
+  background-color: #f3f4f6;
+  color: #6b7280;
 }

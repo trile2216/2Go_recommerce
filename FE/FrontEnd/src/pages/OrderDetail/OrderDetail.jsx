@@ -1,5 +1,8 @@
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import UserLayout from "../../layouts/UserLayout";
+import { useToast } from "../../context/ToastContext";
+import { getOrderById, cancelOrder, confirmOrder, completeOrder } from "../../service/home/api.order";
 import {
   ArrowLeft,
   Package,
@@ -8,113 +11,67 @@ import {
   Calendar,
   CheckCircle2,
   Circle,
-  XCircle
+  XCircle,
+  Loader2,
+  CreditCard,
+  ExternalLink,
 } from "lucide-react";
 import "./OrderDetail.css";
 
-// Mock data - sẽ thay thế bằng dữ liệu thật từ database
-const MOCK_ORDERS = {
-  "1": {
-    id: "1",
-    title: "iPhone 13 Pro 128GB Vàng",
-    price: 15500000,
-    image: "https://images.unsplash.com/photo-1632661674596-df8be070a5c5?w=400",
-    date: "2 ngày trước",
-    createdAt: "25/10/2025",
-    currentStatus: 3,
-    buyer: {
-      name: "Trần Văn B",
-      address: "Phường Linh Trung, Thủ Đức, TP.HCM"
-    }
-  },
-  "2": {
-    id: "2",
-    title: "Tủ lạnh Panasonic 180L",
-    price: 2490000,
-    image: "https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?w=400",
-    date: "1 tuần trước",
-    createdAt: "20/10/2025",
-    currentStatus: 2,
-    buyer: {
-      name: "Lê Thị C",
-      address: "Phường Bình Chiểu, Thủ Đức, TP.HCM"
-    }
-  },
-  "3": {
-    id: "3",
-    title: "Laptop Dell Inspiron 15",
-    price: 8900000,
-    image: "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=400",
-    date: "3 ngày trước",
-    createdAt: "23/10/2025",
-    currentStatus: 3,
-    seller: {
-      name: "Nguyễn Văn D",
-      address: "Phường Tam Bình, Thủ Đức, TP.HCM"
-    }
-  },
-  "4": {
-    id: "4",
-    title: "Máy giặt Electrolux 8kg",
-    price: 3800000,
-    image: "https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?w=400",
-    date: "5 ngày trước",
-    createdAt: "21/10/2025",
-    currentStatus: 2,
-    seller: {
-      name: "Phạm Thị E",
-      address: "Phường Hiệp Bình Phước, Thủ Đức, TP.HCM"
-    }
-  }
+const STATUS_MAP = {
+  Pending: "Chờ thanh toán",
+  Paid: "Đã thanh toán",
+  Confirmed: "Đã xác nhận",
+  Shipping: "Đang giao hàng",
+  Completed: "Hoàn thành",
+  Cancelled: "Đã hủy",
 };
 
-const BUY_ORDER_STATUSES = [
-  { id: 0, label: "Đã đặt hàng", icon: Package },
-  { id: 1, label: "Chờ lấy hàng", icon: Package },
-  { id: 2, label: "Đang giao hàng", icon: Package },
-  { id: 3, label: "Đánh giá", icon: CheckCircle2 }
+const ORDER_STATUSES = [
+  { id: "Pending", label: "Chờ thanh toán", icon: CreditCard },
+  { id: "Paid", label: "Đã thanh toán", icon: CheckCircle2 },
+  { id: "Confirmed", label: "Đã xác nhận", icon: Package },
+  { id: "Shipping", label: "Đang giao", icon: Package },
+  { id: "Completed", label: "Hoàn thành", icon: CheckCircle2 },
 ];
 
-const SELL_ORDER_STATUSES = [
-  { id: 0, label: "Đã được cọc", icon: Package },
-  { id: 1, label: "Chờ giao hàng", icon: Package },
-  { id: 2, label: "Đang giao hàng", icon: Package },
-  { id: 3, label: "Đánh giá", icon: CheckCircle2 }
-];
+const STATUS_ORDER = ["Pending", "Paid", "Confirmed", "Shipping", "Completed"];
 
-function OrderStatusStepper({ currentStatus, type }) {
-  const statuses = type === "buy" ? BUY_ORDER_STATUSES : SELL_ORDER_STATUSES;
+function OrderStatusStepper({ currentStatus }) {
+  const currentIdx = STATUS_ORDER.indexOf(currentStatus);
+  const isCancelled = currentStatus === "Cancelled";
+
+  if (isCancelled) {
+    return (
+      <div className="order-status-stepper">
+        <div className="cancelled-status">
+          <XCircle size={32} />
+          <p>Đơn hàng đã bị hủy</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="order-status-stepper">
-      {/* Progress Line */}
       <div className="progress-line-container">
         <div className="progress-line-background">
           <div
             className="progress-line-fill"
-            style={{ width: `${(currentStatus / (statuses.length - 1)) * 100}%` }}
+            style={{ width: `${(currentIdx / (ORDER_STATUSES.length - 1)) * 100}%` }}
           />
         </div>
       </div>
-
-      {/* Status Steps */}
       <div className="status-steps">
-        {statuses.map((status, index) => {
-          const isCompleted = index <= currentStatus;
-          const isCurrent = index === currentStatus;
-
+        {ORDER_STATUSES.map((status, index) => {
+          const isCompleted = index <= currentIdx;
+          const isCurrent = index === currentIdx;
           return (
             <div key={status.id} className="status-step">
-              <div
-                className={`status-icon ${isCompleted ? "completed" : ""} ${isCurrent ? "current" : ""}`}
-              >
-                {isCompleted ? (
-                  <CheckCircle2 size={20} />
-                ) : (
-                  <Circle size={20} />
-                )}
+              <div className={`status-icon ${isCompleted ? "completed" : ""} ${isCurrent ? "current" : ""}`}>
+                {isCompleted ? <CheckCircle2 size={20} /> : <Circle size={20} />}
               </div>
-              <p className={`status-label ${isCompleted ? "active" : ""}`}>
+              <p className={`od-status-label ${isCompleted ? "active" : ""}`}>
                 {status.label}
               </p>
             </div>
@@ -128,10 +85,95 @@ function OrderStatusStepper({ currentStatus, type }) {
 export default function OrderDetail() {
   const { orderId } = useParams();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const type = searchParams.get("type") || "sell";
+  const toast = useToast();
 
-  const order = orderId ? MOCK_ORDERS[orderId] : null;
+  const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const formatPrice = (price) =>
+    new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price || 0);
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "";
+    return new Date(dateStr).toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const fetchOrder = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await getOrderById(orderId);
+      setOrder(data);
+    } catch (error) {
+      console.error("Error fetching order:", error);
+      toast.error("Không thể tải thông tin đơn hàng");
+    } finally {
+      setLoading(false);
+    }
+  }, [orderId, toast]);
+
+  useEffect(() => {
+    if (orderId) fetchOrder();
+  }, [orderId, fetchOrder]);
+
+  const handleCancel = async () => {
+    if (!window.confirm("Bạn có chắc chắn muốn hủy đơn hàng này?")) return;
+    try {
+      setActionLoading(true);
+      const result = await cancelOrder(order.orderId);
+      toast.success(result.message || "Đã hủy đơn hàng");
+      fetchOrder();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Hủy đơn hàng thất bại");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleConfirm = async () => {
+    try {
+      setActionLoading(true);
+      const result = await confirmOrder(order.orderId);
+      toast.success(result.message || "Đã xác nhận đơn hàng");
+      fetchOrder();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Xác nhận đơn hàng thất bại");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleComplete = async () => {
+    try {
+      setActionLoading(true);
+      const result = await completeOrder(order.orderId);
+      toast.success(result.message || "Đã hoàn thành đơn hàng");
+      fetchOrder();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Hoàn thành đơn hàng thất bại");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <UserLayout>
+        <div className="order-detail-error">
+          <div className="error-content">
+            <Loader2 size={32} className="spin" />
+            <p>Đang tải...</p>
+          </div>
+        </div>
+      </UserLayout>
+    );
+  }
 
   if (!order) {
     return (
@@ -139,10 +181,7 @@ export default function OrderDetail() {
         <div className="order-detail-error">
           <div className="error-content">
             <h2 className="error-title">Không tìm thấy đơn hàng</h2>
-            <button
-              className="error-button"
-              onClick={() => navigate("/orders")}
-            >
+            <button className="error-button" onClick={() => navigate("/orders")}>
               Quay lại
             </button>
           </div>
@@ -151,18 +190,15 @@ export default function OrderDetail() {
     );
   }
 
-  const otherParty = type === "sell" 
-    ? ("buyer" in order ? order.buyer : null)
-    : ("seller" in order ? order.seller : null);
+  const canCancel = order.status === "Pending" || order.status === "Paid";
+  const canConfirm = order.status === "Paid";
+  const canComplete = order.status === "Confirmed" || order.status === "Shipping";
+  const hasCheckoutUrl = order.status === "Pending" && order.checkoutUrl;
 
   return (
     <UserLayout>
       <div className="order-detail-container">
-        {/* Back Button */}
-        <button
-          className="back-button"
-          onClick={() => navigate("/orders")}
-        >
+        <button className="od-back-button" onClick={() => navigate("/orders")}>
           <ArrowLeft size={16} />
           Quay lại
         </button>
@@ -170,88 +206,151 @@ export default function OrderDetail() {
         <div className="order-detail-content">
           {/* Order Information */}
           <div className="order-card">
-            <div className="card-header">
-              <h2 className="card-title">
+            <div className="od-card-header">
+              <h2 className="od-card-title">
                 <Package size={20} />
-                Thông tin đơn hàng
+                Thông tin đơn hàng #{order.orderCode}
               </h2>
             </div>
-            <div className="card-body">
-              {/* Product Info */}
-              <div className="product-info">
-                <img
-                  src={order.image}
-                  alt={order.title}
-                  className="product-image"
-                />
-                <div className="product-details">
-                  <h3 className="product-title">{order.title}</h3>
-                  <p className="product-price">
-                    {order.price.toLocaleString("vi-VN")} đ
+            <div className="od-card-body">
+              <div className="detail-product-info">
+                <div className="detail-product-details">
+                  <h3 className="detail-product-title">
+                    {order.listingTitle || `Đơn hàng #${order.orderCode}`}
+                  </h3>
+                  <p className="detail-product-price">
+                    {formatPrice(order.totalAmount || order.listingPrice)}
                   </p>
-                  <div className="product-date">
+                  <div className="detail-product-date">
                     <Calendar size={16} />
-                    <span>Thời gian đăng: {order.createdAt}</span>
+                    <span>Ngày đặt: {formatDate(order.createdAt)}</span>
+                  </div>
+                  <div className="detail-product-date">
+                    <CreditCard size={16} />
+                    <span>
+                      Thanh toán: {order.paymentMethod === "PayOS" ? "Online (PayOS)" : "COD"}
+                    </span>
                   </div>
                 </div>
               </div>
 
-              <div className="separator" />
+              <div className="od-separator" />
 
-              {/* Other Party Info */}
-              {otherParty && (
-                <div className="party-info">
-                  <h4 className="party-title">
-                    <User size={16} />
-                    Thông tin {type === "sell" ? "người mua" : "người bán"}
-                  </h4>
+              {/* Buyer / Seller Info */}
+              <div className="party-info">
+                {order.buyerEmail && (
                   <div className="party-details">
+                    <h4 className="party-title">
+                      <User size={16} />
+                      Người mua
+                    </h4>
                     <div className="party-item">
                       <User size={16} className="party-icon" />
                       <div>
-                        <p className="party-label">Tên</p>
-                        <p className="party-value">{otherParty.name}</p>
+                        <p className="party-label">Email</p>
+                        <p className="party-value">{order.buyerEmail}</p>
                       </div>
                     </div>
-                    <div className="party-item">
-                      <MapPin size={16} className="party-icon" />
-                      <div>
-                        <p className="party-label">Địa chỉ</p>
-                        <p className="party-value">{otherParty.address}</p>
+                    {order.buyerPhone && (
+                      <div className="party-item">
+                        <MapPin size={16} className="party-icon" />
+                        <div>
+                          <p className="party-label">SĐT</p>
+                          <p className="party-value">{order.buyerPhone}</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
-                </div>
-              )}
+                )}
+                {order.sellerEmail && (
+                  <div className="party-details">
+                    <h4 className="party-title">
+                      <User size={16} />
+                      Người bán
+                    </h4>
+                    <div className="party-item">
+                      <User size={16} className="party-icon" />
+                      <div>
+                        <p className="party-label">Email</p>
+                        <p className="party-value">{order.sellerEmail}</p>
+                      </div>
+                    </div>
+                    {order.sellerPhone && (
+                      <div className="party-item">
+                        <MapPin size={16} className="party-icon" />
+                        <div>
+                          <p className="party-label">SĐT</p>
+                          <p className="party-value">{order.sellerPhone}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Delivery Status */}
           <div className="order-card">
-            <div className="card-header">
-              <h2 className="card-title">Trạng thái giao hàng</h2>
+            <div className="od-card-header">
+              <h2 className="od-card-title">Trạng thái đơn hàng</h2>
             </div>
-            <div className="card-body">
-              <OrderStatusStepper currentStatus={order.currentStatus} type={type} />
+            <div className="od-card-body">
+              <OrderStatusStepper currentStatus={order.status} />
 
-              {/* Cancel Order Button (only for buy orders and not completed) */}
-              {type === "buy" && order.currentStatus < 3 && (
+              {/* PayOS checkout link for pending orders */}
+              {hasCheckoutUrl && (
                 <div className="action-button-container">
-                  <button className="action-button cancel-button">
+                  <a
+                    href={order.checkoutUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="od-action-button review-button"
+                  >
+                    <ExternalLink size={16} />
+                    Thanh toán ngay
+                  </a>
+                  {order.paymentExpiredAt && (
+                    <p className="payment-expiry">
+                      Hết hạn thanh toán: {formatDate(order.paymentExpiredAt)}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="action-button-container">
+                {canCancel && (
+                  <button
+                    className="od-action-button cancel-button"
+                    onClick={handleCancel}
+                    disabled={actionLoading}
+                  >
                     <XCircle size={16} />
-                    Hủy đơn
+                    {actionLoading ? "Đang xử lý..." : "Hủy đơn"}
                   </button>
-                </div>
-              )}
-
-              {/* Review Button (if status is completed) */}
-              {order.currentStatus === 3 && (
-                <div className="action-button-container">
-                  <button className="action-button review-button">
-                    Viết đánh giá
+                )}
+                {canConfirm && (
+                  <button
+                    className="od-action-button review-button"
+                    onClick={handleConfirm}
+                    disabled={actionLoading}
+                  >
+                    <CheckCircle2 size={16} />
+                    {actionLoading ? "Đang xử lý..." : "Xác nhận đơn hàng"}
                   </button>
-                </div>
-              )}
+                )}
+                {canComplete && (
+                  <button
+                    className="od-action-button review-button"
+                    onClick={handleComplete}
+                    disabled={actionLoading}
+                  >
+                    <CheckCircle2 size={16} />
+                    {actionLoading ? "Đang xử lý..." : "Đã nhận hàng"}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

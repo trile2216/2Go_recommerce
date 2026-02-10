@@ -40,6 +40,8 @@ public interface IOrderTransactionRepository : IGenericRepository<OrderTransacti
 public interface IOrderInvoiceRepository : IGenericRepository<OrderInvoice> { }
 public interface IPaymentRepository : IGenericRepository<Payment> { }
 public interface IPaymentLogRepository : IGenericRepository<PaymentLog> { }
+public interface ITransferRepository : IGenericRepository<Transfer> { }
+public interface ITransferTransactionRepository : IGenericRepository<TransferTransaction> { }
 public interface IPointTransactionRepository : IGenericRepository<PointTransaction> { }
 public interface IReportRepository : IGenericRepository<Report> { }
 public interface ISavedListingRepository : IGenericRepository<SavedListing> { }

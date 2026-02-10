@@ -355,7 +355,7 @@ export default function AdminCategory() {
             </div>
 
             <form onSubmit={handleSubmit} className="admin-modal-form">
-              <div className="form-group">
+              <div className="admin-form-group">
                 <label>Category Name *</label>
                 <input
                   type="text"
@@ -367,7 +367,7 @@ export default function AdminCategory() {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="admin-form-group">
                 <label>Icon URL</label>
                 <input
                   type="text"
@@ -378,7 +378,7 @@ export default function AdminCategory() {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="admin-form-group">
                 <label>Status</label>
                 <select
                   name="isActive"
@@ -422,7 +422,7 @@ export default function AdminCategory() {
             </div>
 
             <form className="admin-modal-form">
-              <div className="form-group">
+              <div className="admin-form-group">
                 <label>Subcategory Name *</label>
                 <input
                   type="text"
@@ -434,7 +434,7 @@ export default function AdminCategory() {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="admin-form-group">
                 <label>Icon URL</label>
                 <input
                   type="text"

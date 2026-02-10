@@ -77,6 +77,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<PaymentLog> PaymentLogs { get; set; }
 
+    public virtual DbSet<Transfer> Transfers { get; set; }
+
+    public virtual DbSet<TransferTransaction> TransferTransactions { get; set; }
+
     public virtual DbSet<PointTransaction> PointTransactions { get; set; }
 
     public virtual DbSet<Report> Reports { get; set; }

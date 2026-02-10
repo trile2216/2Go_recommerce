@@ -1,116 +1,59 @@
-import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Heart, X, Phone } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
+import { X, Phone } from 'lucide-react';
+import { removeFromCompare, clearCompare } from '../../store/slices/compareSlice';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import './Compare.css';
 
 const Compare = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const productIds = searchParams.get('ids')?.split(',') || [];
+  const dispatch = useDispatch();
+  const products = useSelector(state => state.compare.items);
 
-  // Mock data - trong thực tế sẽ fetch từ API
-  const [products] = useState([
-    {
-      id: 1,
-      name: 'iPhone 13 Pro 128GB',
-      price: 12500000,
-      image: 'https://via.placeholder.com/200x200?text=iPhone+13+Pro',
-      rating: 5,
-      reviews: 126,
-      brand: 'Apple',
-      baseStorage: '128GB',
-      processor: 'A15 Bionic',
-      ram: '6GB',
-      location: 'Phường Linh Xuân, Thủ Đức',
-      weight: '203g',
-      battery: '3240mAh',
-      seller: 'Nguyễn Văn A',
-      sellerRating: '4.9'
-    },
-    {
-      id: 2,
-      name: 'iPhone 14 Pro Max 256GB',
-      price: 15500000,
-      image: 'https://via.placeholder.com/200x200?text=iPhone+14+Pro+Max',
-      rating: 5,
-      reviews: 234,
-      brand: 'Apple',
-      baseStorage: '256GB',
-      processor: 'A16 Bionic',
-      ram: '8GB',
-      location: 'Phường Tam Phú, Thủ Đức',
-      weight: '240g',
-      battery: '4323mAh',
-      seller: 'Nguyễn Văn B',
-      sellerRating: '4.8'
-    }
-  ]);
+  const formatPrice = (price) => {
+    if (!price) return '—';
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(price);
+  };
 
   const comparisonItems = [
-    {
-      label: 'Thương hiệu cơ bản',
-      key: 'brand'
-    },
-    {
-      label: 'Giá',
-      key: 'price',
-      format: (value) => value.toLocaleString('vi-VN') + '₫'
-    },
-    {
-      label: 'Dung lượng',
-      key: 'baseStorage'
-    },
-    {
-      label: 'Bộ xử lý',
-      key: 'processor'
-    },
-    {
-      label: 'RAM',
-      key: 'ram'
-    },
-    {
-      label: 'Vị trí',
-      key: 'location'
-    },
-    {
-      label: 'Khối lượng',
-      key: 'weight'
-    },
-    {
-      label: 'Pin',
-      key: 'battery'
-    },
-    {
-      label: 'Người bán',
-      key: 'seller'
-    },
-    {
-      label: 'Đánh giá người bán',
-      key: 'sellerRating'
-    }
+    { label: 'Giá', key: 'price', format: (value) => formatPrice(value) },
+    { label: 'Danh mục', key: 'categoryName' },
+    { label: 'Danh mục phụ', key: 'subCategoryName' },
+    { label: 'Mô tả', key: 'description' },
   ];
 
-  const handleChangeProduct = (index) => {
+  const handleRemoveProduct = (productId) => {
+    dispatch(removeFromCompare(productId));
+  };
+
+  const handleClearAll = () => {
+    dispatch(clearCompare());
     navigate('/');
   };
 
-  const handleContactSeller = (product) => {
-    // Navigate to messages or open contact dialog
-    navigate(`/messages?seller=${product.seller}`);
-  };
-
-  const renderRating = (rating, reviews) => {
+  if (products.length === 0) {
     return (
-      <div className="rating">
-        {[...Array(5)].map((_, i) => (
-          <span key={i} className="star">★</span>
-        ))}
-        <span className="review-count">({reviews})</span>
+      <div className="compare-page">
+        <Header />
+        <main className="compare-container">
+          <div className="compare-wrapper">
+            <div className="compare-empty">
+              <h2>Chưa có sản phẩm nào để so sánh</h2>
+              <p>Hãy thêm sản phẩm từ trang chủ để bắt đầu so sánh</p>
+              <button className="btn-add-product" onClick={() => navigate('/')}>
+                Quay lại trang chủ
+              </button>
+            </div>
+          </div>
+        </main>
+        <Footer />
       </div>
     );
-  };
+  }
 
   return (
     <div className="compare-page">
@@ -120,41 +63,53 @@ const Compare = () => {
         <div className="compare-wrapper">
           {/* Title */}
           <div className="compare-header">
-            <h1 className="compare-title">So sánh sản phẩm</h1>
+            <h1 className="compare-title">So sánh sản phẩm ({products.length})</h1>
             <p className="compare-subtitle">So sánh chi tiết giữa các sản phẩm để chọn lựa tốt nhất</p>
+            {/* <button className="cmp-btn-clear" onClick={handleClearAll}>
+              Xóa tất cả
+            </button> */}
           </div>
 
           {/* Product Cards */}
           <div className="compare-cards">
-            {products.map((product, index) => (
-              <div key={product.id} className="product-card">
-                <div className="product-image-wrapper">
-                  <img src={product.image} alt={product.name} className="product-image" />
-                  <button className="wishlist-btn">
-                    <Heart size={20} fill="currentColor" />
+            {products.map((product) => (
+              <div key={product.id} className="compare-product-card">
+                <div className="compare-product-image-wrapper">
+                  {product.primaryImageUrl ? (
+                    <img src={product.primaryImageUrl} alt={product.title} className="compare-product-image" />
+                  ) : (
+                    <div className="compare-image-placeholder">{product.title}</div>
+                  )}
+                  <button 
+                    className="compare-remove-btn"
+                    onClick={() => handleRemoveProduct(product.id)}
+                    title="Xóa khỏi so sánh"
+                  >
+                    <X size={18} />
                   </button>
                 </div>
 
-                <div className="product-info">
-                  <h3 className="product-name">{product.name}</h3>
+                <div className="compare-product-info">
+                  <h3 className="compare-product-name">{product.title}</h3>
                   
-                  <div className="product-price">
-                    {product.price.toLocaleString('vi-VN')}
-                    <span className="currency">₫</span>
+                  <div className="compare-product-price">
+                    {formatPrice(product.price)}
                   </div>
 
-                  {renderRating(product.rating, product.reviews)}
+                  {product.categoryName && (
+                    <span className="compare-product-category">{product.categoryName}</span>
+                  )}
 
-                  <div className="product-actions">
+                  <div className="compare-product-actions">
                     <button 
-                      className="btn-secondary"
-                      onClick={() => handleChangeProduct(index)}
+                      className="cmp-btn-secondary"
+                      onClick={() => navigate(`/product/${product.id}`)}
                     >
-                      Thay đổi
+                      Xem chi tiết
                     </button>
                     <button 
-                      className="btn-primary"
-                      onClick={() => handleContactSeller(product)}
+                      className="cmp-btn-primary"
+                      onClick={() => navigate(`/chat`)}
                     >
                       <Phone size={16} />
                       Liên hệ
@@ -176,7 +131,9 @@ const Compare = () => {
                     <td className="spec-label">{item.label}</td>
                     {products.map((product) => (
                       <td key={`${product.id}-${item.key}`} className="spec-value">
-                        {item.format ? item.format(product[item.key]) : product[item.key]}
+                        {item.format 
+                          ? item.format(product[item.key]) 
+                          : (product[item.key] || '—')}
                       </td>
                     ))}
                   </tr>

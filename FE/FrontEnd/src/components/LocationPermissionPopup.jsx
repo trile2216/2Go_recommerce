@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { MapPin, X, Loader2 } from "lucide-react";
 import { getUserLocationWithAddress } from "../service/location/api.location";
+import { useToast } from "../context/ToastContext";
 
 export default function LocationPermissionPopup() {
   const [showLocationPermission, setShowLocationPermission] = useState(false);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const toast = useToast();
 
   // Check if we should show location permission popup
   useEffect(() => {
@@ -87,7 +89,8 @@ export default function LocationPermissionPopup() {
       localStorage.setItem('locationPermissionGranted', 'false');
       setShowLocationPermission(false);
       
-      alert(errorMessage);
+      // Show error via console (toast not available in this context)
+      toast.error(errorMessage);
     } finally {
       setIsLoadingLocation(false);
     }
