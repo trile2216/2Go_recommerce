@@ -239,19 +239,39 @@ public class SellerListingService : ISellerListingService
         {
             throw new InvalidOperationException("Title is required.");
         }
-        if (!request.Price.HasValue || request.Price.Value <= 0)
+        var status = request.Status;
+        if (string.IsNullOrWhiteSpace(status))
         {
-            throw new InvalidOperationException("Price must be greater than 0.");
+            status = ListingStatuses.Draft;
         }
+
+        if (!string.Equals(status, ListingStatuses.Draft, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(status, ListingStatuses.PendingReview, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Invalid status for creation. Allowed: Draft, PendingReview.");
+        }
+
+        if (string.Equals(status, ListingStatuses.PendingReview, StringComparison.OrdinalIgnoreCase))
+        {
+            if (!request.Price.HasValue || request.Price.Value <= 0)
+            {
+                throw new InvalidOperationException("Price must be greater than 0 for listings.");
+            }
+        }
+
         var mediaRequests = request.Media?.ToList() ?? new List<ListingMediaRequest>();
         ValidateMediaRequests(mediaRequests);
         var imageRequests = mediaRequests
             .Where(m => string.IsNullOrWhiteSpace(m.MediaType) ||
                         m.MediaType == MediaTypes.Image)
             .ToList();
-        if (imageRequests.Count == 0)
+
+        if (string.Equals(status, ListingStatuses.PendingReview, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("At least one image is required.");
+            if (imageRequests.Count == 0)
+            {
+                throw new InvalidOperationException("At least one image is required.");
+            }
         }
         var listing = new Listing
         {
@@ -268,7 +288,7 @@ public class SellerListingService : ISellerListingService
             Dimensions = request.Dimensions,
             Weight = request.Weight,
             Brand = request.Brand,
-            Status = ListingStatuses.Draft,
+            Status = status,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
