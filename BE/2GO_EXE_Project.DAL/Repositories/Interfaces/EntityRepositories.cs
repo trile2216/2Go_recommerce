@@ -25,6 +25,11 @@ public interface IListingRepository : IGenericRepository<Listing> { }
 public interface IListingAttributeRepository : IGenericRepository<ListingAttribute> { }
 public interface IListingMediaRepository : IGenericRepository<ListingMedia> { }
 public interface IListingViewRepository : IGenericRepository<ListingView> { }
+public interface IListingCommentRepository : IGenericRepository<ListingComment>  
+{
+    Task<ListingComment?> GetByIdWithDetailsAsync(long commentId, CancellationToken cancellationToken = default);
+    Task<(int Total, IReadOnlyList<ListingComment> Items)> GetByListingIdAsync(long listingId, int skip, int take, CancellationToken cancellationToken = default);
+}
 public interface IManualReviewQueueRepository : IGenericRepository<ManualReviewQueue> { }
 public interface IMarketPriceRepository : IGenericRepository<MarketPrice> { }
 public interface IMessageRepository : IGenericRepository<Message> { }

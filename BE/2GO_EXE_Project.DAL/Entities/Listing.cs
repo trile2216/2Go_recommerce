@@ -77,6 +77,9 @@ public partial class Listing
     public virtual ICollection<ListingMedia> ListingMedias { get; set; } = new List<ListingMedia>();
 
     [InverseProperty("Listing")]
+    public virtual ICollection<ListingComment> ListingComments { get; set; } = new List<ListingComment>();
+
+    [InverseProperty("Listing")]
     public virtual ICollection<ListingView> ListingViews { get; set; } = new List<ListingView>();
 
     [InverseProperty("Listing")]

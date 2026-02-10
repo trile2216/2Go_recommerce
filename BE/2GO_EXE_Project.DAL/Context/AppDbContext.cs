@@ -61,6 +61,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<ListingView> ListingViews { get; set; }
 
+    public virtual DbSet<ListingComment> ListingComments { get; set; }
+
     public virtual DbSet<Message> Messages { get; set; }
 
     public virtual DbSet<MarketPrice> MarketPrices { get; set; }
@@ -325,6 +327,21 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Listing).WithMany(p => p.ListingViews).HasConstraintName("FK_ListingViews_Listings");
 
             entity.HasOne(d => d.User).WithMany(p => p.ListingViews).HasConstraintName("FK_ListingViews_Users");
+        });
+
+        modelBuilder.Entity<ListingComment>(entity =>
+        {
+            entity.HasKey(e => e.CommentId).HasName("PK__ListingC__D7C4A67F4A017A9D");
+
+            entity.Property(e => e.Content)
+                .HasMaxLength(2000)
+                .IsRequired();
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+
+            entity.HasOne(d => d.Listing).WithMany(p => p.ListingComments).HasConstraintName("FK_ListingComments_Listings");
+
+            entity.HasOne(d => d.User).WithMany(p => p.ListingComments).HasConstraintName("FK_ListingComments_Users");
         });
 
         modelBuilder.Entity<Message>(entity =>

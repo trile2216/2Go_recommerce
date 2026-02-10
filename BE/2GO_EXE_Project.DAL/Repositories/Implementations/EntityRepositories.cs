@@ -1,6 +1,7 @@
 using _2GO_EXE_Project.DAL.Context;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace _2GO_EXE_Project.DAL.Repositories.Implementations;
 
@@ -27,6 +28,43 @@ public class ListingRepository : GenericRepository<Listing>, IListingRepository 
 public class ListingAttributeRepository : GenericRepository<ListingAttribute>, IListingAttributeRepository { public ListingAttributeRepository(AppDbContext ctx) : base(ctx) { } }
 public class ListingMediaRepository : GenericRepository<ListingMedia>, IListingMediaRepository { public ListingMediaRepository(AppDbContext ctx) : base(ctx) { } }
 public class ListingViewRepository : GenericRepository<ListingView>, IListingViewRepository { public ListingViewRepository(AppDbContext ctx) : base(ctx) { } }
+public class ListingCommentRepository : GenericRepository<ListingComment>, IListingCommentRepository
+{
+    private readonly AppDbContext _context;
+
+    public ListingCommentRepository(AppDbContext ctx) : base(ctx)
+    {
+        _context = ctx;
+    }
+
+    public async Task<ListingComment?> GetByIdWithDetailsAsync(long commentId, CancellationToken cancellationToken = default)
+    {
+        return await _context.ListingComments
+            .Include(c => c.User)
+                .ThenInclude(u => u!.UserProfiles)
+            .FirstOrDefaultAsync(c => c.CommentId == commentId, cancellationToken);
+    }
+
+    public async Task<(int Total, IReadOnlyList<ListingComment> Items)> GetByListingIdAsync(
+        long listingId,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.ListingComments
+            .Include(c => c.User)
+                .ThenInclude(u => u!.UserProfiles)
+            .Include(c => c.Replies)
+            .Where(c => c.ListingId == listingId && c.ParentId == null)
+            .OrderByDescending(c => c.CreatedAt);
+
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query.Skip(skip).Take(take).ToListAsync(cancellationToken);
+
+        return (total, items);
+    }
+}
+
 public class ManualReviewQueueRepository : GenericRepository<ManualReviewQueue>, IManualReviewQueueRepository { public ManualReviewQueueRepository(AppDbContext ctx) : base(ctx) { } }
 public class MarketPriceRepository : GenericRepository<MarketPrice>, IMarketPriceRepository { public MarketPriceRepository(AppDbContext ctx) : base(ctx) { } }
 public class MessageRepository : GenericRepository<Message>, IMessageRepository { public MessageRepository(AppDbContext ctx) : base(ctx) { } }
@@ -87,6 +125,7 @@ public class UnitOfWork : IUnitOfWork
         ListingAttributes = new ListingAttributeRepository(_context);
         ListingMedias = new ListingMediaRepository(_context);
         ListingViews = new ListingViewRepository(_context);
+        ListingComments = new ListingCommentRepository(_context);
         ManualReviewQueues = new ManualReviewQueueRepository(_context);
         MarketPrices = new MarketPriceRepository(_context);
         Messages = new MessageRepository(_context);
@@ -140,6 +179,7 @@ public class UnitOfWork : IUnitOfWork
     public IListingAttributeRepository ListingAttributes { get; }
     public IListingMediaRepository ListingMedias { get; }
     public IListingViewRepository ListingViews { get; }
+    public IListingCommentRepository ListingComments { get; }
     public IManualReviewQueueRepository ManualReviewQueues { get; }
     public IMarketPriceRepository MarketPrices { get; }
     public IMessageRepository Messages { get; }

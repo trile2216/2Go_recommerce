@@ -56,13 +56,13 @@ public class SellerListingService : ISellerListingService
         {
             var result = new ValidationResult();
             result.Add("wardId", "WardId does not exist.");
-            throw new ValidationException(result.Errors, "INVALID_LOCATION");
+            throw new CustomValidationException(result.Errors, "INVALID_LOCATION");
         }
         if (!ward.DistrictId.HasValue || !ward.CityId.HasValue)
         {
             var result = new ValidationResult();
             result.Add("wardId", "WardId is missing district or city.");
-            throw new ValidationException(result.Errors, "INVALID_LOCATION");
+            throw new CustomValidationException(result.Errors, "INVALID_LOCATION");
         }
     }
 

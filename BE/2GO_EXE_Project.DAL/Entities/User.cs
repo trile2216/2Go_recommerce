@@ -78,6 +78,9 @@ public partial class User
     [InverseProperty("User")]
     public virtual ICollection<ListingView> ListingViews { get; set; } = new List<ListingView>();
 
+    [InverseProperty("User")]
+    public virtual ICollection<ListingComment> ListingComments { get; set; } = new List<ListingComment>();
+
     [InverseProperty("Seller")]
     public virtual ICollection<Listing> Listings { get; set; } = new List<Listing>();
 
