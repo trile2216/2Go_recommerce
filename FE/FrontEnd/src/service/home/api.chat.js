@@ -36,7 +36,7 @@ export const createOrGetChat = async (otherUserId) => {
  * @param {number} take
  * @returns {Promise<Array<{ messageId: number, chatId: number, senderId: number|null, content: string|null, imageUrl: string|null, sentAt: string|null }>>}
  */
-export const fetchMessages = async (chatId, skip = 0, take = 50) => {
+export const fetchMessages = async (chatId, skip = 0, take = 20) => {
     try {
         const response = await api.get(`/chats/${chatId}/messages?skip=${skip}&take=${take}`);
         return response.data;

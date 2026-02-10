@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import {
   Layout,
   List,
@@ -29,7 +30,7 @@ import {
   Shield,
   EyeOff,
 } from 'lucide-react';
-import { fetchMyChats, fetchMessages, sendMessage } from '../../service/home/api.chat';
+import { fetchMyChats, fetchMessages, sendMessage, createOrGetChat } from '../../service/home/api.chat';
 import useAuth from '../../context/UseAuth';
 import './Chat.css';
 
@@ -44,6 +45,7 @@ const QUICK_REPLIES = [
 ];
 
 export default function Chat() {
+  const { sellerId } = useParams();
   const { user } = useAuth();
   const currentUserId = user?.userId;
 
@@ -58,6 +60,7 @@ export default function Chat() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
 
+  const messagesContainerRef = useRef(null);
   const messagesEndRef = useRef(null);
   const pollIntervalRef = useRef(null);
 
@@ -65,7 +68,9 @@ export default function Chat() {
 
   // Scroll to bottom of messages
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   }, []);
 
   // Format time ago
@@ -141,6 +146,27 @@ export default function Chat() {
   useEffect(() => {
     loadChats();
   }, [loadChats]);
+
+  // Auto-open chat when navigating from product page with sellerId
+  useEffect(() => {
+    if (!sellerId || loadingChats) return;
+    
+    const openChatWithSeller = async () => {
+      try {
+        const chat = await createOrGetChat(Number(sellerId));
+        if (chat?.chatId) {
+          setSelectedChatId(chat.chatId);
+          // Refresh chat list to include the new/existing chat
+          await loadChats();
+        }
+      } catch (error) {
+        console.error('Failed to open chat with seller:', error);
+        antMessage.error('Không thể mở cuộc trò chuyện với người bán');
+      }
+    };
+    
+    openChatWithSeller();
+  }, [sellerId, loadingChats]);
 
   // Load messages when a conversation is selected
   useEffect(() => {
@@ -321,7 +347,7 @@ export default function Chat() {
                       title={
                         <div className="chat-item-title">
                           <Text strong className="chat-name">
-                            User #{item.otherUserId}
+                            {item.otherUser?.fullName || item.otherUser?.email}
                           </Text>
                           <Text className="chat-time">
                             {formatTimeAgo(item.lastMessageAt)}
@@ -363,7 +389,7 @@ export default function Chat() {
                   </Avatar>
                   <div className="chat-header-info">
                     <Text strong className="chat-header-name">
-                      User #{selectedConversation?.otherUserId}
+                      {selectedConversation?.otherUser?.fullName || selectedConversation?.otherUser?.email}
                     </Text>
                   </div>
                 </div>
@@ -378,12 +404,8 @@ export default function Chat() {
               <Divider style={{ margin: '12px 0' }} />
 
               {/* Messages */}
-              <div className="chat-messages">
-                {loadingMessages ? (
-                  <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                    <Spin />
-                  </div>
-                ) : messages.length === 0 ? (
+              <div className="chat-messages" ref={messagesContainerRef}>
+                {messages.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '40px 20px', color: '#8e8e8e' }}>
                     Hãy gửi tin nhắn đầu tiên!
                   </div>
@@ -440,48 +462,51 @@ export default function Chat() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Quick Replies */}
-              <div className="chat-quick-replies">
-                {QUICK_REPLIES.map((reply, idx) => (
-                  <Button
-                    key={idx}
-                    className="quick-reply-btn"
-                    onClick={() => setMessageText(reply)}
-                  >
-                    {reply}
-                  </Button>
-                ))}
-              </div>
+              {/* Chat Footer - Sticky Bottom */}
+              <div className="chat-footer">
+                {/* Quick Replies */}
+                <div className="chat-quick-replies">
+                  {QUICK_REPLIES.map((reply, idx) => (
+                    <Button
+                      key={idx}
+                      className="quick-reply-btn"
+                      onClick={() => setMessageText(reply)}
+                    >
+                      {reply}
+                    </Button>
+                  ))}
+                </div>
 
-              {/* Input Area */}
-              <div className="chat-input-area">
-                <Button
-                  type="text"
-                  icon={<ImageIcon size={20} />}
-                  className="input-icon-btn"
-                />
-                <Button
-                  type="text"
-                  icon={<MapPin size={20} />}
-                  className="input-icon-btn"
-                />
-                <Input
-                  placeholder="Nhập tin nhắn"
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
-                  onPressEnter={handleSendMessage}
-                  className="message-input"
-                  variant="filled"
-                  disabled={sendingMessage}
-                />
-                <Button
-                  type="primary"
-                  icon={<Send size={16} />}
-                  className="send-button"
-                  disabled={!messageText.trim() || sendingMessage}
-                  loading={sendingMessage}
-                  onClick={handleSendMessage}
-                />
+                {/* Input Area */}
+                <div className="chat-input-area">
+                  <Button
+                    type="text"
+                    icon={<ImageIcon size={20} />}
+                    className="input-icon-btn"
+                  />
+                  <Button
+                    type="text"
+                    icon={<MapPin size={20} />}
+                    className="input-icon-btn"
+                  />
+                  <Input
+                    placeholder="Nhập tin nhắn"
+                    value={messageText}
+                    onChange={(e) => setMessageText(e.target.value)}
+                    onPressEnter={handleSendMessage}
+                    className="message-input"
+                    variant="filled"
+                    disabled={sendingMessage}
+                  />
+                  <Button
+                    type="primary"
+                    icon={<Send size={16} />}
+                    className="send-button"
+                    disabled={!messageText.trim() || sendingMessage}
+                    loading={sendingMessage}
+                    onClick={handleSendMessage}
+                  />
+                </div>
               </div>
             </Card>
           ) : (

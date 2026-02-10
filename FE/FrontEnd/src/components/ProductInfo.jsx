@@ -5,7 +5,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { addToCompare, removeFromCompare } from '../store/slices/compareSlice';
 import { useToast } from '../context/ToastContext';
 import { getSavedStatus, saveListing, removeSavedListing } from '../service/home/api.savedListing';
-import { createOrGetChat } from '../service/home/api.chat';
 
 export default function ProductInfo({ product, listingId, primaryImageUrl, rawPrice }) {
   const { addToCart, isInCart } = useCart();
@@ -99,18 +98,12 @@ export default function ProductInfo({ product, listingId, primaryImageUrl, rawPr
     }
   };
 
-  const handleChatWithSeller = async () => {
-    try {
-      const chat = await createOrGetChat(product.sellerId);
-      if (chat && chat.chatId) {
-        navigate(`/chats/${chat.chatId}`);
-      } else {
-        toast.error('Không thể tạo cuộc trò chuyện với người bán.');
-      }
-    } catch (error) {
-      console.error('Error creating chat:', error);
-      toast.error('Đã xảy ra lỗi khi tạo cuộc trò chuyện.');
+  const handleChatWithSeller = () => {
+    if (!product.sellerId) {
+      toast.error('Không tìm thấy thông tin người bán.');
+      return;
     }
+    navigate(`/chats/${product.sellerId}`);
   };
 
   return (

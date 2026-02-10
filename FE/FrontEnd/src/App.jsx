@@ -16,6 +16,7 @@ import Listings from './pages/Listings/Listings';
 import PostListing from './pages/PostListing/PostListing';
 import Chat from './pages/Chat/Chat';
 import CompareFloatingButton from './components/CompareFloatingButton';
+import AIChatFloating from './components/AIChatFloating';
 import ScrollToTop from './components/ScrollToTop';
 
 // Admin Pages
@@ -41,6 +42,7 @@ const RootLayout = () => {
     <>
       <ScrollToTop />
       <CompareFloatingButton />
+      <AIChatFloating />
       <Outlet />
     </>
   );
