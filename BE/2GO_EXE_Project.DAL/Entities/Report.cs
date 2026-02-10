@@ -21,6 +21,10 @@ public partial class Report
 
     public string? Reason { get; set; }
 
+    [StringLength(4000)]
+    [Unicode(false)]
+    public string? EvidenceUrls { get; set; }
+
     [StringLength(50)]
     [Unicode(false)]
     public string? Status { get; set; }

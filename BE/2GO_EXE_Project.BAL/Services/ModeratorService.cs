@@ -152,7 +152,7 @@ public class ModeratorService : IModeratorService
         var report = await _uow.Reports.Query()
             .FirstOrDefaultAsync(r => r.ReportId == reportId, cancellationToken);
         if (report == null) return null;
-        return new ReportDetail(report.ReportId, report.OrderId, report.ReporterId, report.TargetUserId, report.ListingId, report.Reason, report.Status, report.WaitingForUserId, report.CreatedAt);
+        return new ReportDetail(report.ReportId, report.OrderId, report.ReporterId, report.TargetUserId, report.ListingId, report.Reason, ParseEvidenceUrls(report.EvidenceUrls), report.Status, report.WaitingForUserId, report.CreatedAt);
     }
 
     public async Task<BasicResponse> ResolveReportAsync(ClaimsPrincipal modPrincipal, long reportId, ResolveReportRequest request, CancellationToken cancellationToken = default)
@@ -468,6 +468,19 @@ public class ModeratorService : IModeratorService
         catch
         {
             // swallow logging errors
+        }
+    }
+
+    private static IReadOnlyList<string>? ParseEvidenceUrls(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(json);
+        }
+        catch
+        {
+            return null;
         }
     }
 

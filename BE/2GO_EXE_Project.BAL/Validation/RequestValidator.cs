@@ -15,6 +15,8 @@ namespace _2GO_EXE_Project.BAL.Validation;
 public static partial class RequestValidator
 {
     private const int ReasonMaxLength = 500;
+    private const int EvidenceUrlMaxLength = 500;
+    private const int EvidenceMaxCount = 5;
     private const int MessageMaxLength = 1000;
     private const int AddressMaxLength = 255;
     private const int ProviderMaxLength = 50;
@@ -276,6 +278,26 @@ public static partial class RequestValidator
         else if (request.Reason.Trim().Length > ReasonMaxLength)
         {
             result.Add("reason", "Reason must be <= 500 chars.");
+        }
+        if (request.EvidenceUrls != null)
+        {
+            if (request.EvidenceUrls.Count > EvidenceMaxCount)
+            {
+                result.Add("evidenceUrls", $"EvidenceUrls must be <= {EvidenceMaxCount} items.");
+            }
+            for (var i = 0; i < request.EvidenceUrls.Count; i++)
+            {
+                var url = request.EvidenceUrls[i];
+                if (string.IsNullOrWhiteSpace(url))
+                {
+                    result.Add($"evidenceUrls[{i}]", "Evidence url is required.");
+                    continue;
+                }
+                if (url.Trim().Length > EvidenceUrlMaxLength)
+                {
+                    result.Add($"evidenceUrls[{i}]", "Evidence url must be <= 500 chars.");
+                }
+            }
         }
         return result;
     }
