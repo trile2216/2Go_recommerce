@@ -30,6 +30,8 @@ import { uploadImageAndGetUrl, uploadVideoAndGetUrl } from "../../service/upload
 import { createListing } from "../../service/home/api.sellerListing";
 import { fetchAllCategories, fetchSubCategoriesByCategoryId } from "../../service/home/api.category";
 import { fetchAllDistricts, fetchAllWards } from "../../service/home/api.ward";
+import { listingPrecheck } from "../../service/ai/api.analyze";
+import useAuth from "../../hooks/useAuth";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -38,6 +40,7 @@ const { Option } = Select;
 export default function PostListing() {
     const navigate = useNavigate();
     const [form] = Form.useForm();
+    const { user } = useAuth();
 
     // Modal State
     const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(true);
@@ -300,10 +303,11 @@ export default function PostListing() {
             }));
 
             // Upload video if present
+            let videoUrl = null;
             if (videoList.length > 0) {
                 const videoFile = videoList[0].file;
                 if (videoFile) {
-                    const videoUrl = await uploadVideoAndGetUrl(videoFile);
+                    videoUrl = await uploadVideoAndGetUrl(videoFile);
                     mediaData.push({
                         url: videoUrl,
                         mediaType: "VIDEO",
@@ -311,6 +315,33 @@ export default function PostListing() {
                         sortOrder: mediaData.length,
                     });
                 }
+            }
+
+            // Collect all media URLs for precheck
+            const allMediaUrls = [...imageUrlArr];
+            if (videoUrl) allMediaUrls.push(videoUrl);
+
+            // Call precheck API before creating listing
+            const precheckData = {
+                title: values.title,
+                description: values.description,
+                categoryId: selectedCategory?.id || 0,
+                brand: values.brand || "",
+                price: values.isFree ? 0 : parseFloat(values.price) || 0,
+                mediaUrls: allMediaUrls,
+                userId: user?.userId || user?.id || "",
+            };
+
+            const precheckResult = await listingPrecheck(precheckData);
+
+            if (!precheckResult.canPublish) {
+                hideLoadingMsg();
+                message.error(
+                    precheckResult.risk?.message || 
+                    precheckResult.note || 
+                    "Bài đăng không đủ điều kiện. Vui lòng kiểm tra lại!"
+                );
+                return;
             }
 
             // Prepare request body matching CreateSellerListingRequest DTO

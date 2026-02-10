@@ -21,6 +21,8 @@ import { fetchAllCategories, fetchSubCategoriesByCategoryId } from "../service/h
 import { fetchAllDistricts, fetchAllWards } from "../service/home/api.ward";
 import { createListing } from "../service/home/api.sellerListing";
 import { uploadImageAndGetUrl, uploadVideo } from "../service/upload/api.upload";
+import { listingPrecheck } from "../service/ai/api.analyze";
+import { useAuth } from "../context/AuthContext";
 
 const CONDITIONS = [
   { value: "new", label: "Mới" },
@@ -28,6 +30,8 @@ const CONDITIONS = [
 ];
 
 const PostListing = ({ navigation }) => {
+  const { user } = useAuth();
+
   // Form State
   const [formData, setFormData] = useState({
     title: "",
@@ -283,6 +287,7 @@ const PostListing = ({ navigation }) => {
       }));
 
       // Upload video if present
+      let videoUrl = null;
       if (videoUri) {
         const videoFile = {
           uri: videoUri,
@@ -290,13 +295,39 @@ const PostListing = ({ navigation }) => {
           name: `video_${Date.now()}.mp4`,
         };
         const videoResult = await uploadVideo(videoFile);
-        const videoUrl = videoResult.secureUrl || videoResult.url;
+        videoUrl = videoResult.secureUrl || videoResult.url;
         mediaData.push({
           url: videoUrl,
           mediaType: "VIDEO",
           isPrimary: false,
           sortOrder: mediaData.length,
         });
+      }
+
+      // Collect all media URLs for precheck
+      const allMediaUrls = [...imageUrlArr];
+      if (videoUrl) allMediaUrls.push(videoUrl);
+
+      // Call precheck API before creating listing
+      const precheckData = {
+        title: formData.title,
+        description: formData.description,
+        categoryId: selectedCategory?.id || 0,
+        brand: formData.brand || "",
+        price: formData.isFree ? 0 : parseFloat(formData.price) || 0,
+        mediaUrls: allMediaUrls,
+        userId: user?.userId || user?.id || "",
+      };
+
+      const precheckResult = await listingPrecheck(precheckData);
+
+      if (!precheckResult.canPublish) {
+        setIsSubmitting(false);
+        Alert.alert(
+          "Không thể đăng tin",
+          precheckResult.risk?.message || precheckResult.note || "Bài đăng không đủ điều kiện. Vui lòng kiểm tra lại!"
+        );
+        return;
       }
 
       // Prepare request
