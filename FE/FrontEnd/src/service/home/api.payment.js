@@ -1,0 +1,40 @@
+import api from '../../config/axios';
+
+/**
+ * Tạo thanh toán cho đơn hàng
+ * @param {number} orderId - ID đơn hàng
+ * @param {string} method - "COD" | "PayOS"
+ * @returns {Promise<PaymentResponse>} - includes payUrl for PayOS redirect
+ */
+export const createPayment = async (orderId, method) => {
+    const response = await api.post('/payments', { orderId, method });
+    return response.data;
+};
+
+/**
+ * Tạo thanh toán subscription
+ * @param {string} method
+ * @param {number|null} days
+ * @returns {Promise<PaymentResponse>}
+ */
+export const createSubscriptionPayment = async (method, days = null) => {
+    const response = await api.post('/payments/subscription', { method, days });
+    return response.data;
+};
+
+/**
+ * Xác minh trạng thái thanh toán
+ * @param {number} paymentId
+ * @param {string} status - "PAID" | "CANCELLED" | etc.
+ * @param {string|null} rawResponse
+ * @param {string|null} signature
+ * @returns {Promise<BasicResponse>}
+ */
+export const verifyPayment = async (paymentId, status, rawResponse = null, signature = null) => {
+    const response = await api.put(`/payments/${paymentId}/verify`, {
+        status,
+        rawResponse,
+        signature,
+    });
+    return response.data;
+};

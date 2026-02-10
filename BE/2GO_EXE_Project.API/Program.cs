@@ -111,6 +111,20 @@ builder.Services.AddKeyedSingleton("OrderClient", (serviceProvider, key) =>
 });
 builder.Services.AddScoped<IPayOSService, PayOSService>();
 
+// Configure payOS for transfer controller
+builder.Services.AddKeyedSingleton("TransferClient", (sp, key) =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    return new PayOSClient(new PayOSOptions
+    {
+        ClientId = config["PayOS:PayoutClientId"] ?? Environment.GetEnvironmentVariable("PAYOS_PAYOUT_CLIENT_ID"),
+        ApiKey = config["PayOS:PayoutApiKey"] ?? Environment.GetEnvironmentVariable("PAYOS_PAYOUT_API_KEY"),
+        ChecksumKey = config["PayOS:PayoutChecksumKey"] ?? Environment.GetEnvironmentVariable("PAYOS_PAYOUT_CHECKSUM_KEY"),
+        LogLevel = LogLevel.Debug,
+    });
+});
+builder.Services.AddScoped<ITransferService, TransferService>();
+
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 var connectionString = builder.Configuration.GetConnectionString("PostgreSqlConnection") ?? builder.Configuration.GetValue<string>("ConnectionStrings__PostgreSqlConnection");

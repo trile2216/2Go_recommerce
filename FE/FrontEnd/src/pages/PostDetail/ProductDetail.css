@@ -119,12 +119,12 @@
   gap: 2px;
 }
 
-.star {
+.pd-star {
   font-size: 18px;
   color: #d1d5db;
 }
 
-.star.filled {
+.pd-star.filled {
   color: #fbbf24;
 }
 
@@ -182,8 +182,15 @@
   gap: 12px;
 }
 
+.product-actions-secondary {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-buy-now,
 .btn-add-cart,
-.btn-compare {
+.btn-compare,
+.btn-save-listing {
   flex: 1;
   padding: 12px 20px;
   border: none;
@@ -192,6 +199,17 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+}
+
+.btn-buy-now {
+  background-color: #dc2626;
+  color: white;
+}
+
+.btn-buy-now:hover {
+  background-color: #b91c1c;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
 }
 
 .btn-add-cart {
@@ -205,6 +223,18 @@
   box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
 }
 
+.btn-add-cart.added {
+  background-color: #22c55e;
+  color: white;
+  cursor: default;
+}
+
+.btn-add-cart.added:hover {
+  background-color: #22c55e;
+  transform: none;
+  box-shadow: none;
+}
+
 .btn-compare {
   background-color: #fbbf24;
   color: #1f2937;
@@ -214,6 +244,47 @@
   background-color: #f59e0b;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+}
+
+.btn-compare.added {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.btn-compare.added:hover {
+  background-color: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-save-listing {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.btn-save-listing:hover {
+  background-color: #e5e7eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.btn-save-listing.saved {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+.btn-save-listing.saved:hover {
+  background-color: #fee2e2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+}
+
+.btn-save-listing:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .seller-section {
@@ -451,6 +522,45 @@
 
 .related-product-card:hover .related-image {
   transform: scale(1.05);
+}
+
+.related-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.related-product-card:hover .related-actions {
+  opacity: 1;
+}
+
+.related-action-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.related-action-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+}
+
+.related-action-btn.active {
+  background-color: #f8fafc;
 }
 
 .like-btn {

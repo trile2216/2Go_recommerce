@@ -7,9 +7,11 @@ import {
   Pressable,
   Dimensions,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useStorageContext } from "../provider/StorageProvider";
+import { useFavorites } from "../context/FavoritesContext";
+import { useCart } from "../context/CartContext";
 import { useState, useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { fetchProductById } from "../service/home/api.product";
@@ -25,19 +27,18 @@ const Detail = () => {
   const [loading, setLoading] = useState(!product);
   const [productDetail, setProductDetail] = useState(product || null);
 
-  const {
-    addStorageData: addToFavorites,
-    removeStorageData: removeFromFavorites,
-    storageData: favorites,
-  } = useStorageContext();
+  const { isFavorited, addToFavorites, removeFromFavorites } = useFavorites();
+  const { addToCart } = useCart();
+  const [addingToCart, setAddingToCart] = useState(false);
 
   // Fetch product details if not passed as param
   useEffect(() => {
-    if (!product && params?.id) {
+    const listingId = params?.listingId || params?.id || product?.listingId || product?.id;
+    if (!product && listingId) {
       const getProductDetail = async () => {
         try {
           setLoading(true);
-          const data = await fetchProductById(params.id);
+          const data = await fetchProductById(listingId);
           setProductDetail(data);
         } catch (err) {
           console.error("Error fetching product detail:", err);
@@ -50,11 +51,11 @@ const Detail = () => {
       setProductDetail(product);
       setLoading(false);
     }
-  }, [product, params?.id]);
+  }, [product, params?.id, params?.listingId]);
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#f5f7f8" }}>
         <ActivityIndicator size="large" color="#359EFF" />
         <Text style={{ marginTop: 12, color: "#999" }}>Đang tải...</Text>
       </View>
@@ -63,19 +64,21 @@ const Detail = () => {
 
   if (!productDetail) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#f5f7f8" }}>
         <Text style={{ color: "#666" }}>Không tìm thấy sản phẩm</Text>
       </View>
     );
   }
 
-  const isFavorite = favorites?.some((fav) => fav.id === productDetail.id);
+  // Get listing ID
+  const listingId = productDetail.listingId || productDetail.id;
+  const isFavorite = isFavorited(listingId);
 
-  const toggleFavorite = () => {
+  const toggleFavorite = async () => {
     if (isFavorite) {
-      removeFromFavorites(productDetail.id);
+      await removeFromFavorites(listingId);
     } else {
-      addToFavorites(productDetail);
+      await addToFavorites({ ...productDetail, id: listingId });
     }
   };
 
@@ -88,13 +91,59 @@ const Detail = () => {
     }).format(price);
   };
 
-  // Images carousel - use productDetail.image or fallback
-  const images = Array.isArray(productDetail.image)
-    ? productDetail.image
-    : productDetail.images || 
-      (productDetail.image ? [productDetail.image] : [
-        "https://via.placeholder.com/500x500?text=No+Image",
-      ]);
+  // Format date
+  const formatDate = (dateString) => {
+    if (!dateString) return "gần đây";
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return "hôm nay";
+    if (diffDays === 1) return "hôm qua";
+    if (diffDays < 7) return `${diffDays} ngày trước`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} tuần trước`;
+    return date.toLocaleDateString("vi-VN");
+  };
+
+  // Get condition label
+  const getConditionLabel = (condition) => {
+    const conditions = {
+      NEW: "Mới",
+      LIKE_NEW: "Như mới",
+      USED: "Đã sử dụng",
+      FAIR: "Tạm ổn",
+    };
+    return conditions[condition] || condition;
+  };
+
+  // Build images array from media or primaryImageUrl
+  const buildImages = () => {
+    const imgs = [];
+    
+    // Add primary image first
+    if (productDetail.primaryImageUrl) {
+      imgs.push(productDetail.primaryImageUrl);
+    }
+    
+    // Add from media array
+    if (productDetail.media && productDetail.media.length > 0) {
+      productDetail.media.forEach((m) => {
+        if (m.mediaUrl && !imgs.includes(m.mediaUrl)) {
+          imgs.push(m.mediaUrl);
+        }
+      });
+    }
+    
+    // Fallback
+    if (imgs.length === 0) {
+      imgs.push("https://via.placeholder.com/500x500?text=No+Image");
+    }
+    
+    return imgs;
+  };
+
+  const images = buildImages();
 
   return (
     <View style={{ flex: 1, backgroundColor: "#f5f7f8" }}>
@@ -251,33 +300,53 @@ const Detail = () => {
               }}
             >
               <View style={{ flex: 1 }}>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 6,
-                    backgroundColor: "#e8e8e8",
-                    paddingHorizontal: 10,
-                    paddingVertical: 4,
-                    borderRadius: 20,
-                    alignSelf: "flex-start",
-                    marginBottom: 8,
-                  }}
-                >
-                  <MaterialCommunityIcons
-                    name="tag"
-                    size={14}
-                    color="#666"
-                  />
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      fontWeight: "600",
-                      color: "#666",
-                    }}
-                  >
-                    {productDetail.categoryName || productDetail.category || "Khác"}
-                  </Text>
+                <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+                  {productDetail.categoryName && (
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 4,
+                        backgroundColor: "#e8e8e8",
+                        paddingHorizontal: 10,
+                        paddingVertical: 4,
+                        borderRadius: 20,
+                      }}
+                    >
+                      <MaterialCommunityIcons name="tag" size={12} color="#666" />
+                      <Text style={{ fontSize: 11, fontWeight: "600", color: "#666" }}>
+                        {productDetail.categoryName}
+                      </Text>
+                    </View>
+                  )}
+                  {productDetail.subCategoryName && (
+                    <View
+                      style={{
+                        backgroundColor: "#dbeafe",
+                        paddingHorizontal: 10,
+                        paddingVertical: 4,
+                        borderRadius: 20,
+                      }}
+                    >
+                      <Text style={{ fontSize: 11, fontWeight: "600", color: "#2563eb" }}>
+                        {productDetail.subCategoryName}
+                      </Text>
+                    </View>
+                  )}
+                  {productDetail.status === "Active" && (
+                    <View
+                      style={{
+                        backgroundColor: "#dcfce7",
+                        paddingHorizontal: 10,
+                        paddingVertical: 4,
+                        borderRadius: 20,
+                      }}
+                    >
+                      <Text style={{ fontSize: 11, fontWeight: "600", color: "#16a34a" }}>
+                        Đang bán
+                      </Text>
+                    </View>
+                  )}
                 </View>
                 <Text
                   style={{
@@ -301,6 +370,11 @@ const Detail = () => {
                 >
                   {formatPrice(productDetail.price)}
                 </Text>
+                {productDetail.hasNegotiation && (
+                  <Text style={{ fontSize: 11, color: "#16a34a", fontWeight: "600", marginTop: 4 }}>
+                    Có thể thương lượng
+                  </Text>
+                )}
               </View>
             </View>
 
@@ -318,7 +392,7 @@ const Detail = () => {
                 color="#999"
               />
               <Text style={{ fontSize: 12, color: "#999" }}>
-                Đăng bán {productDetail.createdAt || "gần đây"} • 145 lượt xem
+                Đăng bán {formatDate(productDetail.createdAt)}
               </Text>
             </View>
           </View>
@@ -347,7 +421,7 @@ const Detail = () => {
               <View style={{ position: "relative" }}>
                 <Image
                   source={{
-                    uri: "https://lh3.googleusercontent.com/aida-public/AB6AXuC-b9u-W_zh-zRNoZOdiM91AFkt1s5jVzg1Iymv1VdCzXL2Iqj787Nv4S07RpjkkGCu5HGYPYjZwSp-AgOzz519FtYLHLoXc1zPB3iYbdTpz1XAbIWdY-aDneiK-CQJqCIMnNgLKxWAqoQLyh-RqB8e09AYIs76_87IimroaUEmepiDz2WYFs6MsA0F23psnv1fFZZBouFSbCp4Wjzmddr-trxFWbtmvPvoKO80cM3sXSTUiSjYWRyAk5FRrhAqZgrn_nTbJohIdYg",
+                    uri: productDetail.sellerAvatarUrl || "https://via.placeholder.com/100?text=User",
                   }}
                   style={{
                     width: 48,
@@ -355,6 +429,7 @@ const Detail = () => {
                     borderRadius: 24,
                     borderWidth: 2,
                     borderColor: "#fff",
+                    backgroundColor: "#f3f4f6",
                   }}
                 />
                 <View
@@ -365,7 +440,7 @@ const Detail = () => {
                     width: 12,
                     height: 12,
                     borderRadius: 6,
-                    backgroundColor: "#359EFF",
+                    backgroundColor: "#22c55e",
                     borderWidth: 2,
                     borderColor: "#fff",
                   }}
@@ -379,7 +454,7 @@ const Detail = () => {
                     color: "#111",
                   }}
                 >
-                  {productDetail.sellerName || "Người bán"}
+                  {productDetail.sellerName || `Người bán #${productDetail.sellerId}`}
                 </Text>
                 <View
                   style={{
@@ -390,15 +465,12 @@ const Detail = () => {
                   }}
                 >
                   <MaterialCommunityIcons
-                    name="star"
-                    size={12}
-                    color="#FFA500"
+                    name="check-decagram"
+                    size={14}
+                    color="#359EFF"
                   />
-                  <Text style={{ fontSize: 11, fontWeight: "600", color: "#111" }}>
-                    4.8
-                  </Text>
-                  <Text style={{ fontSize: 10, color: "#999" }}>
-                    (24 đánh giá)
+                  <Text style={{ fontSize: 11, color: "#999" }}>
+                    Thành viên xác thực
                   </Text>
                 </View>
               </View>
@@ -453,7 +525,7 @@ const Detail = () => {
                       letterSpacing: 0.5,
                     }}
                   >
-                    Hãng sản xuất
+                    Thương hiệu
                   </Text>
                   <Text
                     style={{
@@ -493,28 +565,20 @@ const Detail = () => {
                   >
                     Tình trạng
                   </Text>
-                  <View
+                  <Text
                     style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 6,
+                      fontSize: 14,
+                      fontWeight: "600",
+                      color: "#111",
                     }}
                   >
-                    <Text
-                      style={{
-                        fontSize: 14,
-                        fontWeight: "600",
-                        color: "#111",
-                      }}
-                    >
-                      {productDetail.condition}
-                    </Text>
-                  </View>
+                    {getConditionLabel(productDetail.condition)}
+                  </Text>
                 </View>
               )}
 
-              {/* Negotiation */}
-              {productDetail.hasNegotiation !== undefined && (
+              {/* Available Quantity */}
+              {productDetail.availableQuantity && (
                 <View
                   style={{
                     flex: 1,
@@ -537,7 +601,7 @@ const Detail = () => {
                       letterSpacing: 0.5,
                     }}
                   >
-                    Thương lượng
+                    Số lượng
                   </Text>
                   <Text
                     style={{
@@ -546,10 +610,84 @@ const Detail = () => {
                       color: "#111",
                     }}
                   >
-                    {productDetail.hasNegotiation ? "Có" : "Không"}
+                    {productDetail.availableQuantity}
                   </Text>
                 </View>
               )}
+
+              {/* Listing Type */}
+              {productDetail.listingType && (
+                <View
+                  style={{
+                    flex: 1,
+                    minWidth: "45%",
+                    backgroundColor: "#fff",
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: "#f0f0f0",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      fontWeight: "600",
+                      color: "#999",
+                      marginBottom: 6,
+                      textTransform: "uppercase",
+                      letterSpacing: 0.5,
+                    }}
+                  >
+                    Loại tin
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: "600",
+                      color: "#111",
+                    }}
+                  >
+                    {productDetail.listingType === "SINGLE" ? "Bán lẻ" : productDetail.listingType}
+                  </Text>
+                </View>
+              )}
+
+              {/* Negotiation */}
+              <View
+                style={{
+                  flex: 1,
+                  minWidth: "45%",
+                  backgroundColor: "#fff",
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: "#f0f0f0",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 10,
+                    fontWeight: "600",
+                    color: "#999",
+                    marginBottom: 6,
+                    textTransform: "uppercase",
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  Thương lượng
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontWeight: "600",
+                    color: productDetail.hasNegotiation ? "#16a34a" : "#111",
+                  }}
+                >
+                  {productDetail.hasNegotiation ? "Có thể" : "Không"}
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -668,27 +806,33 @@ const Detail = () => {
                 gap: 12,
               }}
             >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                <MaterialCommunityIcons name="account" size={18} color="#999" />
+                <Text style={{ fontSize: 13, color: "#666", flex: 1 }}>
+                  {productDetail.sellerName || `Người bán #${productDetail.sellerId}`}
+                </Text>
+              </View>
               {productDetail.sellerEmail && (
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                  <MaterialCommunityIcons
-                    name="email"
-                    size={18}
-                    color="#999"
-                  />
-                  <Text style={{ fontSize: 12, color: "#666", flex: 1 }}>
+                  <MaterialCommunityIcons name="email" size={18} color="#999" />
+                  <Text style={{ fontSize: 13, color: "#666", flex: 1 }}>
                     {productDetail.sellerEmail}
                   </Text>
                 </View>
               )}
               {productDetail.sellerPhone && (
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                  <MaterialCommunityIcons
-                    name="phone"
-                    size={18}
-                    color="#999"
-                  />
-                  <Text style={{ fontSize: 12, color: "#666", flex: 1 }}>
+                  <MaterialCommunityIcons name="phone" size={18} color="#999" />
+                  <Text style={{ fontSize: 13, color: "#666", flex: 1 }}>
                     {productDetail.sellerPhone}
+                  </Text>
+                </View>
+              )}
+              {!productDetail.sellerEmail && !productDetail.sellerPhone && (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                  <MaterialCommunityIcons name="information" size={18} color="#999" />
+                  <Text style={{ fontSize: 13, color: "#999", flex: 1, fontStyle: "italic" }}>
+                    Liên hệ qua tin nhắn để biết thêm thông tin
                   </Text>
                 </View>
               )}
@@ -711,7 +855,7 @@ const Detail = () => {
           paddingVertical: 12,
           paddingBottom: 20,
           flexDirection: "row",
-          gap: 12,
+          gap: 10,
           shadowColor: "#000",
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.05,
@@ -719,66 +863,106 @@ const Detail = () => {
           elevation: 5,
         }}
       >
+        {/* Chat Button */}
         <Pressable
           style={{
-            flex: 1,
-            height: 56,
+            width: 50,
+            height: 50,
             borderRadius: 12,
-            borderWidth: 2,
+            borderWidth: 1,
             borderColor: "#e0e0e0",
             justifyContent: "center",
             alignItems: "center",
-            flexDirection: "row",
-            gap: 8,
           }}
           onPress={() => navigation.navigate("Chat")}
         >
-          <MaterialCommunityIcons
-            name="chat-outline"
-            size={20}
-            color="#111"
-          />
-          <Text
-            style={{
-              fontSize: 14,
-              fontWeight: "bold",
-              color: "#111",
-            }}
-          >
-            Chat
-          </Text>
+          <MaterialCommunityIcons name="chat-outline" size={22} color="#111" />
         </Pressable>
+
+        {/* Add to Cart Button */}
         <Pressable
           style={{
-            flex: 2,
-            height: 56,
+            flex: 1,
+            height: 50,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: "#359EFF",
+            backgroundColor: "rgba(53, 158, 255, 0.1)",
+            justifyContent: "center",
+            alignItems: "center",
+            flexDirection: "row",
+            gap: 6,
+            opacity: addingToCart ? 0.7 : 1,
+          }}
+          onPress={async () => {
+            if (addingToCart) return;
+            setAddingToCart(true);
+            try {
+              const result = await addToCart(listingId, 1);
+              if (result.success) {
+                Alert.alert("Thành công", "Đã thêm vào giỏ hàng", [
+                  { text: "Tiếp tục", style: "cancel" },
+                  { text: "Xem giỏ hàng", onPress: () => navigation.navigate("Cart") },
+                ]);
+              } else {
+                Alert.alert("Lỗi", result.error?.response?.data?.message || "Không thể thêm vào giỏ hàng");
+              }
+            } catch (err) {
+              Alert.alert("Lỗi", "Không thể thêm vào giỏ hàng");
+            } finally {
+              setAddingToCart(false);
+            }
+          }}
+          disabled={addingToCart}
+        >
+          {addingToCart ? (
+            <ActivityIndicator size="small" color="#359EFF" />
+          ) : (
+            <>
+              <MaterialCommunityIcons name="cart-plus" size={20} color="#359EFF" />
+              <Text style={{ fontSize: 13, fontWeight: "bold", color: "#359EFF" }}>
+                Thêm vào giỏ
+              </Text>
+            </>
+          )}
+        </Pressable>
+
+        {/* Buy Now Button */}
+        <Pressable
+          style={{
+            flex: 1,
+            height: 50,
             borderRadius: 12,
             backgroundColor: "#359EFF",
             justifyContent: "center",
             alignItems: "center",
             flexDirection: "row",
-            gap: 8,
+            gap: 6,
             shadowColor: "#359EFF",
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.3,
             shadowRadius: 8,
             elevation: 5,
           }}
+          onPress={() => {
+            // Navigate to checkout with single item
+            navigation.navigate("Checkout", {
+              singleItem: {
+                listingId: listingId,
+                id: listingId,
+                title: productDetail.title,
+                price: productDetail.price,
+                priceSnapshot: productDetail.price,
+                imageUrl: productDetail.primaryImageUrl || images[0],
+                quantity: 1,
+              },
+            });
+          }}
         >
-          <Text
-            style={{
-              fontSize: 14,
-              fontWeight: "bold",
-              color: "#fff",
-            }}
-          >
-            Liên hệ người bán
+          <Text style={{ fontSize: 13, fontWeight: "bold", color: "#fff" }}>
+            Mua ngay
           </Text>
-          <MaterialCommunityIcons
-            name="arrow-right"
-            size={20}
-            color="#fff"
-          />
+          <MaterialCommunityIcons name="arrow-right" size={18} color="#fff" />
         </Pressable>
       </View>
     </View>

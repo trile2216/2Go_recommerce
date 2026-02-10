@@ -83,18 +83,37 @@ export default function AdminCustomers() {
   const handleViewDetails = async (customer) => {
     try {
       const detailedCustomer = await fetchCustomerById(customer.userId);
+      console.log('Fetched customer details:', detailedCustomer);
       setSelectedCustomer(detailedCustomer);
       setShowDetailModal(true);
     } catch (error) {
       setError('Failed to load customer details');
+      console.error(error);
     }
   };
 
   const handleEditClick = (customer) => {
+    // Handle both flat structure (from list) and nested profile structure (from detail)
+    const profile = customer.profile || {};
+    const fullName = profile.fullName || customer.fullName || '';
+    
+    // Convert birthday to YYYY-MM-DD format for date input
+    let birthday = '';
+    if (profile.birthday) {
+      const birthdayDate = new Date(profile.birthday);
+      birthday = birthdayDate.toISOString().split('T')[0];
+    }
+    
     setEditFormData({
       userId: customer.userId,
-      fullName: customer.fullName || '',
-      phone: customer.phone,
+      email: customer.email || '',
+      phone: customer.phone || '',
+      fullName: fullName,
+      birthday: birthday,
+      gender: profile.gender || '',
+      address: profile.address || '',
+      bio: profile.bio || '',
+      avatarUrl: profile.avatarUrl || '',
       status: customer.status,
       role: customer.role
     });
@@ -103,14 +122,41 @@ export default function AdminCustomers() {
 
   const handleUpdateCustomer = async () => {
     try {
-      await updateCustomerById(editFormData.userId, editFormData);
+      // Validate required fields
+      if (!editFormData.email || !editFormData.phone) {
+        setError('Email and Phone are required fields');
+        return;
+      }
+
+      // Send data with nested profile structure to match API expectations
+      const updateData = {
+        email: editFormData.email.trim(),
+        phone: editFormData.phone.trim() || '',
+        status: editFormData.status,
+        role: editFormData.role,
+        profile: {
+          fullName: editFormData.fullName.trim() || '',
+          birthday: editFormData.birthday ? new Date(editFormData.birthday).toISOString().split('T')[0] : '',
+          gender: editFormData.gender || '',
+          address: editFormData.address.trim() || '',
+          bio: editFormData.bio.trim() || '',
+          avatarUrl: editFormData.avatarUrl.trim() || ''
+        }
+      };
+      
+      console.log('Sending update data:', updateData);
+      
+      await updateCustomerById(editFormData.userId, updateData);
       setSuccess('Customer updated successfully');
       setShowEditModal(false);
+      setError('');
       await loadCustomers();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError('Failed to update customer');
-      console.error(err);
+      // Extract backend error message if available
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || 'Failed to update customer';
+      setError(errorMessage);
+      console.error('Error details:', err.response?.data);
     }
   };
 
@@ -292,7 +338,7 @@ export default function AdminCustomers() {
                   </div>
                   <div className="admin-modal-row">
                     <span className="admin-modal-label">Full Name:</span>
-                    <span className="admin-modal-value">{selectedCustomer.fullName || 'N/A'}</span>
+                    <span className="admin-modal-value">{selectedCustomer.profile?.fullName || selectedCustomer.fullName || 'N/A'}</span>
                   </div>
                   <div className="admin-modal-row">
                     <span className="admin-modal-label">Email:</span>
@@ -301,6 +347,30 @@ export default function AdminCustomers() {
                   <div className="admin-modal-row">
                     <span className="admin-modal-label">Phone:</span>
                     <span className="admin-modal-value">{selectedCustomer.phone}</span>
+                  </div>
+                  <div className="admin-modal-row">
+                    <span className="admin-modal-label">Birthday:</span>
+                    <span className="admin-modal-value">
+                      {selectedCustomer.profile?.birthday 
+                        ? formatDate(selectedCustomer.profile.birthday) 
+                        : 'N/A'}
+                    </span>
+                  </div>
+                  <div className="admin-modal-row">
+                    <span className="admin-modal-label">Gender:</span>
+                    <span className="admin-modal-value">{selectedCustomer.profile?.gender || 'N/A'}</span>
+                  </div>
+                  <div className="admin-modal-row">
+                    <span className="admin-modal-label">Address:</span>
+                    <span className="admin-modal-value">{selectedCustomer.profile?.address || 'N/A'}</span>
+                  </div>
+                  <div className="admin-modal-row">
+                    <span className="admin-modal-label">Bio:</span>
+                    <span className="admin-modal-value">{selectedCustomer.profile?.bio || 'N/A'}</span>
+                  </div>
+                  <div className="admin-modal-row">
+                    <span className="admin-modal-label">Avatar URL:</span>
+                    <span className="admin-modal-value">{selectedCustomer.profile?.avatarUrl || 'N/A'}</span>
                   </div>
                   <div className="admin-modal-row">
                     <span className="admin-modal-label">Role:</span>
@@ -355,6 +425,15 @@ export default function AdminCustomers() {
               </div>
               <div className="admin-modal-body">
                 <div className="admin-form-group">
+                  <label>Email</label>
+                  <input
+                    type="email"
+                    value={editFormData.email || ''}
+                    onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                    className="admin-input"
+                  />
+                </div>
+                <div className="admin-form-group">
                   <label>Full Name</label>
                   <input
                     type="text"
@@ -369,6 +448,57 @@ export default function AdminCustomers() {
                     type="tel"
                     value={editFormData.phone || ''}
                     onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
+                    className="admin-input"
+                  />
+                </div>
+                <div className="admin-form-row">
+                  <div className="admin-form-group">
+                    <label>Birthday</label>
+                    <input
+                      type="date"
+                      value={editFormData.birthday || ''}
+                      onChange={(e) => setEditFormData({...editFormData, birthday: e.target.value})}
+                      className="admin-input"
+                    />
+                  </div>
+                  <div className="admin-form-group">
+                    <label>Gender</label>
+                    <select 
+                      value={editFormData.gender || ''}
+                      onChange={(e) => setEditFormData({...editFormData, gender: e.target.value})}
+                      className="admin-input"
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="admin-form-group">
+                  <label>Address</label>
+                  <input
+                    type="text"
+                    value={editFormData.address || ''}
+                    onChange={(e) => setEditFormData({...editFormData, address: e.target.value})}
+                    className="admin-input"
+                  />
+                </div>
+                <div className="admin-form-group">
+                  <label>Bio</label>
+                  <textarea
+                    value={editFormData.bio || ''}
+                    onChange={(e) => setEditFormData({...editFormData, bio: e.target.value})}
+                    className="admin-input"
+                    rows="3"
+                  />
+                </div>
+                <div className="admin-form-group">
+                  <label>Avatar URL</label>
+                  <input
+                    type="url"
+                    value={editFormData.avatarUrl || ''}
+                    onChange={(e) => setEditFormData({...editFormData, avatarUrl: e.target.value})}
                     className="admin-input"
                   />
                 </div>

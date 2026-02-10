@@ -28,20 +28,20 @@ export default function Footer() {
           <div className="footer-column">
             <h4 className="footer-subtitle">Liên kết nhanh</h4>
             <nav className="footer-nav">
-              <a href="#" className="footer-link">Trang chủ</a>
-              <a href="#" className="footer-link">Tìm kiếm</a>
-              <a href="#" className="footer-link">Tin nhắn</a>
-              <a href="#" className="footer-link">Đơn của tôi</a>
+              <a href="#" className="hp-footer-link">Trang chủ</a>
+              <a href="#" className="hp-footer-link">Tìm kiếm</a>
+              <a href="#" className="hp-footer-link">Tin nhắn</a>
+              <a href="#" className="hp-footer-link">Đơn của tôi</a>
             </nav>
           </div>
 
           <div className="footer-column">
             <h4 className="footer-subtitle">Hỗ trợ</h4>
             <nav className="footer-nav">
-              <a href="#" className="footer-link">Trung tâm trợ giúp</a>
-              <a href="#" className="footer-link">Quy định sử dụng</a>
-              <a href="#" className="footer-link">Chính sách bảo mật</a>
-              <a href="#" className="footer-link">Giải quyết khiếu nại</a>
+              <a href="#" className="hp-footer-link">Trung tâm trợ giúp</a>
+              <a href="#" className="hp-footer-link">Quy định sử dụng</a>
+              <a href="#" className="hp-footer-link">Chính sách bảo mật</a>
+              <a href="#" className="hp-footer-link">Giải quyết khiếu nại</a>
             </nav>
           </div>
 

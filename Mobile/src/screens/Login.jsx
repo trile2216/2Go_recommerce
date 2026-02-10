@@ -5,72 +5,52 @@ import {
   ScrollView,
   TextInput,
   Pressable,
-  Image,
   KeyboardAvoidingView,
   Platform,
-  Alert,
+  ActivityIndicator,
+  StyleSheet,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
-import { login } from "../service/auth/api.auth";
+import { useAuth } from "../context/AuthContext";
 
-const Login = () => {
-  const navigation = useNavigation();
+const Login = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
 
   const handleLogin = async () => {
     if (!email || !password) {
-      setError("Vui lòng điền đầy đủ thông tin");
+      setError("Please fill in all fields");
       return;
     }
 
-    setIsLoading(true);
     setError("");
+    setLoading(true);
     try {
-      const response = await login({
-        identifier: email,
-        password: password,
-      });
-
-      if (response.accessToken && response.userId) {
-        const userData = {
-          userId: response.userId,
-          email: response.email || email,
-          phone: response.phone,
-          fullName: response.fullName || email.split("@")[0],
-        };
-
-        // Save to AsyncStorage
-        try {
-          await AsyncStorage.setItem("token", response.accessToken);
-          await AsyncStorage.setItem("refreshToken", response.refreshToken || "");
-          await AsyncStorage.setItem("user", JSON.stringify(userData));
-        } catch (storageError) {
-          console.error("Error saving to storage:", storageError);
-          setError("Lỗi khi lưu dữ liệu. Vui lòng thử lại.");
-          setIsLoading(false);
-          return;
-        }
-
-        // Navigate to home after successful login
-        navigation.reset({
-          index: 0,
-          routes: [{ name: "MainApp" }],
-        });
-      }
+      await login({ email, password });
     } catch (err) {
-      console.error("Login error:", err);
-      setError(
-        err.response?.data?.message || "Đăng nhập thất bại. Vui lòng thử lại."
-      );
+      console.error("❌ Login error:", err);
+      
+      const errorMessage = 
+        err.response?.data?.message || 
+        err.response?.data?.errors?.[0] ||
+        err.message ||
+        "Login failed. Please try again.";
+      
+      let displayError = errorMessage;
+      
+      // Additional info for debugging
+      if (err.response?.status === 400) {
+        displayError += "\n\n[400 Bad Request - Check email/password format]";
+      }
+      
+      setError(displayError);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -79,206 +59,55 @@ const Login = () => {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{ flex: 1 }}
     >
-      <SafeAreaView style={{ flex: 1, backgroundColor: "#f5f7f8" }}>
+      <SafeAreaView style={styles.container}>
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{
-            flexGrow: 1,
-            backgroundColor: "#f5f7f8",
-          }}
+          contentContainerStyle={styles.content}
         >
-
-          {/* Header Image / Illustration */}
-          <View style={{ paddingHorizontal: 24, paddingBottom: 8 }}>
-            <View
-              style={{
-                width: "100%",
-                height: 192,
-                borderRadius: 16,
-                overflow: "hidden",
-                backgroundColor: "#e8ecf1",
-                justifyContent: "flex-end",
-              }}
-            >
-              <Image
-                source={require("../../assets/background.png")}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  resizeMode: "cover",
-                  position: "absolute",
-                }}
-              />
-              {/* Gradient overlay */}
-              <View
-                style={{
-                  paddingHorizontal: 16,
-                  paddingVertical: 16,
-                  backgroundColor: "rgba(0, 0, 0, 0.6)",
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 20,
-                    fontWeight: "700",
-                    color: "#fff",
-                    letterSpacing: 0.5,
-                    textAlign: "center",
-                  }}
-                >
-                  2Go Recommerce
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 13,
-                    color: "rgba(255, 255, 255, 0.8)",
-                    marginTop: 4,
-                    textAlign: "center",
-                  }}
-                >
-                  Mua bán hàng cũ dễ dàng
-                </Text>
-              </View>
-            </View>
+          <View style={styles.headerSection}>
+            <Text style={styles.title}>Welcome Back</Text>
+            <Text style={styles.subtitle}>Sign in to continue</Text>
           </View>
 
-          {/* Headline */}
-          <View style={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 8 }}>
-            <Text
-              style={{
-                fontSize: 28,
-                fontWeight: "700",
-                color: "#111827",
-                lineHeight: 34,
-              }}
-            >
-              Chào mừng!
-            </Text>
-          </View>
-
-          {/* Error Message */}
           {error && (
-            <View
-              style={{
-                marginHorizontal: 24,
-                marginBottom: 16,
-                paddingHorizontal: 12,
-                paddingVertical: 10,
-                backgroundColor: "#fee2e2",
-                borderRadius: 8,
-                borderLeftWidth: 4,
-                borderLeftColor: "#ef4444",
-              }}
-            >
-              <Text style={{ color: "#991b1b", fontSize: 12, fontWeight: "500" }}>
-                {error}
-              </Text>
+            <View style={styles.errorBox}>
+              <MaterialCommunityIcons name="alert-circle" size={16} color="#dc2626" />
+              <Text style={styles.errorText}>{error}</Text>
             </View>
           )}
 
-          {/* Form Section */}
-          <View style={{ paddingHorizontal: 24, paddingVertical: 16, gap: 20 }}>
-            {/* Email Field */}
-            <View style={{ gap: 8 }}>
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "600",
-                  color: "#111827",
-                }}
-              >
-                Email
-              </Text>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  backgroundColor: "#fff",
-                  borderRadius: 12,
-                  paddingHorizontal: 12,
-                  height: 56,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.06,
-                  shadowRadius: 2,
-                  elevation: 2,
-                }}
-              >
-                <MaterialCommunityIcons
-                  name="email-outline"
-                  size={20}
-                  color="#9ca3af"
-                />
+          <View style={styles.formSection}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Email</Text>
+              <View style={styles.inputContainer}>
+                <MaterialCommunityIcons name="email-outline" size={20} color="#9ca3af" />
                 <TextInput
-                  style={{
-                    flex: 1,
-                    fontSize: 16,
-                    marginLeft: 8,
-                    color: "#111827",
-                  }}
+                  style={styles.input}
                   placeholder="user@example.com"
                   placeholderTextColor="#d1d5db"
                   keyboardType="email-address"
                   autoCapitalize="none"
                   value={email}
                   onChangeText={setEmail}
-                  editable={!isLoading}
+                  editable={!loading}
                 />
               </View>
             </View>
 
-            {/* Password Field */}
-            <View style={{ gap: 8 }}>
-              <Text
-                style={{
-                  fontSize: 14,
-                  fontWeight: "600",
-                  color: "#111827",
-                }}
-              >
-                Mật khẩu
-              </Text>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  backgroundColor: "#fff",
-                  borderRadius: 12,
-                  paddingHorizontal: 12,
-                  height: 56,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.06,
-                  shadowRadius: 2,
-                  elevation: 2,
-                }}
-              >
-                <MaterialCommunityIcons
-                  name="lock-outline"
-                  size={20}
-                  color="#9ca3af"
-                />
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Password</Text>
+              <View style={styles.inputContainer}>
+                <MaterialCommunityIcons name="lock-outline" size={20} color="#9ca3af" />
                 <TextInput
-                  style={{
-                    flex: 1,
-                    fontSize: 16,
-                    marginLeft: 8,
-                    color: "#111827",
-                  }}
+                  style={styles.input}
                   placeholder="••••••••"
                   placeholderTextColor="#d1d5db"
                   secureTextEntry={!showPassword}
                   value={password}
                   onChangeText={setPassword}
-                  editable={!isLoading}
+                  editable={!loading}
                 />
-                <Pressable
-                  onPress={() => setShowPassword(!showPassword)}
-                  disabled={isLoading}
-                  style={{
-                    padding: 8,
-                  }}
-                >
+                <Pressable onPress={() => setShowPassword(!showPassword)} disabled={loading}>
                   <MaterialCommunityIcons
                     name={showPassword ? "eye" : "eye-off"}
                     size={20}
@@ -286,172 +115,131 @@ const Login = () => {
                   />
                 </Pressable>
               </View>
-
-              {/* Forgot Password Link */}
-              <View style={{ alignItems: "flex-end", marginTop: 4 }}>
-                <Pressable disabled={isLoading}>
-                  <Text
-                    style={{
-                      fontSize: 14,
-                      fontWeight: "500",
-                      color: "#6b7280",
-                    }}
-                  >
-                    Quên mật khẩu?
-                  </Text>
-                </Pressable>
-              </View>
             </View>
 
-            {/* Login Button */}
             <Pressable
               onPress={handleLogin}
-              disabled={isLoading}
-              style={({ pressed }) => ({
-                height: 56,
-                borderRadius: 12,
-                backgroundColor: "#359EFF",
-                justifyContent: "center",
-                alignItems: "center",
-                marginTop: 8,
-                shadowColor: "#359EFF",
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-                elevation: 5,
-                opacity: pressed || isLoading ? 0.8 : 1,
-              })}
+              disabled={loading}
+              style={[styles.loginButton, loading && styles.disabledButton]}
             >
-              <Text
-                style={{
-                  fontSize: 18,
-                  fontWeight: "700",
-                  color: "#fff",
-                }}
-              >
-                {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
-              </Text>
+              {loading ? (
+                <ActivityIndicator size="large" color="#fff" />
+              ) : (
+                <Text style={styles.loginButtonText}>Sign In</Text>
+              )}
             </Pressable>
-
-            {/* Divider */}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                marginVertical: 8,
-              }}
-            >
-              <View
-                style={{
-                  flex: 1,
-                  height: 1,
-                  backgroundColor: "#e5e7eb",
-                }}
-              />
-              <Text
-                style={{
-                  marginHorizontal: 12,
-                  fontSize: 12,
-                  fontWeight: "500",
-                  color: "#9ca3af",
-                  textTransform: "uppercase",
-                  letterSpacing: 0.5,
-                }}
-              >
-                Hoặc tiếp tục với
-              </Text>
-              <View
-                style={{
-                  flex: 1,
-                  height: 1,
-                  backgroundColor: "#e5e7eb",
-                }}
-              />
-            </View>
-
-            {/* Social Login Buttons */}
-            <View
-              style={{
-                flexDirection: "row",
-                gap: 16,
-              }}
-            >
-              <Pressable
-                disabled={isLoading}
-                style={({ pressed }) => ({
-                  flex: 1,
-                  height: 48,
-                  borderRadius: 12,
-                  backgroundColor: "#fff",
-                  borderWidth: 1,
-                  borderColor: "#e5e7eb",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  flexDirection: "row",
-                  gap: 8,
-                  opacity: pressed || isLoading ? 0.7 : 1,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.06,
-                  shadowRadius: 2,
-                  elevation: 1,
-                })}
-              >
-                <Text
-                  style={{
-                    fontSize: 18,
-                    fontWeight: "700",
-                    color: "#374151",
-                  }}
-                >
-                  G
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: "500",
-                    color: "#374151",
-                  }}
-                >
-                  Google
-                </Text>
-              </Pressable>
-            </View>
           </View>
 
-          {/* Footer / Sign Up Link */}
-          <View
-            style={{
-              flex: 1,
-              justifyContent: "flex-end",
-              paddingHorizontal: 24,
-              paddingBottom: 20,
-            }}
-          >
-            <View style={{ alignItems: "center" }}>
-              <Text
-                style={{
-                  fontSize: 14,
-                  color: "#6b7280",
-                }}
-              >
-                Chưa có tài khoản?{" "}
-                <Text
-                  style={{
-                    fontWeight: "700",
-                    color: "#359EFF",
-                  }}
-                  onPress={() => navigation.navigate("Register")}
-                >
-                  Đăng ký
-                </Text>
-              </Text>
-            </View>
+          <View style={styles.footerSection}>
+            <Text style={styles.footerText}>Don't have an account? </Text>
+            <Pressable onPress={() => navigation.navigate("Register")}>
+              <Text style={styles.signUpLink}>Sign Up</Text>
+            </Pressable>
           </View>
         </ScrollView>
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  content: {
+    flexGrow: 1,
+    justifyContent: "center",
+    padding: 20,
+  },
+  headerSection: {
+    marginBottom: 40,
+    alignItems: "center",
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#000",
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "#666",
+  },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fee2e2",
+    borderLeftWidth: 4,
+    borderLeftColor: "#dc2626",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 20,
+    gap: 10,
+  },
+  errorText: {
+    color: "#991b1b",
+    fontSize: 12,
+    fontWeight: "500",
+    flex: 1,
+  },
+  formSection: {
+    marginBottom: 30,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#000",
+    marginBottom: 8,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f9fafb",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 48,
+  },
+  input: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 14,
+    color: "#000",
+  },
+  loginButton: {
+    backgroundColor: "#359EFF",
+    borderRadius: 8,
+    padding: 14,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  loginButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  footerSection: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  footerText: {
+    color: "#666",
+    fontSize: 14,
+  },
+  signUpLink: {
+    color: "#359EFF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+});
 
 export default Login;

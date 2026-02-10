@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { login, loginWithOAuth } from '../../../service/auth/api.auth';
+import { loginWithOAuth } from '../../../service/auth/api.auth';
+import useAuth from '../../../context/UseAuth';
 import './Login.css';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../../../config/firebase';
@@ -13,7 +14,7 @@ const Login = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const { login, loginWithOAuthAction } = useAuth();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -29,37 +30,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await login(credentials);
-      console.log('Login response:', response);
-      
-      const { accessToken, refreshToken, userId, email, phone } = response;
-      
-      console.log('Extracted - accessToken:', accessToken, 'userId:', userId, 'email:', email);
-      
-      if (accessToken && userId) {
-        const userData = {
-          userId,
-          email,
-          phone,
-          fullName: email.split('@')[0]
-        };
-        
-        localStorage.setItem('token', accessToken);
-        localStorage.setItem('refreshToken', refreshToken);
-        localStorage.setItem('user', JSON.stringify(userData));
-        
-        console.log('Successfully stored - token:', accessToken);
-        console.log('Successfully stored - user:', userData);
-        console.log('Verify from localStorage:', localStorage.getItem('user'));
-        
-        setTimeout(() => {
-          console.log('Navigating to home');
-          navigate('/');
-        }, 100);
-      } else {
-        setError('Invalid login response - missing required fields');
-        console.error('Missing required fields:', { accessToken, userId });
-      }
+      await login(credentials);
     } catch (err) {
       console.error('Login error:', err);
       setError(err.response?.data?.message || 'Login failed. Please try again.');
@@ -74,39 +45,17 @@ const Login = () => {
     
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
+      const firebaseUser = result.user;
       
       // Get Firebase ID Token
-      const idToken = await user.getIdToken();
-      console.log('Firebase ID Token obtained:', idToken);
+      const idToken = await firebaseUser.getIdToken();
       
-      // Send ID Token to backend
-      const response = await loginWithOAuth({ idToken });
-      console.log('OAuth login response:', response);
-      
-      const { accessToken, refreshToken, userId, email, phone } = response;
-      
-      if (accessToken && userId) {
-        const userData = {
-          userId,
-          email: email || user.email,
-          phone,
-          fullName: user.displayName || email.split('@')[0]
-        };
-        
-        localStorage.setItem('token', accessToken);
-        localStorage.setItem('refreshToken', refreshToken);
-        localStorage.setItem('user', JSON.stringify(userData));
-        
-        console.log('Successfully stored OAuth user:', userData);
-        
-        setTimeout(() => {
-          navigate('/');
-        }, 100);
-      } else {
-        setError('Invalid OAuth response - missing required fields');
-        console.error('Missing required fields:', { accessToken, userId });
-      }
+      // Use context auth action
+      await loginWithOAuthAction({
+        idToken,
+        email: firebaseUser.email,
+        displayName: firebaseUser.displayName,
+      });
     } catch (error) {
       console.error('OAuth login error:', error);
       setError(error.response?.data?.message || 'OAuth login failed. Please try again.');
@@ -116,23 +65,23 @@ const Login = () => {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-wrapper">
-        <div className="login-card">
+    <div className="auth-container">
+      <div className="auth-wrapper login-wrapper">
+        <div className="auth-card login-card">
           {/* Header */}
-          <div className="card-header">
-            <div className="header-title">
+          <div className="auth-card-header login-card-header">
+            <div className="auth-header-title">
               <h6 className="sign-in-text">Sign in with</h6>
             </div>
             
             {/* OAuth Buttons */}
-            <div className="oauth-buttons">
+            <div className="auth-oauth-buttons">
               <button
                 type="button"
-                className="oauth-btn google-btn"
+                className="auth-oauth-btn google-btn"
                 onClick={() => handleOAuthClick('Google')}
               >
-                <svg className="oauth-icon" viewBox="0 0 24 24" fill="currentColor">
+                <svg className="auth-oauth-icon" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                   <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
                   <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
@@ -141,21 +90,16 @@ const Login = () => {
                 GOOGLE
               </button>
             </div>
-
-            <hr className="divider" />
           </div>
 
           {/* Form */}
-          <div className="card-body">
-            <div className="form-intro">
-              <small>Or sign in with credentials</small>
-            </div>
-
-            {error && <div className="error-message">{error}</div>}
+          <div className="auth-card-body">
+         
+            {error && <div className="auth-error-message">{error}</div>}
 
             <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label htmlFor="identifier" className="form-label">
+              <div className="auth-form-group">
+                <label htmlFor="identifier" className="auth-form-label">
                   Email
                 </label>
                 <input
@@ -165,13 +109,13 @@ const Login = () => {
                   value={credentials.identifier}
                   onChange={handleChange}
                   placeholder="Email"
-                  className="form-input"
+                  className="auth-form-input"
                   required
                 />
               </div>
 
-              <div className="form-group">
-                <label htmlFor="password" className="form-label">
+              <div className="auth-form-group">
+                <label htmlFor="password" className="auth-form-label">
                   Password
                 </label>
                 <input
@@ -181,33 +125,35 @@ const Login = () => {
                   value={credentials.password}
                   onChange={handleChange}
                   placeholder="Password"
-                  className="form-input"
+                  className="auth-form-input"
                   required
                 />
               </div>
 
               
 
-              <button type="submit" className="submit-btn" disabled={loading}>
+              <button type="submit" className="auth-submit-btn" disabled={loading}>
                 {loading ? 'Loading...' : 'Sign In'}
               </button>
             </form>
+            <hr className="auth-divider" />
+             {/* Footer Links */}
+            <div className="login-footer">
+              <div className="footer-left">
+                <a href="#pablo" onClick={(e) => e.preventDefault()} className="auth-footer-link login-footer-link">
+                  <small>Forgot password?</small>
+                </a>
+              </div>
+              <div className="footer-right">
+                <Link to="/auth/register" className="auth-footer-link login-footer-link">
+                  <small>Create new account</small>
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Footer Links */}
-        <div className="auth-footer">
-          <div className="footer-left">
-            <a href="#pablo" onClick={(e) => e.preventDefault()} className="footer-link">
-              <small>Forgot password?</small>
-            </a>
-          </div>
-          <div className="footer-right">
-            <Link to="/auth/register" className="footer-link">
-              <small>Create new account</small>
-            </Link>
-          </div>
-        </div>
+       
       </div>
     </div>
   );

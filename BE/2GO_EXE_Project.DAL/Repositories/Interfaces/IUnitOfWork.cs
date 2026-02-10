@@ -36,6 +36,8 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     IOrderInvoiceRepository OrderInvoices { get; }
     IPaymentRepository Payments { get; }
     IPaymentLogRepository PaymentLogs { get; }
+    ITransferRepository Transfers { get; }
+    ITransferTransactionRepository TransferTransactions { get; }
     IPointTransactionRepository PointTransactions { get; }
     IReportRepository Reports { get; }
     ISavedListingRepository SavedListings { get; }
