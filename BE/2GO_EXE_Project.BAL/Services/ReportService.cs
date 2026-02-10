@@ -1,11 +1,13 @@
 ﻿using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 using _2GO_EXE_Project.BAL.Constants;
 using _2GO_EXE_Project.BAL.DTOs.Auth;
 using _2GO_EXE_Project.BAL.DTOs.Reports;
 using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
+using _2GO_EXE_Project.BAL.Settings;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
 using _2GO_EXE_Project.BAL.Validation;
@@ -17,11 +19,13 @@ public class ReportService : IReportService
 {
     private readonly IUnitOfWork _uow;
     private readonly INotificationService _notificationService;
+    private readonly string _cloudinaryCloudName;
 
-    public ReportService(IUnitOfWork uow, INotificationService notificationService)
+    public ReportService(IUnitOfWork uow, INotificationService notificationService, IOptions<CloudinarySettings> cloudinaryOptions)
     {
         _uow = uow;
         _notificationService = notificationService;
+        _cloudinaryCloudName = cloudinaryOptions.Value.CloudName ?? string.Empty;
     }
 
     private static long GetUserId(ClaimsPrincipal principal)
@@ -40,6 +44,8 @@ public class ReportService : IReportService
     {
         ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateCreateReport(request));
         var userId = GetUserId(userPrincipal);
+        var evidenceUrls = NormalizeEvidenceUrls(request.EvidenceUrls);
+        ValidateCloudinaryEvidenceUrls(evidenceUrls);
 
         var order = await _uow.Orders.GetByIdAsync(request.OrderId);
         if (order == null)
@@ -78,6 +84,7 @@ public class ReportService : IReportService
             ListingId = order.ListingId,
             TargetUserId = targetUserId,
             Reason = request.Reason,
+            EvidenceUrls = evidenceUrls.Count > 0 ? JsonSerializer.Serialize(evidenceUrls) : null,
             Status = ReportStatuses.Open,
             CreatedAt = DateTime.UtcNow
         };
@@ -107,7 +114,7 @@ public class ReportService : IReportService
         }
         await NotifyAdminsAsync("REPORT", "Có báo cáo mới", $"Có báo cáo mới (ID #{report.ReportId}).", $"/admin/reports/{report.ReportId}", cancellationToken);
 
-        return new ReportResponse(report.ReportId, report.OrderId ?? 0, report.ReporterId, report.TargetUserId, report.Reason, report.Status, report.WaitingForUserId, report.CreatedAt);
+        return new ReportResponse(report.ReportId, report.OrderId ?? 0, report.ReporterId, report.TargetUserId, report.Reason, ParseEvidenceUrls(report.EvidenceUrls), report.Status, report.WaitingForUserId, report.CreatedAt);
     }
 
     public async Task<ReportListResponse> GetMyReportsAsync(ClaimsPrincipal userPrincipal, int skip, int take, CancellationToken cancellationToken = default)
@@ -121,7 +128,7 @@ public class ReportService : IReportService
             .OrderByDescending(r => r.CreatedAt)
             .Skip(skip < 0 ? 0 : skip)
             .Take(take <= 0 ? 20 : Math.Min(take, 100))
-            .Select(r => new ReportResponse(r.ReportId, r.OrderId ?? 0, r.ReporterId, r.TargetUserId, r.Reason, r.Status, r.WaitingForUserId, r.CreatedAt))
+            .Select(r => new ReportResponse(r.ReportId, r.OrderId ?? 0, r.ReporterId, r.TargetUserId, r.Reason, ParseEvidenceUrls(r.EvidenceUrls), r.Status, r.WaitingForUserId, r.CreatedAt))
             .ToListAsync(cancellationToken);
 
         return new ReportListResponse(total, items);
@@ -174,6 +181,63 @@ public class ReportService : IReportService
         return string.Equals(status, ReportStatuses.Open, StringComparison.OrdinalIgnoreCase) ||
                string.Equals(status, ReportStatuses.InReview, StringComparison.OrdinalIgnoreCase) ||
                string.Equals(status, ReportStatuses.WaitingOtherParty, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static List<string> NormalizeEvidenceUrls(IReadOnlyList<string>? evidenceUrls)
+    {
+        if (evidenceUrls == null || evidenceUrls.Count == 0) return new List<string>();
+        return evidenceUrls
+            .Where(u => !string.IsNullOrWhiteSpace(u))
+            .Select(u => u.Trim())
+            .ToList();
+    }
+
+    private void ValidateCloudinaryEvidenceUrls(IReadOnlyList<string> evidenceUrls)
+    {
+        if (evidenceUrls.Count == 0) return;
+        var result = new ValidationResult();
+        if (string.IsNullOrWhiteSpace(_cloudinaryCloudName))
+        {
+            result.Add("evidenceUrls", "Cloudinary CloudName is not configured.");
+            ValidationGuard.ThrowIfInvalid(result);
+        }
+
+        var cloudPathPrefix = $"/{_cloudinaryCloudName.Trim()}/";
+        for (var i = 0; i < evidenceUrls.Count; i++)
+        {
+            var url = evidenceUrls[i];
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            {
+                result.Add($"evidenceUrls[{i}]", "Evidence url must be a valid absolute Cloudinary URL.");
+                continue;
+            }
+
+            if (!string.Equals(uri.Host, "res.cloudinary.com", StringComparison.OrdinalIgnoreCase))
+            {
+                result.Add($"evidenceUrls[{i}]", "Evidence url must be hosted on Cloudinary.");
+                continue;
+            }
+
+            if (!uri.AbsolutePath.StartsWith(cloudPathPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                result.Add($"evidenceUrls[{i}]", "Evidence url must belong to the configured Cloudinary cloud.");
+            }
+        }
+
+        ValidationGuard.ThrowIfInvalid(result);
+    }
+
+    private static IReadOnlyList<string>? ParseEvidenceUrls(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(json);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private async Task NotifyAsync(long userId, string type, string title, string message, string? link, CancellationToken cancellationToken)

@@ -1,10 +1,12 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using _2GO_EXE_Project.BAL.Constants;
 using _2GO_EXE_Project.BAL.DTOs.Auth;
 using _2GO_EXE_Project.BAL.DTOs.Listings;
 using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
+using _2GO_EXE_Project.BAL.Settings;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
 using _2GO_EXE_Project.BAL.Validation;
@@ -15,10 +17,13 @@ public class SellerListingService : ISellerListingService
 {
     private readonly IUnitOfWork _uow;
     private readonly INotificationService _notificationService;
-    public SellerListingService(IUnitOfWork uow, INotificationService notificationService)
+    private readonly string _cloudinaryCloudName;
+
+    public SellerListingService(IUnitOfWork uow, INotificationService notificationService, IOptions<CloudinarySettings> cloudinaryOptions)
     {
         _uow = uow;
         _notificationService = notificationService;
+        _cloudinaryCloudName = cloudinaryOptions.Value.CloudName ?? string.Empty;
     }
 
     private static long GetUserId(ClaimsPrincipal principal)
@@ -98,6 +103,45 @@ public class SellerListingService : ISellerListingService
     private static void ValidateMediaRequests(IReadOnlyList<ListingMediaRequest> mediaRequests)
     {
         ValidationGuard.ThrowIfInvalid(ListingValidator.ValidateMedia(mediaRequests));
+    }
+
+    private void ValidateCloudinaryMediaUrls(IReadOnlyList<ListingMediaRequest> mediaRequests)
+    {
+        var result = new ValidationResult();
+        if (string.IsNullOrWhiteSpace(_cloudinaryCloudName))
+        {
+            result.Add("media", "Cloudinary CloudName is not configured.");
+            ValidationGuard.ThrowIfInvalid(result);
+        }
+
+        var cloudPathPrefix = $"/{_cloudinaryCloudName.Trim()}/";
+        for (var i = 0; i < mediaRequests.Count; i++)
+        {
+            var url = mediaRequests[i].Url;
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                continue;
+            }
+
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            {
+                result.Add($"media[{i}].url", "Media url must be a valid absolute Cloudinary URL.");
+                continue;
+            }
+
+            if (!string.Equals(uri.Host, "res.cloudinary.com", StringComparison.OrdinalIgnoreCase))
+            {
+                result.Add($"media[{i}].url", "Media url must be hosted on Cloudinary.");
+                continue;
+            }
+
+            if (!uri.AbsolutePath.StartsWith(cloudPathPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                result.Add($"media[{i}].url", "Media url must belong to the configured Cloudinary cloud.");
+            }
+        }
+
+        ValidationGuard.ThrowIfInvalid(result);
     }
 
     public async Task<SellerListingListResponse> GetMyListingsAsync(ClaimsPrincipal sellerPrincipal, string? status, int skip, int take, CancellationToken cancellationToken = default)
@@ -259,6 +303,7 @@ public class SellerListingService : ISellerListingService
             }
         }
         ValidateMediaRequests(mediaRequests);
+        ValidateCloudinaryMediaUrls(mediaRequests);
         var listing = new Listing
         {
             SellerId = sellerId,
@@ -535,6 +580,7 @@ public class SellerListingService : ISellerListingService
             return new BasicResponse(true, "Media cleared.");
         }
         ValidateMediaRequests(mediaRequests);
+        ValidateCloudinaryMediaUrls(mediaRequests);
 
         var imageRequests = mediaRequests
             .Where(m => string.IsNullOrWhiteSpace(m.MediaType) ||
@@ -687,4 +733,3 @@ public class SellerListingService : ISellerListingService
         return null;
     }
 }
-
