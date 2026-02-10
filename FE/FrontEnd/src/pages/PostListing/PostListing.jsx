@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useBlocker, useSearchParams } from "react-router-dom";
 import {
     Form,
@@ -42,6 +42,7 @@ export default function PostListing() {
     const [searchParams] = useSearchParams();
     const editId = searchParams.get('edit');
     const [form] = Form.useForm();
+    const { user } = useAuth();
     const [isFormDirty, setIsFormDirty] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false); // To prevent blocker when submitting
     
@@ -437,10 +438,11 @@ export default function PostListing() {
             // Upload images
             const imageFiles = imageList.map((img) => img.file).filter(Boolean);
             let mediaData = [];
+            let imageUrlArr = [];
             
             if (imageFiles.length > 0) {
                 const imageUrls = await uploadImageAndGetUrl(imageFiles);
-                const imageUrlArr = Array.isArray(imageUrls) ? imageUrls : [imageUrls];
+                imageUrlArr = Array.isArray(imageUrls) ? imageUrls : [imageUrls];
 
                 // Build media array for images
                 mediaData = imageUrlArr.map((url, index) => ({
@@ -450,6 +452,18 @@ export default function PostListing() {
                     sortOrder: index,
                 }));
             }
+
+            // Include existing images (already uploaded, no file object)
+            const existingImages = imageList.filter(img => !img.file && img.url);
+            existingImages.forEach((img) => {
+                imageUrlArr.push(img.url);
+                mediaData.push({
+                    url: img.url,
+                    mediaType: "IMAGE",
+                    isPrimary: img.isPrimary || false,
+                    sortOrder: mediaData.length,
+                });
+            });
 
             // Upload video if present
             let videoUrl = null;
@@ -470,27 +484,29 @@ export default function PostListing() {
             const allMediaUrls = [...imageUrlArr];
             if (videoUrl) allMediaUrls.push(videoUrl);
 
-            // Call precheck API before creating listing
-            const precheckData = {
-                title: values.title,
-                description: values.description,
-                categoryId: selectedCategory?.id || 0,
-                brand: values.brand || "",
-                price: values.isFree ? 0 : parseFloat(values.price) || 0,
-                mediaUrls: allMediaUrls,
-                userId: user?.userId || user?.id || "",
-            };
+            // Call precheck API before creating listing (only for PendingReview)
+            if (status === 'PendingReview') {
+                const precheckData = {
+                    title: values.title,
+                    description: values.description,
+                    categoryId: selectedCategory?.id || 0,
+                    brand: values.brand || "",
+                    price: values.isFree ? 0 : parseFloat(values.price) || 0,
+                    mediaUrls: allMediaUrls,
+                    userId: user?.userId || user?.id || "",
+                };
 
-            const precheckResult = await listingPrecheck(precheckData);
+                const precheckResult = await listingPrecheck(precheckData);
 
-            if (!precheckResult.canPublish) {
-                hideLoadingMsg();
-                message.error(
-                    precheckResult.risk?.message || 
-                    precheckResult.note || 
-                    "Bài đăng không đủ điều kiện. Vui lòng kiểm tra lại!"
-                );
-                return;
+                if (!precheckResult.canPublish) {
+                    hideLoadingMsg();
+                    message.error(
+                        precheckResult.risk?.message || 
+                        precheckResult.note || 
+                        "Bài đăng không đủ điều kiện. Vui lòng kiểm tra lại!"
+                    );
+                    return;
+                }
             }
 
             // Prepare request body matching CreateSellerListingRequest DTO
