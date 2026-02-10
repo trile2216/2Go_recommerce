@@ -315,7 +315,6 @@ export default function UserInfo() {
               />
             </div>
             <h3 className="profile-name">{userInfo.profile?.fullName || 'Chưa cập nhật'}</h3>
-            <p className="profile-role">{userInfo.role}</p>
             
             <div className="profile-status">
               <div className="status-item">
@@ -454,10 +453,6 @@ export default function UserInfo() {
                     <tr>
                       <td className="label">Ngày sinh</td>
                       <td className="value">{userInfo.profile?.birthday || 'Chưa cập nhật'}</td>
-                    </tr>
-                    <tr>
-                      <td className="label">Vai trò</td>
-                      <td className="value">{userInfo.role}</td>
                     </tr>
                     <tr>
                       <td className="label">Trạng thái</td>

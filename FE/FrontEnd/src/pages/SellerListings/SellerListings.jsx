@@ -17,7 +17,7 @@ import './SellerListings.css';
 const STATUS_TABS = [
   { key: '', label: 'Tất cả' },
   { key: 'Draft', label: 'Nháp' },
-  { key: 'Pending', label: 'Chờ duyệt' },
+  { key: 'PendingReview', label: 'Chờ duyệt' },
   { key: 'Active', label: 'Đang bán' },
   { key: 'Archived', label: 'Đã ẩn' },
   { key: 'Rejected', label: 'Bị từ chối' },
@@ -25,7 +25,7 @@ const STATUS_TABS = [
 
 const STATUS_LABEL = {
   Draft: 'Nháp',
-  Pending: 'Chờ duyệt',
+  PendingReview: 'Chờ duyệt',
   Active: 'Đang bán',
   Archived: 'Đã ẩn',
   Rejected: 'Bị từ chối',
@@ -34,7 +34,7 @@ const STATUS_LABEL = {
 
 const STATUS_CLASS = {
   Draft: 'sl-badge-draft',
-  Pending: 'sl-badge-pending',
+  PendingReview: 'sl-badge-pending',
   Active: 'sl-badge-active',
   Archived: 'sl-badge-archived',
   Rejected: 'sl-badge-rejected',
@@ -72,6 +72,7 @@ export default function SellerListings() {
   }, [toast, take]);
 
   useEffect(() => {
+    setListings([]); // Clear previous data to show loading state
     setSkip(0);
     fetchListings(activeTab, 0);
   }, [activeTab, fetchListings]);
@@ -157,6 +158,7 @@ export default function SellerListings() {
           </>
         )}
         {status === 'Active' && (
+          <>
           <button
             className="sl-action-btn sl-btn-archive"
             title="Ẩn bài đăng"
@@ -164,6 +166,24 @@ export default function SellerListings() {
             disabled={isProcessing}
           >
             {isProcessing ? <Loader2 size={15} className="spin" /> : <Archive size={15} />}
+          </button>
+          
+          <button
+            className="sl-action-btn sl-btn-view"
+            title="Xem chi tiết"
+            onClick={() => navigate(`/product/${item.listingId}`)}
+          >
+            <Eye size={15} />
+          </button>
+          </>
+        )}
+        {(status === 'Draft' || status === 'PendingReview') && (
+          <button
+            className="sl-action-btn sl-btn-view"
+            title="Xem chi tiết"
+            onClick={() => navigate(`/seller/listings/${item.listingId}`)}
+          >
+            <Eye size={15} />
           </button>
         )}
         {status !== 'Deleted' && (
@@ -175,14 +195,8 @@ export default function SellerListings() {
           >
             <Trash2 size={15} />
           </button>
-        )}
-        <button
-          className="sl-action-btn sl-btn-view"
-          title="Xem chi tiết"
-          onClick={() => navigate(`/product/${item.listingId}`)}
-        >
-          <Eye size={15} />
-        </button>
+        )}        
+        
       </>
     );
   };

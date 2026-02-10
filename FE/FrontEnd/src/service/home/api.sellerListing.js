@@ -52,6 +52,7 @@ export const getMyListingStats = async (id) => {
  * @param {number} [data.weight] - Cân nặng
  * @param {Array<{ url, mediaType, isPrimary, sortOrder }>} [data.media] - Hình ảnh/video
  * @param {Array<{ name, value }>} [data.attributes] - Thuộc tính bổ sung
+ * @param {string} [data.status] - "Draft" hoặc "PendingReview"
  * @returns {Promise<ListingDetail>}
  */
 export const createListing = async (data) => {

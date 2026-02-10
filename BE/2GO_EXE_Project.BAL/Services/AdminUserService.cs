@@ -7,6 +7,7 @@ using _2GO_EXE_Project.DAL.Repositories.Interfaces;
 using System.Text.Json;
 using System.Security.Claims;
 using _2GO_EXE_Project.BAL.Constants;
+using _2GO_EXE_Project.BAL.Validation;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -113,15 +114,10 @@ public class AdminUserService : IAdminUserService
 
     public async Task<AdminUserDetail> CreateUserAsync(ClaimsPrincipal adminPrincipal, AdminCreateUserRequest request, CancellationToken cancellationToken = default)
     {
-        if (!UserRoles.All.Contains(request.Role ?? string.Empty, StringComparer.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException("Invalid role. Allowed: User, Manager, Admin.");
-        }
+        ValidationGuard.ThrowIfInvalid(UserValidator.ValidateAdminCreate(request));
+
         var status = string.IsNullOrWhiteSpace(request.Status) ? UserStatuses.Active : request.Status;
-        if (!UserStatuses.All.Contains(status, StringComparer.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException("Invalid status. Allowed: Active, Banned, Deleted.");
-        }
+
         var normalizedRole = UserRoles.Normalize(request.Role);
         var exists = await _uow.Users.Query()
             .AnyAsync(u => (!string.IsNullOrEmpty(request.Email) && u.Email == request.Email) || (!string.IsNullOrEmpty(request.Phone) && u.Phone == request.Phone), cancellationToken);
@@ -134,10 +130,6 @@ public class AdminUserService : IAdminUserService
         string? salt = null;
         if (!string.IsNullOrEmpty(request.Password))
         {
-            if (!IsValidPassword(request.Password))
-            {
-                throw new InvalidOperationException("Password must be at least 8 characters and include at least 1 letter and 1 digit.");
-            }
             passwordHash = _passwordHasher.HashPassword(request.Password, out salt);
         }
 
@@ -161,7 +153,7 @@ public class AdminUserService : IAdminUserService
             UserId = user.UserId,
             FullName = request.FullName,
             DateOfBirth = request.Birthday,
-            Gender = request.Gender,
+            Gender = NormalizeGender(request.Gender),
             AddressLine = request.Address,
             Bio = request.Bio,
             AvatarUrl = request.AvatarUrl
@@ -207,6 +199,8 @@ public class AdminUserService : IAdminUserService
 
     public async Task<AdminUserDetail> UpdateUserAsync(ClaimsPrincipal adminPrincipal, long userId, UpdateUserRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(UserValidator.ValidateAdminUpdate(request));
+
         var user = await _uow.Users.Query()
             .Include(u => u.UserProfiles)
             .Include(u => u.UserVerifications)
@@ -221,10 +215,6 @@ public class AdminUserService : IAdminUserService
         user.Phone = request.Phone ?? user.Phone;
         if (!string.IsNullOrWhiteSpace(request.Status))
         {
-            if (!UserStatuses.All.Contains(request.Status, StringComparer.OrdinalIgnoreCase))
-            {
-                throw new InvalidOperationException("Invalid status. Allowed: Active, Banned, Deleted.");
-            }
             user.Status = request.Status;
         }
 
@@ -238,7 +228,7 @@ public class AdminUserService : IAdminUserService
 
         profile.FullName = request.FullName ?? profile.FullName;
         profile.DateOfBirth = request.Birthday ?? profile.DateOfBirth;
-        profile.Gender = request.Gender ?? profile.Gender;
+        profile.Gender = NormalizeGender(request.Gender) ?? profile.Gender;
         profile.AddressLine = request.Address ?? profile.AddressLine;
         profile.Bio = request.Bio ?? profile.Bio;
         profile.AvatarUrl = request.AvatarUrl ?? profile.AvatarUrl;
@@ -398,11 +388,10 @@ public class AdminUserService : IAdminUserService
         }
     }
 
-    private static bool IsValidPassword(string? value)
+    private static string? NormalizeGender(string? gender)
     {
-        if (string.IsNullOrWhiteSpace(value) || value.Length < 8) return false;
-        var hasLetter = value.Any(char.IsLetter);
-        var hasDigit = value.Any(char.IsDigit);
-        return hasLetter && hasDigit;
+        if (gender == null) return null;
+        var trimmed = gender.Trim();
+        return trimmed.Length == 0 ? null : trimmed;
     }
 }

@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import store from './context/store';
 import { SearchProvider } from './context/SearchContext';
@@ -32,62 +32,89 @@ import OrderDetail from './pages/OrderDetail/OrderDetail';
 import Checkout from './pages/Checkout/Checkout';
 import PaymentResult from './pages/PaymentResult/PaymentResult';
 import SellerListings from './pages/SellerListings/SellerListings';
+import SellerListingDetail from './pages/SellerListingDetail/SellerListingDetail';
 import SavedListings from './pages/SavedListings/SavedListings';
 import Plan from './pages/Admin/Plan/Plan';
+
+const RootLayout = () => {
+  return (
+    <>
+      <ScrollToTop />
+      <CompareFloatingButton />
+      <Outlet />
+    </>
+  );
+};
+
+const router = createBrowserRouter([
+  {
+    element: <RootLayout />,
+    children: [
+      { path: "/", element: <Homepage /> },
+      { path: "/auth/login", element: <Login /> },
+      { path: "/auth/register", element: <Register /> },
+      { path: "/listings/:id", element: <ProductDetail /> },
+      { path: "/compare", element: <Compare /> },
+      { path: "/listings", element: <Listings /> },
+      
+      // Protected Routes - Requires login
+      {
+        element: <ProtectedRoute allowedRoles={['User']} />,
+        children: [
+          { path: "/user/info", element: <UserInfo /> },
+          { path: "/orders", element: <Orders /> },
+          { path: "/orders/:orderId", element: <OrderDetail /> },
+          { path: "/checkout", element: <Checkout /> },
+          { path: "/payment/result", element: <PaymentResult /> },
+          { path: "/seller/listings", element: <SellerListings /> },
+          { path: "/seller/listings/:id", element: <SellerListingDetail /> },
+          { path: "/saved-listings", element: <SavedListings /> },
+          { 
+            path: "/post/listing", 
+            element: (
+              <UserLayout>
+                <PostListing />
+              </UserLayout>
+            )
+          },
+          { 
+            path: "/chats/:sellerId?", 
+            element: (
+              <UserLayout>
+                <Chat />
+              </UserLayout>
+            )
+          },
+        ]
+      },
+
+      // Admin Routes - Protected
+      {
+        element: <ProtectedRoute allowedRoles={['Admin', 'Moderator']} />,
+        children: [
+          { path: "/admin", element: <AdminDashboard /> },
+          { path: "/admin/products", element: <AdminProducts /> },
+          { path: "/admin/customers", element: <AdminCustomers /> },
+          { path: "/admin/orders", element: <AdminOrders /> },
+          { path: "/admin/listings", element: <AdminListing /> },
+          { path: "/admin/categories", element: <AdminCategory /> },
+          { path: "/admin/plans", element: <Plan /> },
+        ]
+      }
+    ]
+  }
+]);
 
 function App() {
   return (
     <Provider store={store}>
-      <Router>
-        <ScrollToTop />
-        <ToastProvider>
+      <ToastProvider>
         <SearchProvider>
-        <CartProvider>
-        <CompareFloatingButton />
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<Homepage />} />
-          <Route path="/auth/login" element={<Login />} />
-          <Route path="/auth/register" element={<Register />} />
-          <Route path="/product/:id" element={<ProductDetail />} />
-          <Route path="/compare" element={<Compare />} />
-          <Route path="/listings" element={<Listings />} />
-          {/* Protected Routes - Requires login */}
-          <Route element={<ProtectedRoute allowedRoles={['User']}/>}>
-            <Route path="/user/info" element={<UserInfo />} />
-            <Route path="/orders" element={<Orders />} />
-            <Route path="/order/:orderId" element={<OrderDetail />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/payment/result" element={<PaymentResult />} />
-            <Route path="/seller/listings" element={<SellerListings />} />
-            <Route path="/saved-listings" element={<SavedListings />} />
-            <Route path="/post/listing" element={
-              <UserLayout>
-                <PostListing />
-              </UserLayout>
-            } />
-            <Route path="/chat" element={
-              <UserLayout>
-                <Chat />
-              </UserLayout>
-            } />
-          </Route>
-
-          {/* Admin Routes - Protected */}
-          <Route element={<ProtectedRoute allowedRoles={['Admin', 'Moderator']} />}>
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/products" element={<AdminProducts />} />
-            <Route path="/admin/customers" element={<AdminCustomers />} />
-            <Route path="/admin/orders" element={<AdminOrders />} />
-            <Route path="/admin/listings" element={<AdminListing />} />
-            <Route path="/admin/categories" element={<AdminCategory />} />
-            <Route path="/admin/plans" element={<Plan />} />
-          </Route>
-        </Routes>
-        </CartProvider>
+          <CartProvider>
+            <RouterProvider router={router} />
+          </CartProvider>
         </SearchProvider>
-        </ToastProvider>
-      </Router>
+      </ToastProvider>
     </Provider>
   )
 }

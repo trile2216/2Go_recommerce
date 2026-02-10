@@ -1,9 +1,10 @@
 /* OrderDetail Page Styles */
 
 .order-detail-container {
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 1rem;
+  padding-bottom: 2rem;
 }
 
 /* Back Button */
@@ -15,7 +16,8 @@
   border: none;
   background: none;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 0.95rem;
+  font-weight: 500;
   color: #666;
   transition: all 0.3s ease;
   margin-bottom: 1.5rem;
@@ -23,12 +25,27 @@
 }
 
 .od-back-button:hover {
-  background-color: #f5f5f5;
-  color: #333;
+  background-color: #f0f0f0;
+  color: #1a1a1a;
 }
 
-/* Main Content */
+/* Main Content Wrapper */
 .order-detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Layout Split */
+.order-layout-split {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.order-left-col,
+.order-right-col {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -37,29 +54,35 @@
 /* Cards */
 .order-card {
   background: white;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
   overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.order-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .od-card-header {
-  padding: 1.5rem;
-  border-bottom: 1px solid #e0e0e0;
-  background-color: #fafafa;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .od-card-title {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 600;
-  color: #1a1a1a;
+  color: #111827;
+  margin: 0;
+}
+
+.od-card-subtitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
   margin: 0;
 }
 
@@ -73,19 +96,7 @@
 /* Product Info */
 .detail-product-info {
   display: flex;
-  flex-direction: row;
-  gap: 2rem;
-  align-items: flex-start;
-  flex-wrap: nowrap;
-}
-
-.detail-product-image {
-  width: 140px;
-  height: 140px;
-  object-fit: cover;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
-  flex-shrink: 0;
+  gap: 1.5rem;
 }
 
 .detail-product-details {
@@ -93,116 +104,96 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  min-width: 0;
 }
 
 .detail-product-title {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 600;
-  color: #1a1a1a;
-  margin: 0;
+  color: #111827;
   line-height: 1.4;
+  margin: 0;
 }
 
 .detail-product-price {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #d32f2f;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ea580c;
+  /* Orange-600 */
   margin: 0;
 }
 
-.detail-product-date {
+.detail-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-size: 0.9rem;
-  color: #666;
-}
-
-/* Separator */
-.od-separator {
-  height: 1px;
-  background-color: #e0e0e0;
+  color: #6b7280;
 }
 
 /* Party Info */
-.party-info {
+.party-details {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-}
-
-.party-title {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin: 0;
-  font-size: 1rem;
-}
-
-.party-details {
-  background-color: #f9f9f9;
+  background-color: #f9fafb;
+  padding: 1rem;
   border-radius: 8px;
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
 }
 
 .party-item {
   display: flex;
   align-items: flex-start;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .party-icon {
-  color: #999;
-  flex-shrink: 0;
+  color: #9ca3af;
   margin-top: 2px;
 }
 
+.party-info-text {
+  display: flex;
+  flex-direction: column;
+}
+
 .party-label {
-  font-size: 0.85rem;
-  color: #999;
-  margin: 0 0 0.25rem 0;
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin: 0;
+  font-weight: 500;
 }
 
 .party-value {
-  font-weight: 500;
-  color: #1a1a1a;
+  font-size: 0.95rem;
+  color: #1f2937;
   margin: 0;
+  font-weight: 500;
 }
 
-/* Status Stepper */
+/* Status Stepper - Simple Vertical for Right Col if needed, or keeping horizontal */
 .order-status-stepper {
-  position: relative;
-  padding: 0;
-  margin: 1rem 0;
+  padding: 0.5rem 0;
 }
 
+/* Keeping the horizontal stepper logic but making it fit */
 .progress-line-container {
   position: absolute;
-  top: 20px;
+  top: 14px;
   left: 0;
   right: 0;
-  height: 4px;
+  height: 2px;
   z-index: 0;
 }
 
 .progress-line-background {
   width: 100%;
   height: 100%;
-  background-color: #e0e0e0;
-  border-radius: 2px;
-  overflow: hidden;
+  background-color: #e5e7eb;
 }
 
 .progress-line-fill {
   height: 100%;
-  background-color: #ff6b35;
-  border-radius: 2px;
+  background-color: #ea580c;
   transition: width 0.5s ease;
 }
 
@@ -210,7 +201,7 @@
   position: relative;
   display: flex;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.5rem;
   z-index: 1;
 }
 
@@ -222,298 +213,209 @@
 }
 
 .status-icon {
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  border: 2px solid #ddd;
+  border: 2px solid #e5e7eb;
+  background-color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: white;
-  color: #999;
-  transition: all 0.3s ease;
+  color: #9ca3af;
   flex-shrink: 0;
+  transition: all 0.3s ease;
 }
 
 .status-icon.completed {
-  border-color: #ff6b35;
-  background-color: #ff6b35;
+  border-color: #ea580c;
+  background-color: #ea580c;
   color: white;
 }
 
 .status-icon.current {
-  box-shadow: 0 0 0 6px rgba(255, 107, 53, 0.2);
+  border-color: #ea580c;
+  color: #ea580c;
+  box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.1);
 }
 
 .od-status-label {
-  margin-top: 0.75rem;
-  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
   text-align: center;
   font-weight: 500;
-  color: #999;
-  transition: color 0.3s ease;
+  color: #9ca3af;
+  line-height: 1.2;
 }
 
 .od-status-label.active {
-  color: #1a1a1a;
+  color: #111827;
 }
 
-/* Action Buttons */
-.od-action-button-container {
+/* Actions Wrapper */
+.od-actions-wrapper {
   display: flex;
-  justify-content: center;
-  padding-top: 1.5rem;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.action-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+  width: 100%;
 }
 
 .od-action-button {
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 8px;
   font-weight: 600;
   font-size: 0.95rem;
-  transition: all 0.3s ease;
-  min-width: 200px;
-  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
 }
 
-.cancel-button {
-  background-color: #f5f5f5;
-  color: #d32f2f;
-  border: 1px solid #ffcdd2;
+.od-action-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
-.cancel-button:hover {
-  background-color: #ffebee;
-}
-
-.review-button {
-  background: linear-gradient(to right, #ff6b35, #ff5722);
+.primary-button {
+  background-color: #ea580c;
   color: white;
 }
 
-.review-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+.primary-button:hover:not(:disabled) {
+  background-color: #c2410c;
 }
 
-/* Error State */
-.order-detail-error {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-  text-align: center;
+.success-button {
+  background-color: #16a34a;
+  /* Green-600 */
+  color: white;
 }
 
-.error-content {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+.success-button:hover:not(:disabled) {
+  background-color: #15803d;
 }
 
-.error-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #1a1a1a;
-}
-
-.error-button {
-  padding: 0.75rem 1.5rem;
-  border: 1px solid #ddd;
-  background-color: white;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-  font-size: 0.95rem;
-  color: #666;
-  transition: all 0.3s ease;
-  align-self: center;
-}
-
-.error-button:hover {
-  background-color: #f5f5f5;
-  border-color: #999;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .order-detail-container {
-    padding: 0 0.75rem;
-  }
-
-  .detail-product-info {
-    flex-direction: row;
-    gap: 1.5rem;
-    align-items: flex-start;
-  }
-
-  .detail-product-image {
-    width: 110px;
-    height: 110px;
-  }
-
-  .detail-product-details {
-    flex: 1;
-  }
-
-  .detail-product-title {
-    font-size: 1.05rem;
-  }
-
-  .od-card-body {
-    padding: 1rem;
-    gap: 1rem;
-  }
-
-  .od-card-header {
-    padding: 1rem;
-  }
-
-  .od-card-title {
-    font-size: 1.1rem;
-  }
-
-  .party-details {
-    padding: 1rem;
-    gap: 1rem;
-  }
-
-  .status-icon {
-    width: 36px;
-    height: 36px;
-    border-width: 2px;
-  }
-
-  .progress-line-container {
-    top: 18px;
-  }
-
-  .od-action-button {
-    min-width: 160px;
-    padding: 0.65rem 1.25rem;
-    font-size: 0.9rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .order-detail-container {
-    padding: 0 0.5rem;
-  }
-
-  .od-back-button {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.9rem;
-  }
-
-  .detail-product-info {
-    flex-direction: row;
-    gap: 1rem;
-  }
-
-  .detail-product-image {
-    width: 90px;
-    height: 90px;
-  }
-
-  .detail-product-title {
-    font-size: 1rem;
-  }
-
-  .detail-product-price {
-    font-size: 1.15rem;
-  }
-
-  .detail-product-date {
-    font-size: 0.75rem;
-  }
-
-  .od-card-header {
-    padding: 0.75rem;
-  }
-
-  .od-card-title {
-    font-size: 1rem;
-  }
-
-  .od-card-body {
-    padding: 0.75rem;
-    gap: 0.75rem;
-  }
-
-  .party-details {
-    padding: 0.75rem;
-    gap: 0.75rem;
-  }
-
-  .order-status-stepper {
-    padding: 1.5rem 0;
-  }
-
-  .progress-line-container {
-    top: 1.5rem;
-  }
-
-  .status-step {
-    gap: 0.5rem;
-  }
-
-  .status-icon {
-    width: 32px;
-    height: 32px;
-  }
-
-  .od-status-label {
-    font-size: 0.75rem;
-  }
-
-  .progress-line-container {
-    top: 16px;
-  }
-}
-
-/* Additional Styles */
-.cancelled-status {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 2rem;
+.danger-button {
+  background-color: #fee2e2;
   color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.danger-button:hover:not(:disabled) {
+  background-color: #fca5a5;
+  color: #b91c1c;
+}
+
+.warning-button {
+  background-color: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.warning-button:hover:not(:disabled) {
+  background-color: #fde68a;
+  color: #92400e;
+}
+
+/* Order Status Badge in Header */
+.order-status {
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
   font-weight: 600;
+  margin-left: auto;
 }
 
-.payment-expiry {
-  font-size: 0.85rem;
+.status-danger {
+  background-color: #fef2f2;
+  color: #dc2626;
+}
+
+.status-warning {
+  background-color: #fffbeb;
   color: #d97706;
-  margin-top: 0.5rem;
 }
 
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.status-info {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.status-success {
+  background-color: #f0fdf4;
+  color: #16a34a;
+}
+
+.status-default {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+/* Utilities */
+.cancelled-status {
+  text-align: center;
+  color: #dc2626;
+  padding: 1rem;
 }
 
 .spin {
   animation: spin 1s linear infinite;
 }
 
-.od-action-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  text-decoration: none;
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.od-action-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+/* Responsive */
+@media (max-width: 768px) {
+  .order-layout-split {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .od-card-header {
+    padding: 1rem;
+  }
+
+  .od-card-body {
+    padding: 1rem;
+  }
 }
 
+/* Info Banner */
+.od-info-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  color: #1e40af;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  margin: 1rem 0;
+}
+
+.od-info-banner svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}

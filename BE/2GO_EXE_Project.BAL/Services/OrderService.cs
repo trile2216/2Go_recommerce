@@ -9,6 +9,7 @@ using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
 using System.Threading.Tasks;
+using _2GO_EXE_Project.BAL.Validation;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -41,15 +42,8 @@ public class OrderService : IOrderService
 
     public async Task<OrderResponse> CreateAsync(ClaimsPrincipal userPrincipal, CreateOrderRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateCreateOrder(request));
         var buyerId = GetUserId(userPrincipal);
-        if (string.IsNullOrWhiteSpace(request.PaymentMethod))
-        {
-            throw new InvalidOperationException("Payment method is required.");
-        }
-        if (string.IsNullOrWhiteSpace(request.DeliveryAddress))
-        {
-            throw new InvalidOperationException("Delivery address is required.");
-        }
         var method = NormalizePaymentMethod(request.PaymentMethod);
 
         var listing = await _uow.Listings.Query()

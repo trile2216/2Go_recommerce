@@ -28,7 +28,8 @@ public record CreateSellerListingRequest(
     string? Dimensions,
     double? Weight,
     IReadOnlyList<ListingMediaRequest>? Media,
-    IReadOnlyList<ListingAttributeRequest>? Attributes);
+    IReadOnlyList<ListingAttributeRequest>? Attributes,
+    string? Status);
 
 public record UpdateSellerListingRequest(
     string? Title,

@@ -82,11 +82,16 @@ export default function ProductDetail() {
   const productData = {
     title: product.title,
     price: formatPrice(product.price),
-    location: product.sellerEmail,
+    location: product.sellerEmail, 
     seller: product.sellerPhone,
     condition: product.condition,
     brand: product.brand,
     status: product.status,
+    sellerId: product.sellerId,
+    sellerName: product.sellerName,
+    sellerAvatar: product.sellerAvatarUrl,
+    sellerEmail: product.sellerEmail,
+    sellerPhone: product.sellerPhone,
   };
 
   const descriptionText = product.description ? [product.description] : ['Không có mô tả'];
@@ -100,9 +105,9 @@ export default function ProductDetail() {
       `Phân loại: ${product.subCategoryName}`,
     ],
     included: [
-      `Email người bán: ${product.sellerEmail}`,
-      `Số điện thoại: ${product.sellerPhone}`,
-    ]
+      product.sellerEmail && `Email người bán: ${product.sellerEmail}`,
+      product.sellerPhone && `Số điện thoại: ${product.sellerPhone}`,
+    ].filter(Boolean)
   };
 
   return (

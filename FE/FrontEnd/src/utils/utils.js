@@ -7,19 +7,41 @@ export const formatPrice = (price) => {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: 'VND'
-  }).format(price);
+  }).format(price || 0);
 };
 
 /**
- * Format date to DD/MM/YYYY
+ * Format date to DD/MM/YYYY HH:mm
  */
 export const formatDate = (dateString) => {
+  if (!dateString) return "";
   const date = new Date(dateString);
-  return date.toLocaleDateString('vi-VN');
+  return date.toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 };
 
 /**
- * Get status color class
+ * Get status color class for Orders
+ */
+export const getOrderStatusColor = (status) => {
+  const colors = {
+    Pending: "status-warning",
+    Paid: "status-info",
+    Confirmed: "status-info",
+    Shipping: "status-info",
+    Completed: "status-success",
+    Cancelled: "status-danger",
+  };
+  return colors[status] || "status-default";
+};
+
+/**
+ * Get status color class (Admin)
  */
 export const getStatusColor = (status) => {
   switch (status?.toLowerCase()) {
@@ -98,7 +120,7 @@ export const getTimeAgo = (dateString) => {
   const now = new Date();
   const diffTime = Math.abs(now - date);
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
+
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Yesterday';
   if (diffDays < 7) return `${diffDays} days ago`;

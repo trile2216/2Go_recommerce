@@ -9,6 +9,7 @@ using _2GO_EXE_Project.BAL.DTOs.Auth;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
+using _2GO_EXE_Project.BAL.Validation;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -50,14 +51,7 @@ public class AuthService : IAuthService
     public async Task<RegisterResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.Phone))
-        {
-            throw new ArgumentException("Email or phone is required.");
-        }
-        if (!IsValidPassword(request.Password))
-        {
-            throw new InvalidOperationException("Password must be at least 8 characters and include at least 1 letter and 1 digit.");
-        }
+        ValidationGuard.ThrowIfInvalid(UserValidator.ValidateRegister(request));
 
         var exists = await _uow.Users.Query()
             .AsNoTracking()
@@ -103,6 +97,7 @@ public class AuthService : IAuthService
     public async Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+        ValidationGuard.ThrowIfInvalid(UserValidator.ValidateLogin(request));
         var user = await _uow.Users.Query()
             .FirstOrDefaultAsync(u => u.Email == request.Identifier || u.Phone == request.Identifier, cancellationToken);
 
@@ -142,6 +137,7 @@ public class AuthService : IAuthService
 
     public async Task<BasicResponse> LogoutAsync(RefreshTokenRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(UserValidator.ValidateRefreshToken(request));
         var token = await _uow.RefreshTokens.Query()
             .FirstOrDefaultAsync(t => t.Token == request.RefreshToken, cancellationToken);
 
@@ -164,6 +160,7 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(UserValidator.ValidateRefreshToken(request));
         var token = await _uow.RefreshTokens.Query()
             .Include(t => t.User)
             .FirstOrDefaultAsync(t => t.Token == request.RefreshToken, cancellationToken);
@@ -194,6 +191,7 @@ public class AuthService : IAuthService
 
     public async Task<BasicResponse> VerifyEmailAsync(VerifyEmailRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(UserValidator.ValidateVerifyEmail(request));
         var user = await _uow.Users.Query().FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
         if (user == null)
         {
@@ -247,10 +245,7 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponse> FirebaseLoginAsync(FirebaseLoginRequest request, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(request.IdToken))
-        {
-            throw new ArgumentException("IdToken is required.");
-        }
+        ValidationGuard.ThrowIfInvalid(UserValidator.ValidateFirebaseLogin(request));
 
         FirebaseToken decoded;
         try
@@ -426,6 +421,8 @@ public class AuthService : IAuthService
             throw new UnauthorizedAccessException("User not found.");
         }
 
+        ValidationGuard.ThrowIfInvalid(UserValidator.ValidateUpdateProfile(request));
+
         var profile = user.UserProfiles.FirstOrDefault();
         var isNewProfile = profile == null;
         if (profile == null)
@@ -439,7 +436,7 @@ public class AuthService : IAuthService
 
         profile.FullName = request.FullName ?? profile.FullName;
         profile.DateOfBirth = request.Birthday ?? profile.DateOfBirth;
-        profile.Gender = request.Gender ?? profile.Gender;
+        profile.Gender = NormalizeGender(request.Gender) ?? profile.Gender;
         profile.AddressLine = request.Address ?? profile.AddressLine;
         profile.Bio = request.Bio ?? profile.Bio;
         profile.AvatarUrl = request.AvatarUrl ?? profile.AvatarUrl;
@@ -482,10 +479,7 @@ public class AuthService : IAuthService
 
     public async Task<BasicResponse> ChangePasswordAsync(ClaimsPrincipal userPrincipal, ChangePasswordRequest request, CancellationToken cancellationToken = default)
     {
-        if (!IsValidPassword(request.NewPassword))
-        {
-            return new BasicResponse(false, "Password must be at least 8 characters and include at least 1 letter and 1 digit.");
-        }
+        ValidationGuard.ThrowIfInvalid(UserValidator.ValidateChangePassword(request));
         var sub = userPrincipal.FindFirst("sub")?.Value
                   ?? userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value
                   ?? userPrincipal.FindFirst(ClaimTypes.Name)?.Value;
@@ -593,6 +587,7 @@ public class AuthService : IAuthService
 
     public async Task<BasicResponse> UpdateAvatarAsync(ClaimsPrincipal userPrincipal, UpdateAvatarRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(UserValidator.ValidateUpdateAvatar(request));
         var sub = userPrincipal.FindFirst("sub")?.Value
                   ?? userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value
                   ?? userPrincipal.FindFirst(ClaimTypes.Name)?.Value;
@@ -630,6 +625,7 @@ public class AuthService : IAuthService
 
     public async Task<BasicResponse> UpdateAddressAsync(ClaimsPrincipal userPrincipal, UpdateAddressRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(UserValidator.ValidateUpdateAddress(request));
         var sub = userPrincipal.FindFirst("sub")?.Value
                   ?? userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value
                   ?? userPrincipal.FindFirst(ClaimTypes.Name)?.Value;
@@ -671,6 +667,7 @@ public class AuthService : IAuthService
 
     public async Task<BasicResponse> ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(UserValidator.ValidateForgotPassword(request));
         var user = await _uow.Users.Query().FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
         if (user == null)
         {
@@ -692,14 +689,11 @@ public class AuthService : IAuthService
 
     public async Task<BasicResponse> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(UserValidator.ValidateResetPassword(request));
         var user = await _uow.Users.Query().FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
         if (user == null)
         {
             return new BasicResponse(false, "Invalid code.");
-        }
-        if (!IsValidPassword(request.NewPassword))
-        {
-            return new BasicResponse(false, "Password must be at least 8 characters and include at least 1 letter and 1 digit.");
         }
 
         var codeEntity = await _uow.VerificationCodes.Query()
@@ -740,12 +734,11 @@ public class AuthService : IAuthService
         return new BasicResponse(true, "Password reset successful.");
     }
 
-    private static bool IsValidPassword(string? value)
+    private static string? NormalizeGender(string? gender)
     {
-        if (string.IsNullOrWhiteSpace(value) || value.Length < 8) return false;
-        var hasLetter = value.Any(char.IsLetter);
-        var hasDigit = value.Any(char.IsDigit);
-        return hasLetter && hasDigit;
+        if (gender == null) return null;
+        var trimmed = gender.Trim();
+        return trimmed.Length == 0 ? null : trimmed;
     }
 
     private async Task<string> CreateVerificationCodeAsync(long userId, string purpose, CancellationToken cancellationToken)

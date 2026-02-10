@@ -1,12 +1,15 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using _2GO_EXE_Project.BAL.Constants;
 using _2GO_EXE_Project.BAL.DTOs.Auth;
 using _2GO_EXE_Project.BAL.DTOs.Listings;
 using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
+using _2GO_EXE_Project.BAL.Settings;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
+using _2GO_EXE_Project.BAL.Validation;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -14,10 +17,13 @@ public class SellerListingService : ISellerListingService
 {
     private readonly IUnitOfWork _uow;
     private readonly INotificationService _notificationService;
-    public SellerListingService(IUnitOfWork uow, INotificationService notificationService)
+    private readonly string _cloudinaryCloudName;
+
+    public SellerListingService(IUnitOfWork uow, INotificationService notificationService, IOptions<CloudinarySettings> cloudinaryOptions)
     {
         _uow = uow;
         _notificationService = notificationService;
+        _cloudinaryCloudName = cloudinaryOptions.Value.CloudName ?? string.Empty;
     }
 
     private static long GetUserId(ClaimsPrincipal principal)
@@ -49,10 +55,19 @@ public class SellerListingService : ISellerListingService
     private async Task EnsureWardValidAsync(int wardId, CancellationToken cancellationToken)
     {
         var ward = await _uow.Wards.Query()
+            .AsNoTracking()
             .FirstOrDefaultAsync(w => w.WardId == wardId, cancellationToken);
         if (ward == null)
         {
-            throw new InvalidOperationException("Ward not found.");
+            var result = new ValidationResult();
+            result.Add("wardId", "WardId does not exist.");
+            throw new CustomValidationException(result.Errors, "INVALID_LOCATION");
+        }
+        if (!ward.DistrictId.HasValue || !ward.CityId.HasValue)
+        {
+            var result = new ValidationResult();
+            result.Add("wardId", "WardId is missing district or city.");
+            throw new CustomValidationException(result.Errors, "INVALID_LOCATION");
         }
     }
 
@@ -87,35 +102,46 @@ public class SellerListingService : ISellerListingService
 
     private static void ValidateMediaRequests(IReadOnlyList<ListingMediaRequest> mediaRequests)
     {
-        if (mediaRequests.Count == 0)
+        ValidationGuard.ThrowIfInvalid(ListingValidator.ValidateMedia(mediaRequests));
+    }
+
+    private void ValidateCloudinaryMediaUrls(IReadOnlyList<ListingMediaRequest> mediaRequests)
+    {
+        var result = new ValidationResult();
+        if (string.IsNullOrWhiteSpace(_cloudinaryCloudName))
         {
-            throw new InvalidOperationException("At least one media item is required.");
+            result.Add("media", "Cloudinary CloudName is not configured.");
+            ValidationGuard.ThrowIfInvalid(result);
         }
 
-        var primaryImageCount = 0;
-        foreach (var item in mediaRequests)
+        var cloudPathPrefix = $"/{_cloudinaryCloudName.Trim()}/";
+        for (var i = 0; i < mediaRequests.Count; i++)
         {
-            if (string.IsNullOrWhiteSpace(item.Url))
+            var url = mediaRequests[i].Url;
+            if (string.IsNullOrWhiteSpace(url))
             {
-                throw new InvalidOperationException("Media url is required.");
+                continue;
             }
 
-            var normalizedType = NormalizeMediaType(item.MediaType);
-            if (string.Equals(normalizedType, MediaTypes.Video, StringComparison.OrdinalIgnoreCase) && item.IsPrimary)
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
             {
-                throw new InvalidOperationException("Primary media must be an image.");
+                result.Add($"media[{i}].url", "Media url must be a valid absolute Cloudinary URL.");
+                continue;
             }
 
-            if (string.Equals(normalizedType, MediaTypes.Image, StringComparison.OrdinalIgnoreCase) && item.IsPrimary)
+            if (!string.Equals(uri.Host, "res.cloudinary.com", StringComparison.OrdinalIgnoreCase))
             {
-                primaryImageCount++;
+                result.Add($"media[{i}].url", "Media url must be hosted on Cloudinary.");
+                continue;
+            }
+
+            if (!uri.AbsolutePath.StartsWith(cloudPathPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                result.Add($"media[{i}].url", "Media url must belong to the configured Cloudinary cloud.");
             }
         }
 
-        if (primaryImageCount > 1)
-        {
-            throw new InvalidOperationException("Only one primary image is allowed.");
-        }
+        ValidationGuard.ThrowIfInvalid(result);
     }
 
     public async Task<SellerListingListResponse> GetMyListingsAsync(ClaimsPrincipal sellerPrincipal, string? status, int skip, int take, CancellationToken cancellationToken = default)
@@ -166,6 +192,8 @@ public class SellerListingService : ISellerListingService
             .ThenInclude(sc => sc!.Category)
             .Include(l => l.ListingMedias)
             .Include(l => l.ListingAttributes)
+            .Include(l => l.Ward)
+            .ThenInclude(w => w!.District)
             .Include(l => l.Seller)
             .ThenInclude(s => s!.UserProfiles)
             .Where(l => l.ListingId == listingId && l.SellerId == sellerId)
@@ -223,11 +251,14 @@ public class SellerListingService : ISellerListingService
             listing.Seller?.Phone,
             primary,
             media,
-            attributes);
+            attributes,
+            listing.Ward?.Name,
+            listing.Ward?.District?.Name);
     }
 
     public async Task<ListingDetail> CreateAsync(ClaimsPrincipal sellerPrincipal, CreateSellerListingRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(ListingValidator.ValidateCreate(request));
         var sellerId = GetUserId(sellerPrincipal);
         await EnsureSubCategoryValidAsync(request.SubCategoryId, cancellationToken);
         if (request.WardId.HasValue)
@@ -238,20 +269,41 @@ public class SellerListingService : ISellerListingService
         {
             throw new InvalidOperationException("Title is required.");
         }
-        if (!request.Price.HasValue || request.Price.Value <= 0)
+        var status = request.Status;
+        if (string.IsNullOrWhiteSpace(status))
         {
-            throw new InvalidOperationException("Price must be greater than 0.");
+            status = ListingStatuses.Draft;
         }
+
+        if (!string.Equals(status, ListingStatuses.Draft, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(status, ListingStatuses.PendingReview, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Invalid status for creation. Allowed: Draft, PendingReview.");
+        }
+
+        if (string.Equals(status, ListingStatuses.PendingReview, StringComparison.OrdinalIgnoreCase))
+        {
+            if (!request.Price.HasValue || request.Price.Value <= 0)
+            {
+                throw new InvalidOperationException("Price must be greater than 0 for listings.");
+            }
+        }
+
         var mediaRequests = request.Media?.ToList() ?? new List<ListingMediaRequest>();
-        ValidateMediaRequests(mediaRequests);
         var imageRequests = mediaRequests
             .Where(m => string.IsNullOrWhiteSpace(m.MediaType) ||
                         m.MediaType == MediaTypes.Image)
             .ToList();
-        if (imageRequests.Count == 0)
+
+        if (string.Equals(status, ListingStatuses.PendingReview, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("At least one image is required.");
+            if (imageRequests.Count == 0)
+            {
+                throw new InvalidOperationException("At least one image is required.");
+            }
         }
+        ValidateMediaRequests(mediaRequests);
+        ValidateCloudinaryMediaUrls(mediaRequests);
         var listing = new Listing
         {
             SellerId = sellerId,
@@ -267,7 +319,7 @@ public class SellerListingService : ISellerListingService
             Dimensions = request.Dimensions,
             Weight = request.Weight,
             Brand = request.Brand,
-            Status = ListingStatuses.Draft,
+            Status = status,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -316,6 +368,7 @@ public class SellerListingService : ISellerListingService
 
     public async Task<ListingDetail?> UpdateAsync(ClaimsPrincipal sellerPrincipal, long listingId, UpdateSellerListingRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(ListingValidator.ValidateUpdate(request));
         var sellerId = GetUserId(sellerPrincipal);
         var listing = await _uow.Listings.Query()
             .FirstOrDefaultAsync(l => l.ListingId == listingId && l.SellerId == sellerId, cancellationToken);
@@ -454,7 +507,7 @@ public class SellerListingService : ISellerListingService
         listing.UpdatedAt = now;
         _uow.Listings.Update(listing);
         await _uow.SaveChangesAsync(cancellationToken);
-        await NotifyAsync(sellerId, "LISTING", "Đã gửi duyệt bài đăng", $"Bài đăng #{listing.ListingId} đã được gửi để duyệt.", $"/seller/listings/{listing.ListingId}", cancellationToken);
+        await NotifyAsync(sellerId, "LISTING", ListingNotificationText.ForStatus(ListingStatuses.PendingReview).Title, ListingNotificationText.ForStatus(ListingStatuses.PendingReview).Message, $"/seller/listings/{listing.ListingId}", cancellationToken);
         await NotifyAdminsAsync("LISTING_REVIEW", "Có bài đăng cần duyệt", $"Bài đăng #{listing.ListingId} đang chờ duyệt.", $"/admin/listings/{listing.ListingId}", cancellationToken);
         return new BasicResponse(true, "Listing submitted for review.");
     }
@@ -475,7 +528,7 @@ public class SellerListingService : ISellerListingService
         listing.UpdatedAt = DateTime.UtcNow;
         _uow.Listings.Update(listing);
         await _uow.SaveChangesAsync(cancellationToken);
-        await NotifyAsync(sellerId, "LISTING", "Bài đăng đã lưu trữ", $"Bài đăng #{listing.ListingId} đã được lưu trữ.", $"/seller/listings/{listing.ListingId}", cancellationToken);
+        await NotifyAsync(sellerId, "LISTING", ListingNotificationText.ForStatus(ListingStatuses.Archived).Title, ListingNotificationText.ForStatus(ListingStatuses.Archived).Message, $"/seller/listings/{listing.ListingId}", cancellationToken);
         return new BasicResponse(true, "Listing archived.");
     }
 
@@ -495,12 +548,13 @@ public class SellerListingService : ISellerListingService
         listing.UpdatedAt = DateTime.UtcNow;
         _uow.Listings.Update(listing);
         await _uow.SaveChangesAsync(cancellationToken);
-        await NotifyAsync(sellerId, "LISTING", "Bài đăng đã xóa", $"Bài đăng #{listing.ListingId} đã bị xóa.", $"/seller/listings/{listing.ListingId}", cancellationToken);
+        await NotifyAsync(sellerId, "LISTING", ListingNotificationText.ForStatus(ListingStatuses.Deleted).Title, ListingNotificationText.ForStatus(ListingStatuses.Deleted).Message, $"/seller/listings/{listing.ListingId}", cancellationToken);
         return new BasicResponse(true, "Listing deleted (soft).");
     }
 
     public async Task<BasicResponse> UpdateMediaAsync(ClaimsPrincipal sellerPrincipal, long listingId, UpdateListingMediaRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(ListingValidator.ValidateMedia(request.Media));
         var sellerId = GetUserId(sellerPrincipal);
         var listing = await _uow.Listings.Query()
             .Include(l => l.ListingMedias)
@@ -526,15 +580,12 @@ public class SellerListingService : ISellerListingService
             return new BasicResponse(true, "Media cleared.");
         }
         ValidateMediaRequests(mediaRequests);
+        ValidateCloudinaryMediaUrls(mediaRequests);
 
         var imageRequests = mediaRequests
             .Where(m => string.IsNullOrWhiteSpace(m.MediaType) ||
                         m.MediaType == MediaTypes.Image)
             .ToList();
-        if (imageRequests.Count == 0)
-        {
-            throw new InvalidOperationException("At least one image is required.");
-        }
 
         var hasPrimaryImage = imageRequests.Any(i => i.IsPrimary);
         var newMedia = new List<ListingMedia>();

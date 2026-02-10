@@ -512,6 +512,7 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("DistrictId"));
 
                     b.Property<int?>("CityId")
+                        .IsRequired()
                         .HasColumnType("integer");
 
                     b.Property<string>("Name")
@@ -521,6 +522,9 @@ namespace _2GO_EXE_Project.DAL.Migrations
 
                     b.HasKey("DistrictId")
                         .HasName("PK__District__85FDA4C64D9546B6");
+
+                    b.HasAlternateKey("DistrictId", "CityId")
+                        .HasName("AK_Districts_DistrictId_CityId");
 
                     b.HasIndex("CityId");
 
@@ -772,6 +776,9 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.Property<decimal?>("Price")
                         .HasColumnType("decimal(15, 2)");
 
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<long?>("SellerId")
                         .HasColumnType("bigint");
 
@@ -779,9 +786,6 @@ namespace _2GO_EXE_Project.DAL.Migrations
                         .HasMaxLength(50)
                         .IsUnicode(false)
                         .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime?>("PublishedAt")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int?>("SubCategoryId")
                         .HasColumnType("integer");
@@ -839,6 +843,48 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.HasIndex("ListingId");
 
                     b.ToTable("ListingAttributes");
+                });
+
+            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.ListingComment", b =>
+                {
+                    b.Property<long>("CommentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("CommentId"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<long>("ListingId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("ParentId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("CommentId")
+                        .HasName("PK__ListingC__D7C4A67F4A017A9D");
+
+                    b.HasIndex("ListingId");
+
+                    b.HasIndex("ParentId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ListingComments");
                 });
 
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.ListingMedia", b =>
@@ -1518,6 +1564,11 @@ namespace _2GO_EXE_Project.DAL.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("NOW()");
 
+                    b.Property<string>("EvidenceUrls")
+                        .HasMaxLength(4000)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(4000)");
+
                     b.Property<long?>("ListingId")
                         .HasColumnType("bigint");
 
@@ -1682,6 +1733,33 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.ToTable("ShippingRequests");
                 });
 
+            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.SubCategory", b =>
+                {
+                    b.Property<int>("SubCategoryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("SubCategoryId"));
+
+                    b.Property<int?>("CategoryId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(255)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("SubCategoryId")
+                        .HasName("PK__SubCateg__26BE5B1941E8BD81");
+
+                    b.HasIndex("CategoryId");
+
+                    b.ToTable("SubCategories");
+                });
+
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.SubscriptionPlan", b =>
                 {
                     b.Property<int>("PlanId")
@@ -1749,14 +1827,14 @@ namespace _2GO_EXE_Project.DAL.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("AuditId"));
 
-                    b.Property<long?>("ActorUserId")
-                        .HasColumnType("bigint");
-
                     b.Property<string>("Action")
                         .IsRequired()
                         .HasMaxLength(50)
                         .IsUnicode(false)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<long?>("ActorUserId")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("AfterJson")
                         .HasColumnType("text");
@@ -1778,33 +1856,6 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.HasIndex("PlanId");
 
                     b.ToTable("SubscriptionPlanAudits");
-                });
-
-            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.SubCategory", b =>
-                {
-                    b.Property<int>("SubCategoryId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("SubCategoryId"));
-
-                    b.Property<int?>("CategoryId")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(255)
-                        .IsUnicode(false)
-                        .HasColumnType("character varying(255)");
-
-                    b.HasKey("SubCategoryId")
-                        .HasName("PK__SubCateg__26BE5B1941E8BD81");
-
-                    b.HasIndex("CategoryId");
-
-                    b.ToTable("SubCategories");
                 });
 
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.SupportTicket", b =>
@@ -2295,6 +2346,9 @@ namespace _2GO_EXE_Project.DAL.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WardId"));
 
+                    b.Property<int?>("CityId")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("DistrictId")
                         .HasColumnType("integer");
 
@@ -2306,7 +2360,9 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.HasKey("WardId")
                         .HasName("PK__Wards__C6BD9BCAC40737D0");
 
-                    b.HasIndex("DistrictId");
+                    b.HasIndex("CityId");
+
+                    b.HasIndex("DistrictId", "CityId");
 
                     b.ToTable("Wards");
                 });
@@ -2417,6 +2473,8 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.HasOne("_2GO_EXE_Project.DAL.Entities.City", "City")
                         .WithMany("Districts")
                         .HasForeignKey("CityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
                         .HasConstraintName("FK_Districts_Cities");
 
                     b.Navigation("City");
@@ -2535,6 +2593,33 @@ namespace _2GO_EXE_Project.DAL.Migrations
                         .HasConstraintName("FK_ListingAttributes_Listings");
 
                     b.Navigation("Listing");
+                });
+
+            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.ListingComment", b =>
+                {
+                    b.HasOne("_2GO_EXE_Project.DAL.Entities.Listing", "Listing")
+                        .WithMany("ListingComments")
+                        .HasForeignKey("ListingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_ListingComments_Listings");
+
+                    b.HasOne("_2GO_EXE_Project.DAL.Entities.ListingComment", "ParentComment")
+                        .WithMany("Replies")
+                        .HasForeignKey("ParentId");
+
+                    b.HasOne("_2GO_EXE_Project.DAL.Entities.User", "User")
+                        .WithMany("ListingComments")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_ListingComments_Users");
+
+                    b.Navigation("Listing");
+
+                    b.Navigation("ParentComment");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.ListingMedia", b =>
@@ -2699,16 +2784,6 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.Navigation("Payment");
                 });
 
-            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.SubscriptionPlanAudit", b =>
-                {
-                    b.HasOne("_2GO_EXE_Project.DAL.Entities.SubscriptionPlan", "Plan")
-                        .WithMany("Audits")
-                        .HasForeignKey("PlanId")
-                        .HasConstraintName("FK_SubscriptionPlanAudits_Plans");
-
-                    b.Navigation("Plan");
-                });
-
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.PointTransaction", b =>
                 {
                     b.HasOne("_2GO_EXE_Project.DAL.Entities.User", "User")
@@ -2806,6 +2881,18 @@ namespace _2GO_EXE_Project.DAL.Migrations
                         .HasConstraintName("FK_SubCategories_Categories");
 
                     b.Navigation("Category");
+                });
+
+            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.SubscriptionPlanAudit", b =>
+                {
+                    b.HasOne("_2GO_EXE_Project.DAL.Entities.SubscriptionPlan", "Plan")
+                        .WithMany("Audits")
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_SubscriptionPlanAudits_Plans");
+
+                    b.Navigation("Plan");
                 });
 
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.SupportTicket", b =>
@@ -2916,10 +3003,18 @@ namespace _2GO_EXE_Project.DAL.Migrations
 
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.Ward", b =>
                 {
+                    b.HasOne("_2GO_EXE_Project.DAL.Entities.City", "City")
+                        .WithMany("Wards")
+                        .HasForeignKey("CityId")
+                        .HasConstraintName("FK_Wards_Cities");
+
                     b.HasOne("_2GO_EXE_Project.DAL.Entities.District", "District")
                         .WithMany("Wards")
-                        .HasForeignKey("DistrictId")
-                        .HasConstraintName("FK_Wards_Districts");
+                        .HasForeignKey("DistrictId", "CityId")
+                        .HasPrincipalKey("DistrictId", "CityId")
+                        .HasConstraintName("FK_Wards_Districts_City");
+
+                    b.Navigation("City");
 
                     b.Navigation("District");
                 });
@@ -2942,6 +3037,8 @@ namespace _2GO_EXE_Project.DAL.Migrations
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.City", b =>
                 {
                     b.Navigation("Districts");
+
+                    b.Navigation("Wards");
                 });
 
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.District", b =>
@@ -2980,6 +3077,8 @@ namespace _2GO_EXE_Project.DAL.Migrations
 
                     b.Navigation("ListingAttributes");
 
+                    b.Navigation("ListingComments");
+
                     b.Navigation("ListingMedias");
 
                     b.Navigation("ListingViews");
@@ -2991,6 +3090,11 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.Navigation("Reports");
 
                     b.Navigation("SavedListings");
+                });
+
+            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.ListingComment", b =>
+                {
+                    b.Navigation("Replies");
                 });
 
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.Order", b =>
@@ -3020,14 +3124,14 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.Navigation("PaymentLogs");
                 });
 
-            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.SubscriptionPlan", b =>
-                {
-                    b.Navigation("Audits");
-                });
-
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.SubCategory", b =>
                 {
                     b.Navigation("Listings");
+                });
+
+            modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.SubscriptionPlan", b =>
+                {
+                    b.Navigation("Audits");
                 });
 
             modelBuilder.Entity("_2GO_EXE_Project.DAL.Entities.Transfer", b =>
@@ -3058,6 +3162,8 @@ namespace _2GO_EXE_Project.DAL.Migrations
                     b.Navigation("FixerAssignments");
 
                     b.Navigation("FixerRequests");
+
+                    b.Navigation("ListingComments");
 
                     b.Navigation("ListingViews");
 

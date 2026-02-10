@@ -41,7 +41,7 @@ export default function ProductCard({ product }) {
   };
 
   const handleProductClick = () => {
-    navigate(`/product/${product.listingId}`);
+    navigate(`/listings/${product.listingId}`);
   };
 
   const handleAddToFavorites = (e) => {

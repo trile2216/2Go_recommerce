@@ -58,8 +58,8 @@
 }
 
 .tab-trigger.active {
-  color: #ff6b35;
-  border-bottom-color: #ff6b35;
+  color: #0DA2E7;
+  border-bottom-color: #0DA2E7;
 }
 
 .tabs-content {
@@ -196,8 +196,8 @@
 }
 
 .order-detail-btn:hover {
-  border-color: #ff6b35;
-  color: #ff6b35;
+  border-color: #0DA2E7;
+  color: #0DA2E7;
   background-color: #fff5f0;
 }
 
@@ -374,9 +374,7 @@
     border-bottom: 2px solid transparent;
   }
 
-  .tab-trigger.active {
-    border-bottom-color: #ff6b35;
-  }
+
 }
 
 /* Loading & Status Styles */
@@ -394,6 +392,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }

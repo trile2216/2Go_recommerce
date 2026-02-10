@@ -9,6 +9,7 @@ using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
 using PayOS.Models.Webhooks;
+using _2GO_EXE_Project.BAL.Validation;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -46,6 +47,7 @@ public class PaymentService : IPaymentService
 
     public async Task<PaymentResponse> CreateAsync(ClaimsPrincipal userPrincipal, CreatePaymentRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateCreatePayment(request));
         var userId = GetUserId(userPrincipal);
         var order = await _uow.Orders.GetByIdAsync(request.OrderId);
         if (order == null)
@@ -201,15 +203,8 @@ public class PaymentService : IPaymentService
 
     public async Task<PaymentResponse> CreateSubscriptionAsync(ClaimsPrincipal userPrincipal, CreateSubscriptionPaymentRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateCreateSubscriptionPayment(request));
         var userId = GetUserId(userPrincipal);
-        if (string.IsNullOrWhiteSpace(request.Method))
-        {
-            throw new InvalidOperationException("Payment method is required.");
-        }
-        if (string.IsNullOrWhiteSpace(request.PlanCode))
-        {
-            throw new InvalidOperationException("Subscription plan is required.");
-        }
         if (!PaymentMethods.All.Contains(request.Method, StringComparer.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException("Invalid payment method.");
@@ -290,15 +285,11 @@ public class PaymentService : IPaymentService
 
     public async Task<BasicResponse> VerifyAsync(ClaimsPrincipal userPrincipal, long paymentId, VerifyPaymentRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateVerifyPayment(request));
         var userId = GetUserId(userPrincipal);
         var payment = await _uow.Payments.Query()
             .FirstOrDefaultAsync(p => p.PaymentId == paymentId && p.UserId == userId, cancellationToken);
         if (payment == null) return new BasicResponse(false, "Payment not found.");
-
-        if (string.IsNullOrWhiteSpace(request.Status))
-        {
-            return new BasicResponse(false, "Status is required.");
-        }
 
         if (!PaymentStatuses.All.Contains(request.Status, StringComparer.OrdinalIgnoreCase))
         {

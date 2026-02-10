@@ -139,6 +139,8 @@ public class ListingService : IListingService
             .Include(l => l.SubCategory)
             .ThenInclude(sc => sc!.Category)
             .Include(l => l.ListingMedias)
+            .Include(l => l.Ward)
+            .ThenInclude(w => w!.District)
             .Include(l => l.Seller)
             .ThenInclude(s => s!.UserProfiles)
             .Where(l => l.ListingId == listingId);
@@ -202,7 +204,9 @@ public class ListingService : IListingService
             null,
             primary,
             media,
-            attributes);
+            attributes,
+            listing.Ward?.Name,
+            listing.Ward?.District?.Name);
     }
 
     private async Task TrackViewAsync(long listingId, long? viewerUserId, CancellationToken cancellationToken)

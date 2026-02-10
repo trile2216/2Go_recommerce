@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate, useBlocker, useSearchParams } from "react-router-dom";
 import {
     Form,
     Input,
@@ -24,10 +24,10 @@ import {
     X,
     Star,
 } from "lucide-react";
-import "./PostListing.css";
+import "./PostListing.css"; 
 import Header from "../../components/Header";
 import { uploadImageAndGetUrl, uploadVideoAndGetUrl } from "../../service/upload/api.upload";
-import { createListing } from "../../service/home/api.sellerListing";
+import { createListing, getMyListingById, updateListing, updateListingMedia } from "../../service/home/api.sellerListing";
 import { fetchAllCategories, fetchSubCategoriesByCategoryId } from "../../service/home/api.category";
 import { fetchAllDistricts, fetchAllWards } from "../../service/home/api.ward";
 import { listingPrecheck } from "../../service/ai/api.analyze";
@@ -39,8 +39,47 @@ const { Option } = Select;
 
 export default function PostListing() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const editId = searchParams.get('edit');
     const [form] = Form.useForm();
-    const { user } = useAuth();
+    const [isFormDirty, setIsFormDirty] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false); // To prevent blocker when submitting
+    
+    // Blocker for navigation
+    const blocker = useBlocker(
+        ({ currentLocation, nextLocation }) =>
+            isFormDirty && !isSubmitting && currentLocation.pathname !== nextLocation.pathname
+    );
+
+    // Modal state for blocker
+    const [showBlockerModal, setShowBlockerModal] = useState(false);
+
+    useEffect(() => {
+        if (blocker.state === "blocked") {
+            setShowBlockerModal(true);
+        } else {
+            setShowBlockerModal(false);
+        }
+    }, [blocker.state]);
+
+    const handleBlockerLeave = () => {
+        if (blocker.state === "blocked") {
+            blocker.proceed();
+        } else {
+             navigate("/");
+        }
+    };
+
+    const handleBlockerStay = () => {
+        if (blocker.state === "blocked") {
+            blocker.reset();
+        }
+        setShowBlockerModal(false);
+    };
+
+    const handleSaveDraftAndLeave = () => {
+        handleSaveDraft();
+    };
 
     // Modal State
     const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(true);
@@ -183,6 +222,92 @@ export default function PostListing() {
         });
     };
 
+    // Load existing listing for edit
+    useEffect(() => {
+        if (editId) {
+            const fetchListing = async () => {
+                try {
+                    const data = await getMyListingById(editId);
+                    
+                    // Populate Form
+                    form.setFieldsValue({
+                        title: data.title,
+                        description: data.description,
+                        price: data.price,
+                        condition: data.condition,
+                        brand: data.brand,
+                        isFree: data.price === 0,
+                        // Attributes
+                        color: data.attributes?.find(a => a.name === "Màu sắc")?.value,
+                        capacity: data.attributes?.find(a => a.name === "Dung lượng")?.value,
+                        warranty: data.attributes?.find(a => a.name === "Bảo hành")?.value,
+                        origin: data.attributes?.find(a => a.name === "Xuất xứ")?.value,
+                        address: data.sellerAddress, // Assuming address is roughly map to sellerAddress for now
+                    });
+                    
+                    setIsFree(data.price === 0);
+
+                    // Setup Media
+                    const images = data.media?.filter(m => m.mediaType === 'IMAGE').map(m => ({
+                        uid: `img-${m.id}`,
+                        file: null, // No file object for existing
+                        preview: m.url,
+                        isPrimary: m.isPrimary,
+                        url: m.url 
+                    })) || [];
+                    setImageList(images);
+
+                    const videos = data.media?.filter(m => m.mediaType === 'VIDEO').map(m => ({
+                        uid: `vid-${m.id}`,
+                        file: null,
+                        preview: m.url,
+                        url: m.url
+                    })) || [];
+                    setVideoList(videos);
+
+                    // Setup Category
+                    if (data.categoryId && data.subCategoryId) {
+                        // Note: categories state might not be fully loaded yet depending on race condition
+                        // but we just need names for display usually.
+                        // Ideally we find them in categories list.
+                        // For now we assume we can fetch them or just display names if available in listing detail
+                        // ListingDetail usually has CategoryName, SubCategoryName
+                        form.setFieldsValue({
+                            category: `${data.categoryName} - ${data.subCategoryName}`
+                        });
+                        setSelectedSubcategory({ id: data.subCategoryId, name: data.subCategoryName });
+                        setSelectedCategory({ id: data.categoryId, name: data.categoryName });
+                        setIsCategoryModalOpen(false); 
+                    }
+
+                    // Setup Location
+                    if (data.wardId) {
+                         // We need to fetch district via ward? Or just set if we have districtId in listing
+                         // ListingDetail DTO might need DistrictId to be easier. 
+                         // Assuming we have it or can derive it.
+                         // For now if logic is complex, we might skip pre-filling exact ward/district dropdowns 
+                         // unless we have specific IDs.
+                         // Let's assume we have WardId. We can try to set it if we load wards.
+                         // But we need to load districts first, then select district, then load wards.
+                         // This is tricky without DistrictId.
+                         // If ListingDetail has DistrictId, uses it.
+                         if (data.districtId) {
+                             setSelectedDistrict(data.districtId);
+                             setSelectedWard(data.wardId);
+                         }
+                    }
+
+                } catch (error) {
+                    console.error("Error fetching listing for edit:", error);
+                    message.error("Không thể tải thông tin bài đăng");
+                    navigate("/seller/listings");
+                }
+            };
+            fetchListing();
+        }
+    }, [editId, form, navigate]);
+
+
     // --- Image handlers ---
     const handleImageUpload = useCallback((e) => {
         const files = Array.from(e.target.files || []);
@@ -266,41 +391,65 @@ export default function PostListing() {
     }, []);
 
 
-    const onFinish = async (values) => {
-        // Validation: at least 1 image required
-        if (imageList.length === 0) {
-            message.error("Vui lòng tải lên ít nhất 1 hình ảnh!");
-            return;
-        }
+    // Track form changes
+    const handleFormChange = () => {
+        if (!isFormDirty) setIsFormDirty(true);
+    };
 
-        // Validation: exactly 1 primary image
-        const primaryCount = imageList.filter((img) => img.isPrimary).length;
-        if (primaryCount !== 1) {
-            message.error("Phải có đúng 1 ảnh bìa!");
-            return;
-        }
+    const handleSaveDraft = () => {
+        const values = form.getFieldsValue();
+        submitListing(values, 'Draft');
+    };
 
-        if (!selectedSubcategory) {
-            message.error("Vui lòng chọn danh mục sản phẩm!");
-            return;
+    const onFinish = (values) => {
+        submitListing(values, 'PendingReview');
+    };
+
+    const submitListing = async (values, status) => {
+        // Validation for PendingReview
+        if (status === 'PendingReview') {
+             // Validation: at least 1 image required
+            if (imageList.length === 0) {
+                message.error("Vui lòng tải lên ít nhất 1 hình ảnh!");
+                return;
+            }
+
+            // Validation: exactly 1 primary image
+            const primaryCount = imageList.filter((img) => img.isPrimary).length;
+            if (primaryCount !== 1) {
+                message.error("Phải có đúng 1 ảnh bìa!");
+                return;
+            }
+
+            if (!selectedSubcategory) {
+                message.error("Vui lòng chọn danh mục sản phẩm!");
+                return;
+            }
         }
 
         // Show loading message
-        const hideLoadingMsg = message.loading("Đang xử lý tin đăng của bạn...", 0);
+        const hideLoadingMsg = message.loading(
+            status === 'Draft' ? "Đang lưu nháp..." : "Đang gửi duyệt...", 
+            0
+        );
 
         try {
             // Upload images
             const imageFiles = imageList.map((img) => img.file).filter(Boolean);
-            const imageUrls = await uploadImageAndGetUrl(imageFiles);
-            const imageUrlArr = Array.isArray(imageUrls) ? imageUrls : [imageUrls];
+            let mediaData = [];
+            
+            if (imageFiles.length > 0) {
+                const imageUrls = await uploadImageAndGetUrl(imageFiles);
+                const imageUrlArr = Array.isArray(imageUrls) ? imageUrls : [imageUrls];
 
-            // Build media array for images
-            const mediaData = imageUrlArr.map((url, index) => ({
-                url,
-                mediaType: "IMAGE",
-                isPrimary: imageList[index]?.isPrimary || false,
-                sortOrder: index,
-            }));
+                // Build media array for images
+                mediaData = imageUrlArr.map((url, index) => ({
+                    url,
+                    mediaType: "IMAGE",
+                    isPrimary: imageList[index]?.isPrimary || false,
+                    sortOrder: index,
+                }));
+            }
 
             // Upload video if present
             let videoUrl = null;
@@ -348,7 +497,7 @@ export default function PostListing() {
             const requestData = {
                 title: values.title,
                 description: values.description,
-                subCategoryId: selectedSubcategory.id,
+                subCategoryId: selectedSubcategory?.id,
                 wardId: selectedWard || null,
                 price: values.isFree ? 0 : parseFloat(values.price) || 0,
                 listingType: "Single",
@@ -364,25 +513,48 @@ export default function PostListing() {
                     { name: "Dung lượng", value: values.capacity || "" },
                     { name: "Bảo hành", value: values.warranty || "" },
                     { name: "Xuất xứ", value: values.origin || "" }
-                ].filter(attr => attr.value)
+                ].filter(attr => attr.value),
+                status: status
             };
+            
+            setIsSubmitting(true); // Allow navigation
+            
+            if (editId) {
+                 // Update Listing
+                 await updateListing(editId, requestData);
+                 
+                 // Update Media
+                 // Map mediaData back to API format (API expects array of {url, mediaType, isPrimary, sortOrder})
+                 await updateListingMedia(editId, mediaData);
+                 
+                 hideLoadingMsg();
+                 message.success("Cập nhật bài đăng thành công!");
+                 navigate(`/seller/listings/${editId}`);
+            } else {
+                // Call API to create listing
+                const response = await createListing(requestData);
 
-            // Call API to create listing
-            const response = await createListing(requestData);
+                hideLoadingMsg();
+                message.success(
+                    status === 'Draft' ? "Đã lưu nháp!" : "Tin của bạn đã được gửi duyệt!"
+                );
+                console.log("Listing created:", response);
 
-            hideLoadingMsg();
-            message.success("Tin của bạn đã được đăng tải thành công!");
-            console.log("Listing created:", response);
+                // Handle blocker/navigation
+                if (blocker.state === "blocked") {
+                    blocker.proceed();
+                } else {
+                     navigate("/");
+                }
+            }
 
-            setTimeout(() => {
-                navigate("/");
-            }, 1500);
         } catch (error) {
             hideLoadingMsg();
-            console.error("Error creating listing:", error);
+            setIsSubmitting(false); // Re-enable blocker if failed
+            console.error("Error creating/updating listing:", error);
             message.error(
                 error.response?.data?.message || 
-                "Có lỗi xảy ra khi đăng tin. Vui lòng thử lại!"
+                "Có lỗi xảy ra. Vui lòng thử lại!"
             );
         }
     };
@@ -390,12 +562,15 @@ export default function PostListing() {
     return (
         <div className="post-listing-container" style={{ backgroundColor: "#f5f5f5", minHeight: "100vh", paddingBottom: "40px" }}>
             <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px" }}>
-                <Title level={2} style={{ marginBottom: 20 }}>Đăng tin mới</Title>
+                <Title level={2} style={{ marginBottom: 20 }}>
+                    {editId ? `Chỉnh sửa tin đăng #${editId}` : 'Đăng tin mới'}
+                </Title>
 
                 <Form
                     form={form}
                     layout="vertical"
                     onFinish={onFinish}
+                    onValuesChange={handleFormChange}
                     initialValues={{
                         condition: undefined
                     }}
@@ -617,26 +792,44 @@ export default function PostListing() {
                                 disabled={!selectedDistrict}
                             />
                         </Form.Item>
-
-                        <Form.Item
-                            name="address"
-                            label="Địa chỉ chi tiết"
-                            rules={[{ required: true, message: 'Vui lòng nhập địa chỉ chi tiết' }]}
-                        >
-                            <Input placeholder="Ví dụ: Số nhà, tên đường..." prefix={<MapPin size={16} color="#999" />} />
-                        </Form.Item>
                     </Card>
 
                     {/* Actions */}
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 16, marginTop: 24 }}>
-                        <Button size="large" onClick={() => navigate("/")}>
+                        <Button size="large" onClick={() => navigate(editId ? `/seller/listings/${editId}` : "/")}>
                             Hủy
                         </Button>
+                        {!editId && (
+                             <Button size="large" onClick={handleSaveDraft}>
+                                Lưu nháp
+                            </Button>
+                        )}
                         <Button type="primary" htmlType="submit" size="large" style={{ backgroundColor: '#facc15', color: '#000', borderColor: '#facc15' }}>
-                            Đăng tin
+                            {editId ? 'Cập nhật' : 'Đăng tin'}
                         </Button>
                     </div>
                 </Form>
+                
+                {/* Save Draft/Leave Confirmation Modal */}
+                <Modal
+                    title="Lưu bản nháp?"
+                     open={showBlockerModal}
+                    onOk={handleSaveDraftAndLeave}
+                    onCancel={handleBlockerStay}
+                    footer={[
+                        <Button key="cancel" onClick={handleBlockerStay}>
+                             Hủy thao tác
+                        </Button>,
+                        <Button key="leave" danger onClick={handleBlockerLeave}>
+                            Không lưu
+                        </Button>,
+                         <Button key="save" type="primary" onClick={handleSaveDraftAndLeave}>
+                            Lưu nháp
+                        </Button>,
+                    ]}
+                >
+                    <p>Bạn có muốn lưu lại những thay đổi này vào bản nháp trước khi rời đi không?</p>
+                </Modal>
 
                 {/* Category Selection Modal */}
                 <Modal

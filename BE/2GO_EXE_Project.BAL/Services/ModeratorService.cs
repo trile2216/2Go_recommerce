@@ -7,6 +7,7 @@ using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
+using _2GO_EXE_Project.BAL.Validation;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -77,6 +78,7 @@ public class ModeratorService : IModeratorService
 
     public async Task<BasicResponse> BanUserAsync(ClaimsPrincipal modPrincipal, long userId, BanUserRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(UserValidator.ValidateBanUser(request));
         var user = await _uow.Users.GetByIdAsync(userId);
         if (user == null)
         {
@@ -150,11 +152,12 @@ public class ModeratorService : IModeratorService
         var report = await _uow.Reports.Query()
             .FirstOrDefaultAsync(r => r.ReportId == reportId, cancellationToken);
         if (report == null) return null;
-        return new ReportDetail(report.ReportId, report.OrderId, report.ReporterId, report.TargetUserId, report.ListingId, report.Reason, report.Status, report.WaitingForUserId, report.CreatedAt);
+        return new ReportDetail(report.ReportId, report.OrderId, report.ReporterId, report.TargetUserId, report.ListingId, report.Reason, ParseEvidenceUrls(report.EvidenceUrls), report.Status, report.WaitingForUserId, report.CreatedAt);
     }
 
     public async Task<BasicResponse> ResolveReportAsync(ClaimsPrincipal modPrincipal, long reportId, ResolveReportRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateResolveReport(request));
         var report = await _uow.Reports.GetByIdAsync(reportId);
         if (report == null)
         {
@@ -465,6 +468,19 @@ public class ModeratorService : IModeratorService
         catch
         {
             // swallow logging errors
+        }
+    }
+
+    private static IReadOnlyList<string>? ParseEvidenceUrls(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(json);
+        }
+        catch
+        {
+            return null;
         }
     }
 

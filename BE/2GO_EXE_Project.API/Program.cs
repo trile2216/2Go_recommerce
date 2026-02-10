@@ -17,6 +17,10 @@ using System.Security.Claims;
 using Npgsql;
 using PayOS;
 using PayOS.Models;
+using Microsoft.AspNetCore.Http;
+using _2GO_EXE_Project.BAL.Validation;
+using _2GO_EXE_Project.DAL.Entities;
+using System.ComponentModel.DataAnnotations;
 
 var builder = WebApplication.CreateBuilder(args);
 var corsName = "AllowAll";
@@ -76,6 +80,7 @@ builder.Services.AddScoped<IEscrowService, EscrowService>();
 builder.Services.AddScoped<IShippingService, ShippingService>();
 builder.Services.AddScoped<IRatingService, RatingService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IDistrictService, DistrictService>();
 builder.Services.AddScoped<IWardService, WardService>();
 builder.Services.AddHttpClient<IGhnShippingService, GhnShippingService>();
@@ -231,6 +236,20 @@ if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("EnableS
 
 app.UseCors(corsName);
 
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (ValidationException ex)
+    {
+        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+        // Use ex.Message since ValidationException does not have an Errors property
+        await context.Response.WriteAsJsonAsync(new { errors = new[] { ex.Message } });
+    }
+});
+
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
@@ -261,4 +280,15 @@ static string SanitizeConnectionString(string? connectionString)
         return "<invalid connection string>";
     }
 }
+
+public interface IListingCommentRepository : IGenericRepository<ListingComment>
+{
+    Task<ListingComment?> GetByIdWithDetailsAsync(long commentId, CancellationToken cancellationToken = default);
+    Task<(int Total, IReadOnlyList<ListingComment> Items)> GetByListingIdAsync(
+        long listingId, 
+        int skip, 
+        int take, 
+        CancellationToken cancellationToken = default);
+}
+
 
