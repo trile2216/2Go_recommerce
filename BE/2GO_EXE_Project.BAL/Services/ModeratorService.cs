@@ -7,6 +7,7 @@ using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
+using _2GO_EXE_Project.BAL.Validation;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -77,6 +78,7 @@ public class ModeratorService : IModeratorService
 
     public async Task<BasicResponse> BanUserAsync(ClaimsPrincipal modPrincipal, long userId, BanUserRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(UserValidator.ValidateBanUser(request));
         var user = await _uow.Users.GetByIdAsync(userId);
         if (user == null)
         {
@@ -155,6 +157,7 @@ public class ModeratorService : IModeratorService
 
     public async Task<BasicResponse> ResolveReportAsync(ClaimsPrincipal modPrincipal, long reportId, ResolveReportRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateResolveReport(request));
         var report = await _uow.Reports.GetByIdAsync(reportId);
         if (report == null)
         {

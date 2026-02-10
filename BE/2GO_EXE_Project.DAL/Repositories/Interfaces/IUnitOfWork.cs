@@ -5,11 +5,14 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     IActivityLogRepository ActivityLogs { get; }
     IAiModerationLogRepository AiModerationLogs { get; }
     IAiScanResultRepository AiScanResults { get; }
+    IAiAnalysisLogRepository AiAnalysisLogs { get; }
+    IAiImageVisionCacheRepository AiImageVisionCaches { get; }
     IApiLogRepository ApiLogs { get; }
     ICategoryRepository Categories { get; }
     ICartRepository Carts { get; }
     ICartItemRepository CartItems { get; }
     IChatRepository Chats { get; }
+    IChatbotLogRepository ChatbotLogs { get; }
     ICityRepository Cities { get; }
     IDeviceLogRepository DeviceLogs { get; }
     IDistrictRepository Districts { get; }
@@ -22,7 +25,11 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     IListingAttributeRepository ListingAttributes { get; }
     IListingMediaRepository ListingMedias { get; }
     IListingViewRepository ListingViews { get; }
+    IListingCommentRepository ListingComments { get; }  
+    IManualReviewQueueRepository ManualReviewQueues { get; }
+    IMarketPriceRepository MarketPrices { get; }
     IMessageRepository Messages { get; }
+    INotificationRepository Notifications { get; }
     IOrderRepository Orders { get; }
     IOrderItemRepository OrderItems { get; }
     IOrderTransactionRepository OrderTransactions { get; }
@@ -37,6 +44,8 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     ISearchHistoryRepository SearchHistories { get; }
     IShippingRequestRepository ShippingRequests { get; }
     ISubCategoryRepository SubCategories { get; }
+    ISubscriptionPlanRepository SubscriptionPlans { get; }
+    ISubscriptionPlanAuditRepository SubscriptionPlanAudits { get; }
     ISupportTicketRepository SupportTickets { get; }
     IUserRepository Users { get; }
     IUserDeviceRepository UserDevices { get; }
@@ -47,6 +56,8 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     IWardRepository Wards { get; }
     IRefreshTokenRepository RefreshTokens { get; }
     IVerificationCodeRepository VerificationCodes { get; }
+
+    Task<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     int SaveChanges();

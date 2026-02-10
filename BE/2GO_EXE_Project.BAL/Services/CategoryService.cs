@@ -4,6 +4,7 @@ using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
 using _2GO_EXE_Project.BAL.DTOs.SubCategories;
+using _2GO_EXE_Project.BAL.Validation;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -77,6 +78,7 @@ public class CategoryService : ICategoryService
 
     public async Task<CategoryResponse> CreateAsync(CreateCategoryRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(CatalogValidator.ValidateCreateCategory(request));
         var entity = new Category
         {
             Name = request.Name,
@@ -90,6 +92,7 @@ public class CategoryService : ICategoryService
 
     public async Task<CategoryResponse?> UpdateAsync(int id, UpdateCategoryRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(CatalogValidator.ValidateUpdateCategory(request));
         var entity = await _uow.Categories.GetByIdAsync(id);
         if (entity == null) return null;
 

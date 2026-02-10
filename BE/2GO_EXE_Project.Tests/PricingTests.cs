@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using _2GO_EXE_Project.BAL.DTOs.Ai;
 using _2GO_EXE_Project.BAL.Services;
 using _2GO_EXE_Project.DAL.Context;
+using _2GO_EXE_Project.DAL.Repositories.Implementations;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -19,8 +20,9 @@ public class PricingTests
             .Options;
 
         await using var db = new AppDbContext(options);
+        using var uow = new UnitOfWork(db);
         var logger = LoggerFactory.Create(builder => { }).CreateLogger<MarketPriceProvider>();
-        var marketProvider = new MarketPriceProvider(db, logger);
+        var marketProvider = new MarketPriceProvider(uow, logger);
 
         var market = await marketProvider.GetMarketPriceAsync(new MarketPriceInput("iphone 12", null, "GOOD"));
         var pricing = new AiPricingResult("iphone 12", market.MarketAvg, market.Confidence, "GOOD", null, null);

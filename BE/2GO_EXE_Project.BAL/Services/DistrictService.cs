@@ -3,6 +3,7 @@ using _2GO_EXE_Project.BAL.DTOs.Districts;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
+using _2GO_EXE_Project.BAL.Validation;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -63,6 +64,7 @@ public class DistrictService : IDistrictService
 
     public async Task<DistrictResponse> CreateAsync(CreateDistrictRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(CatalogValidator.ValidateCreateDistrict(request));
         var entity = new District
         {
             CityId = request.CityId,
@@ -84,6 +86,7 @@ public class DistrictService : IDistrictService
 
     public async Task<DistrictResponse?> UpdateAsync(int id, UpdateDistrictRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(CatalogValidator.ValidateUpdateDistrict(request));
         var entity = await _uow.Districts.GetByIdAsync(id);
         if (entity == null) return null;
 

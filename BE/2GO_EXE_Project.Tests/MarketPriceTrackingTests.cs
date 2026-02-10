@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using _2GO_EXE_Project.BAL.Services;
 using _2GO_EXE_Project.DAL.Context;
 using _2GO_EXE_Project.DAL.Entities;
+using _2GO_EXE_Project.DAL.Repositories.Implementations;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -24,6 +25,7 @@ public class MarketPriceTrackingTests
         await db.Categories.AddAsync(category);
         await db.SubCategories.AddAsync(subCategory);
         await db.SaveChangesAsync();
+        using var uow = new UnitOfWork(db);
 
         var listing = new Listing
         {
@@ -36,7 +38,7 @@ public class MarketPriceTrackingTests
         };
 
         var logger = LoggerFactory.Create(builder => { }).CreateLogger<MarketPriceProvider>();
-        var provider = new MarketPriceProvider(db, logger);
+        var provider = new MarketPriceProvider(uow, logger);
 
         await provider.TrackListingAsync(listing, listing.Price, "approved_listing");
         Assert.Equal(0, await db.MarketPrices.CountAsync());

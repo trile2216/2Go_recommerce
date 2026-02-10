@@ -10,6 +10,7 @@ using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
+using _2GO_EXE_Project.BAL.Validation;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -44,6 +45,7 @@ public class ShippingService : IShippingService
 
     public async Task<ShippingResponse> CreateAsync(ClaimsPrincipal userPrincipal, CreateShippingRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateCreateShipping(request));
         var userId = GetUserId(userPrincipal);
         var order = await _uow.Orders.Query()
             .FirstOrDefaultAsync(o => o.OrderId == request.OrderId, cancellationToken);
@@ -137,6 +139,7 @@ public class ShippingService : IShippingService
 
     public async Task<ShippingResponse> CreateGhnAsync(ClaimsPrincipal userPrincipal, CreateGhnShippingRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateCreateGhnShipping(request));
         var userId = GetUserId(userPrincipal);
         var order = await _uow.Orders.Query()
             .FirstOrDefaultAsync(o => o.OrderId == request.OrderId, cancellationToken);
@@ -246,6 +249,11 @@ public class ShippingService : IShippingService
 
     public async Task<GhnFeeResponse> GetGhnFeeAsync(GhnFeeRequest request, CancellationToken cancellationToken = default)
     {
+        var feeValidation = RequestValidator.ValidateGhnFee(request);
+        if (!feeValidation.IsValid)
+        {
+            return new GhnFeeResponse(0, 0, 0, 0, 0, 0);
+        }
         if (request.FromDistrictId <= 0 || request.ToDistrictId <= 0)
         {
             return new GhnFeeResponse(0, 0, 0, 0, 0, 0);
@@ -259,6 +267,7 @@ public class ShippingService : IShippingService
 
     public async Task<GhnCancelResponse> CancelGhnAsync(ClaimsPrincipal userPrincipal, GhnCancelRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateGhnCancel(request));
         var userId = GetUserId(userPrincipal);
         if (request.OrderCodes == null || request.OrderCodes.Count == 0)
         {
@@ -311,6 +320,7 @@ public class ShippingService : IShippingService
 
     public async Task<GhnPrintTokenResponse> GetGhnPrintTokenAsync(ClaimsPrincipal userPrincipal, GhnPrintTokenRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateGhnPrintToken(request));
         var userId = GetUserId(userPrincipal);
         if (request.OrderCodes == null || request.OrderCodes.Count == 0)
         {
@@ -432,6 +442,7 @@ public class ShippingService : IShippingService
 
     public async Task<BasicResponse> UpdateStatusAsync(ClaimsPrincipal userPrincipal, long shipId, UpdateShippingStatusRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateUpdateShippingStatus(request));
         var userId = GetUserId(userPrincipal);
         var ship = await _uow.ShippingRequests.GetByIdAsync(shipId);
         if (ship == null) return new BasicResponse(false, "Shipping not found.");
@@ -439,10 +450,6 @@ public class ShippingService : IShippingService
         var order = await _uow.Orders.GetByIdAsync(ship.OrderId ?? 0);
         if (order == null || order.SellerId != userId) return new BasicResponse(false, "Not allowed.");
 
-        if (string.IsNullOrWhiteSpace(request.Status))
-        {
-            return new BasicResponse(false, "Status is required.");
-        }
         if (!ShippingStatuses.All.Contains(request.Status, StringComparer.OrdinalIgnoreCase))
         {
             return new BasicResponse(false, $"Invalid shipping status. Allowed: {string.Join(", ", ShippingStatuses.All)}.");

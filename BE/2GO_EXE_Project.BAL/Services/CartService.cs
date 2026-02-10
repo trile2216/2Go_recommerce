@@ -6,20 +6,18 @@ using _2GO_EXE_Project.BAL.DTOs.Auth;
 using _2GO_EXE_Project.BAL.DTOs.Carts;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
-using _2GO_EXE_Project.DAL.Context;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
+using _2GO_EXE_Project.BAL.Validation;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
 public class CartService : ICartService
 {
     private readonly IUnitOfWork _uow;
-    private readonly AppDbContext _db;
 
-    public CartService(IUnitOfWork uow, AppDbContext db)
+    public CartService(IUnitOfWork uow)
     {
         _uow = uow;
-        _db = db;
     }
 
     private static long GetUserId(ClaimsPrincipal principal)
@@ -82,10 +80,7 @@ public class CartService : ICartService
 
     public async Task<CartItemResponse> AddItemAsync(ClaimsPrincipal userPrincipal, AddCartItemRequest request, CancellationToken cancellationToken = default)
     {
-        if (request.Quantity <= 0)
-        {
-            throw new InvalidOperationException("Quantity must be greater than 0.");
-        }
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateAddCartItem(request));
 
         var userId = GetUserId(userPrincipal);
         var listing = await _uow.Listings.Query()
@@ -151,6 +146,7 @@ public class CartService : ICartService
 
     public async Task<BasicResponse> UpdateItemAsync(ClaimsPrincipal userPrincipal, long cartItemId, UpdateCartItemRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateUpdateCartItem(request));
         var userId = GetUserId(userPrincipal);
         var item = await _uow.CartItems.Query()
             .Include(i => i.Cart)
@@ -259,11 +255,8 @@ public class CartService : ICartService
 
     public async Task<CheckoutCartResponse> CheckoutAsync(ClaimsPrincipal userPrincipal, CheckoutCartRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateCheckoutCart(request));
         var userId = GetUserId(userPrincipal);
-        if (string.IsNullOrWhiteSpace(request.PaymentMethod))
-        {
-            return new CheckoutCartResponse(false, "Payment method is required.", Array.Empty<CartValidationError>(), Array.Empty<CheckoutOrderSummary>());
-        }
         if (!PaymentMethods.All.Contains(request.PaymentMethod, StringComparer.OrdinalIgnoreCase))
         {
             return new CheckoutCartResponse(false, "Invalid payment method.", Array.Empty<CartValidationError>(), Array.Empty<CheckoutOrderSummary>());
@@ -334,7 +327,7 @@ public class CartService : ICartService
         }
 
         var orderSummaries = new List<CheckoutOrderSummary>();
-        await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken);
+        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
         try
         {
             var groups = items.GroupBy(i => i.SellerId!.Value);

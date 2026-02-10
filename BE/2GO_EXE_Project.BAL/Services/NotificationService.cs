@@ -2,23 +2,23 @@
 using _2GO_EXE_Project.BAL.DTOs.Auth;
 using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
-using _2GO_EXE_Project.DAL.Context;
+using _2GO_EXE_Project.DAL.Repositories.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
 public class NotificationService : INotificationService
 {
-    private readonly AppDbContext _db;
+    private readonly IUnitOfWork _uow;
 
-    public NotificationService(AppDbContext db)
+    public NotificationService(IUnitOfWork uow)
     {
-        _db = db;
+        _uow = uow;
     }
 
     public async Task<NotificationListResponse> GetMyNotificationsAsync(long userId, int skip, int take, CancellationToken cancellationToken = default)
     {
-        var query = _db.Notifications
+        var query = _uow.Notifications.Query()
             .AsNoTracking()
             .Where(n => n.UserId == userId)
             .OrderByDescending(n => n.CreatedAt);
@@ -42,14 +42,15 @@ public class NotificationService : INotificationService
 
     public async Task<BasicResponse> MarkReadAsync(long userId, long notificationId, CancellationToken cancellationToken = default)
     {
-        var notification = await _db.Notifications
+        var notification = await _uow.Notifications.Query()
             .FirstOrDefaultAsync(n => n.NotificationId == notificationId && n.UserId == userId, cancellationToken);
         if (notification == null) return new BasicResponse(false, "Notification not found.");
 
         if (!notification.IsRead)
         {
             notification.IsRead = true;
-            await _db.SaveChangesAsync(cancellationToken);
+            _uow.Notifications.Update(notification);
+            await _uow.SaveChangesAsync(cancellationToken);
         }
 
         return new BasicResponse(true, "Marked as read.");
@@ -57,7 +58,7 @@ public class NotificationService : INotificationService
 
     public async Task<BasicResponse> MarkAllReadAsync(long userId, CancellationToken cancellationToken = default)
     {
-        var notifications = await _db.Notifications
+        var notifications = await _uow.Notifications.Query()
             .Where(n => n.UserId == userId && !n.IsRead)
             .ToListAsync(cancellationToken);
 
@@ -66,8 +67,9 @@ public class NotificationService : INotificationService
         foreach (var n in notifications)
         {
             n.IsRead = true;
+            _uow.Notifications.Update(n);
         }
-        await _db.SaveChangesAsync(cancellationToken);
+        await _uow.SaveChangesAsync(cancellationToken);
 
         return new BasicResponse(true, "All notifications marked as read.");
     }
@@ -89,8 +91,8 @@ public class NotificationService : INotificationService
             CreatedAt = DateTime.UtcNow
         };
 
-        _db.Notifications.Add(notification);
-        await _db.SaveChangesAsync(cancellationToken);
+        await _uow.Notifications.AddAsync(notification, cancellationToken);
+        await _uow.SaveChangesAsync(cancellationToken);
 
         return new BasicResponse(true, "Notification created.");
     }

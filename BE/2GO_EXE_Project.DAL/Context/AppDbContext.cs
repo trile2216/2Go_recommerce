@@ -61,6 +61,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<ListingView> ListingViews { get; set; }
 
+    public virtual DbSet<ListingComment> ListingComments { get; set; }
+
     public virtual DbSet<Message> Messages { get; set; }
 
     public virtual DbSet<MarketPrice> MarketPrices { get; set; }
@@ -88,6 +90,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<SearchHistory> SearchHistories { get; set; }
 
     public virtual DbSet<ShippingRequest> ShippingRequests { get; set; }
+
+    public virtual DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
+
+    public virtual DbSet<SubscriptionPlanAudit> SubscriptionPlanAudits { get; set; }
 
 
     public virtual DbSet<SubCategory> SubCategories { get; set; }
@@ -227,6 +233,8 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.DistrictId).HasName("PK__District__85FDA4C64D9546B6");
 
             entity.HasOne(d => d.City).WithMany(p => p.Districts).HasConstraintName("FK_Districts_Cities");
+
+            entity.HasAlternateKey(e => new { e.DistrictId, e.CityId }).HasName("AK_Districts_DistrictId_CityId");
         });
 
         modelBuilder.Entity<EscrowContract>(entity =>
@@ -323,6 +331,21 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Listing).WithMany(p => p.ListingViews).HasConstraintName("FK_ListingViews_Listings");
 
             entity.HasOne(d => d.User).WithMany(p => p.ListingViews).HasConstraintName("FK_ListingViews_Users");
+        });
+
+        modelBuilder.Entity<ListingComment>(entity =>
+        {
+            entity.HasKey(e => e.CommentId).HasName("PK__ListingC__D7C4A67F4A017A9D");
+
+            entity.Property(e => e.Content)
+                .HasMaxLength(2000)
+                .IsRequired();
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+
+            entity.HasOne(d => d.Listing).WithMany(p => p.ListingComments).HasConstraintName("FK_ListingComments_Listings");
+
+            entity.HasOne(d => d.User).WithMany(p => p.ListingComments).HasConstraintName("FK_ListingComments_Users");
         });
 
         modelBuilder.Entity<Message>(entity =>
@@ -449,6 +472,30 @@ public partial class AppDbContext : DbContext
                 .HasDatabaseName("UX_ShippingRequests_OrderId");
         });
 
+        modelBuilder.Entity<SubscriptionPlan>(entity =>
+        {
+            entity.HasKey(e => e.PlanId).HasName("PK_SubscriptionPlans");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("NOW()");
+
+            entity.HasIndex(e => e.Code)
+                .IsUnique()
+                .HasDatabaseName("UX_SubscriptionPlans_Code");
+        });
+
+        modelBuilder.Entity<SubscriptionPlanAudit>(entity =>
+        {
+            entity.HasKey(e => e.AuditId).HasName("PK_SubscriptionPlanAudits");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+
+            entity.HasOne(d => d.Plan)
+                .WithMany(p => p.Audits)
+                .HasForeignKey(d => d.PlanId)
+                .HasConstraintName("FK_SubscriptionPlanAudits_Plans");
+        });
+
         modelBuilder.Entity<SubCategory>(entity =>
         {
             entity.HasKey(e => e.SubCategoryId).HasName("PK__SubCateg__26BE5B1941E8BD81");
@@ -561,7 +608,11 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.WardId).HasName("PK__Wards__C6BD9BCAC40737D0");
 
-            entity.HasOne(d => d.District).WithMany(p => p.Wards)   .HasConstraintName("FK_Wards_Districts");
+            entity.HasOne(d => d.City).WithMany(p => p.Wards).HasConstraintName("FK_Wards_Cities");
+            entity.HasOne(d => d.District).WithMany(p => p.Wards)
+                .HasForeignKey(d => new { d.DistrictId, d.CityId })
+                .HasPrincipalKey(p => new { p.DistrictId, p.CityId })
+                .HasConstraintName("FK_Wards_Districts_City");
         });
 
         OnModelCreatingPartial(modelBuilder);

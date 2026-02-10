@@ -5,8 +5,8 @@ using _2GO_EXE_Project.BAL.Constants;
 using _2GO_EXE_Project.BAL.DTOs.Ai;
 using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
-using _2GO_EXE_Project.DAL.Context;
 using _2GO_EXE_Project.DAL.Entities;
+using _2GO_EXE_Project.DAL.Repositories.Interfaces;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -20,7 +20,7 @@ public class AiListingService : IAiListingService
     private readonly INoteGenerationService _noteGenerationService;
     private readonly INotificationService _notificationService;
     private readonly IGeminiService _geminiService;
-    private readonly AppDbContext _db;
+    private readonly IUnitOfWork _uow;
 
     public AiListingService(
         IAiQualityCheckService qualityCheckService,
@@ -30,7 +30,7 @@ public class AiListingService : IAiListingService
         INoteGenerationService noteGenerationService,
         INotificationService notificationService,
         IGeminiService geminiService,
-        AppDbContext db)
+        IUnitOfWork uow)
     {
         _qualityCheckService = qualityCheckService;
         _marketPriceProvider = marketPriceProvider;
@@ -39,7 +39,7 @@ public class AiListingService : IAiListingService
         _noteGenerationService = noteGenerationService;
         _notificationService = notificationService;
         _geminiService = geminiService;
-        _db = db;
+        _uow = uow;
     }
 
     public async Task<AiListingAnalyzeResponse> AnalyzeAsync(AiListingAnalyzeRequest request, CancellationToken cancellationToken = default)
@@ -116,7 +116,7 @@ public class AiListingService : IAiListingService
 
     private async Task<string> BuildProductKeyAsync(int categoryId, string? brand, string title, CancellationToken cancellationToken)
     {
-        var categoryName = await _db.Categories
+        var categoryName = await _uow.Categories.Query()
             .Where(x => x.CategoryId == categoryId)
             .Select(x => x.Name)
             .FirstOrDefaultAsync(cancellationToken);
@@ -142,32 +142,32 @@ public class AiListingService : IAiListingService
         }
 
         var now = DateTime.UtcNow;
-        var accountAgeDays = await _db.Users
+        var accountAgeDays = await _uow.Users.Query()
             .Where(u => u.UserId == id)
             .Select(u => u.CreatedAt.HasValue ? (int)(now - u.CreatedAt.Value).TotalDays : 0)
             .FirstOrDefaultAsync(cancellationToken);
 
-        var recentListingsCount = await _db.Listings
+        var recentListingsCount = await _uow.Listings.Query()
             .Where(l => l.SellerId == id && l.CreatedAt.HasValue && l.CreatedAt.Value >= now.AddMinutes(-10))
             .CountAsync(cancellationToken);
 
-        var totalListingsCount = await _db.Listings
+        var totalListingsCount = await _uow.Listings.Query()
             .Where(l => l.SellerId == id)
             .CountAsync(cancellationToken);
 
-        var completedSalesCount = await _db.Orders
+        var completedSalesCount = await _uow.Orders.Query()
             .Where(o => o.SellerId == id && o.Status == "Completed")
             .CountAsync(cancellationToken);
 
-        var reportsCount = await _db.Reports
+        var reportsCount = await _uow.Reports.Query()
             .Where(r => r.TargetUserId == id && r.CreatedAt.HasValue && r.CreatedAt.Value >= now.AddDays(-30))
             .CountAsync(cancellationToken);
 
-        var deviceCount = await _db.UserDevices
+        var deviceCount = await _uow.UserDevices.Query()
             .Where(d => d.UserId == id)
             .CountAsync(cancellationToken);
 
-        var verification = await _db.UserVerifications
+        var verification = await _uow.UserVerifications.Query()
             .Where(v => v.UserId == id)
             .OrderByDescending(v => v.VerifiedAt)
             .FirstOrDefaultAsync(cancellationToken);
@@ -215,7 +215,7 @@ public class AiListingService : IAiListingService
         if (mediaUrls == null || mediaUrls.Count == 0) return null;
         try
         {
-            var cached = await _db.AiImageVisionCaches
+            var cached = await _uow.AiImageVisionCaches.Query()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.ImageUrl == mediaUrls[0], cancellationToken);
             if (!string.IsNullOrWhiteSpace(cached?.ConditionLabel))
@@ -238,24 +238,24 @@ public class AiListingService : IAiListingService
 
             if (!string.IsNullOrWhiteSpace(label))
             {
-                var existing = await _db.AiImageVisionCaches.FirstOrDefaultAsync(x => x.ImageUrl == mediaUrls[0], cancellationToken);
+                var existing = await _uow.AiImageVisionCaches.Query().FirstOrDefaultAsync(x => x.ImageUrl == mediaUrls[0], cancellationToken);
                 if (existing == null)
                 {
-                    _db.AiImageVisionCaches.Add(new DAL.Entities.AiImageVisionCache
+                    await _uow.AiImageVisionCaches.AddAsync(new DAL.Entities.AiImageVisionCache
                     {
                         ImageUrl = mediaUrls[0],
                         ConditionLabel = label,
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
-                    });
+                    }, cancellationToken);
                 }
                 else
                 {
                     existing.ConditionLabel = label;
                     existing.UpdatedAt = DateTime.UtcNow;
-                    _db.AiImageVisionCaches.Update(existing);
+                    _uow.AiImageVisionCaches.Update(existing);
                 }
-                await _db.SaveChangesAsync(cancellationToken);
+                await _uow.SaveChangesAsync(cancellationToken);
             }
 
             return label;
@@ -292,8 +292,8 @@ public class AiListingService : IAiListingService
             CreatedAt = DateTime.UtcNow
         };
 
-        _db.AiAnalysisLogs.Add(log);
-        await _db.SaveChangesAsync(cancellationToken);
+        await _uow.AiAnalysisLogs.AddAsync(log, cancellationToken);
+        await _uow.SaveChangesAsync(cancellationToken);
     }
 
     private async Task QueueManualReviewIfNeededAsync(AiListingAnalyzeRequest request, AiListingAnalyzeResponse response, CancellationToken cancellationToken)
@@ -317,8 +317,8 @@ public class AiListingService : IAiListingService
             CreatedAt = DateTime.UtcNow
         };
 
-        _db.ManualReviewQueues.Add(queue);
-        await _db.SaveChangesAsync(cancellationToken);
+        await _uow.ManualReviewQueues.AddAsync(queue, cancellationToken);
+        await _uow.SaveChangesAsync(cancellationToken);
 
         await NotifyAdminsAsync(
             "RISK",
@@ -332,7 +332,7 @@ public class AiListingService : IAiListingService
     {
         try
         {
-            var adminIds = await _db.Users
+            var adminIds = await _uow.Users.Query()
                 .Where(u => u.Role == UserRoles.Admin || u.Role == UserRoles.Manager)
                 .Select(u => u.UserId)
                 .ToListAsync(cancellationToken);

@@ -29,7 +29,7 @@ export const deleteCategoryById = async (id) => {
 };
 export const updateCategoryById = async (id, data) => {
     try {
-        const response = await api.put(`/admin/categories/${id}`, data);
+        const response = await api.patch(`/admin/categories/${id}`, data);
         return response.data;
     } catch (error) {
         console.error(`Error updating category with id ${id}:`, error);

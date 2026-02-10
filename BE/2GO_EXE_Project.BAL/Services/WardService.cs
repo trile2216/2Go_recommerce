@@ -6,6 +6,7 @@ using _2GO_EXE_Project.BAL.DTOs.Wards;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using _2GO_EXE_Project.BAL.Validation;
 
 namespace _2GO_EXE_Project.BAL.Services
 {
@@ -64,6 +65,7 @@ namespace _2GO_EXE_Project.BAL.Services
         }
     public async Task<WardResponse> CreateAsync(CreateWardRequest request, CancellationToken cancellationToken = default)
         {
+            ValidationGuard.ThrowIfInvalid(CatalogValidator.ValidateCreateWard(request));
             var entity = new DAL.Entities.Ward
             {
                 DistrictId = request.DistrictId,
@@ -81,11 +83,18 @@ namespace _2GO_EXE_Project.BAL.Services
         }
     public async Task<WardResponse?> UpdateAsync(int id, UpdateWardRequest request, CancellationToken cancellationToken = default)
         {
+            ValidationGuard.ThrowIfInvalid(CatalogValidator.ValidateUpdateWard(request));
             var entity = await _uow.Wards.GetByIdAsync(id);
             if (entity == null) return null;
 
-            entity.DistrictId = request.DistrictId;
-            entity.Name = request.Name;
+            if (request.DistrictId.HasValue)
+            {
+                entity.DistrictId = request.DistrictId.Value;
+            }
+            if (request.Name != null)
+            {
+                entity.Name = request.Name;
+            }
 
             _uow.Wards.Update(entity);
             await _uow.SaveChangesAsync(cancellationToken);

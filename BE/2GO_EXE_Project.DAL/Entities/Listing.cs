@@ -52,6 +52,8 @@ public partial class Listing
     [Unicode(false)]
     public string? Status { get; set; }
 
+    public DateTime? PublishedAt { get; set; }
+
     public DateTime? CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }
@@ -73,6 +75,9 @@ public partial class Listing
 
     [InverseProperty("Listing")]
     public virtual ICollection<ListingMedia> ListingMedias { get; set; } = new List<ListingMedia>();
+
+    [InverseProperty("Listing")]
+    public virtual ICollection<ListingComment> ListingComments { get; set; } = new List<ListingComment>();
 
     [InverseProperty("Listing")]
     public virtual ICollection<ListingView> ListingViews { get; set; } = new List<ListingView>();

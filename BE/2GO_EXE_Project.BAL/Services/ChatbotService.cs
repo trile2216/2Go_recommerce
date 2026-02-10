@@ -2,7 +2,7 @@
 using _2GO_EXE_Project.BAL.Constants;
 using _2GO_EXE_Project.BAL.DTOs.Chatbot;
 using _2GO_EXE_Project.BAL.Interfaces;
-using _2GO_EXE_Project.DAL.Context;
+using _2GO_EXE_Project.DAL.Repositories.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -11,16 +11,16 @@ namespace _2GO_EXE_Project.BAL.Services;
 
 public class ChatbotService : IChatbotService
 {
-    private readonly AppDbContext _db;
+    private readonly IUnitOfWork _uow;
     private readonly IGeminiService _geminiService;
     private readonly ILogger<ChatbotService> _logger;
     private readonly string _faqPath;
     private static readonly object LockObj = new();
     private static List<FaqItem>? Cache;
 
-    public ChatbotService(AppDbContext db, IGeminiService geminiService, ILogger<ChatbotService> logger)
+    public ChatbotService(IUnitOfWork uow, IGeminiService geminiService, ILogger<ChatbotService> logger)
     {
-        _db = db;
+        _uow = uow;
         _geminiService = geminiService;
         _logger = logger;
         _faqPath = ResolveFaqPath();
@@ -161,7 +161,7 @@ public class ChatbotService : IChatbotService
     private async Task<List<ChatbotListingSuggestion>> FindListingsAsync(string term, CancellationToken cancellationToken)
     {
         var lowerTerm = term.ToLowerInvariant();
-        var query = _db.Listings.AsNoTracking()
+        var query = _uow.Listings.Query().AsNoTracking()
             .Where(l => l.Status == ListingStatuses.Active);
 
         query = query.Where(l =>
@@ -231,8 +231,8 @@ public class ChatbotService : IChatbotService
                 Confidence = confidence,
                 CreatedAt = DateTime.UtcNow
             };
-            _db.ChatbotLogs.Add(log);
-            await _db.SaveChangesAsync(cancellationToken);
+            await _uow.ChatbotLogs.AddAsync(log, cancellationToken);
+            await _uow.SaveChangesAsync(cancellationToken);
         }
         catch
         {

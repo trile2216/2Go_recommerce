@@ -34,6 +34,7 @@ import PaymentResult from './pages/PaymentResult/PaymentResult';
 import SellerListings from './pages/SellerListings/SellerListings';
 import SellerListingDetail from './pages/SellerListingDetail/SellerListingDetail';
 import SavedListings from './pages/SavedListings/SavedListings';
+import Plan from './pages/Admin/Plan/Plan';
 
 const RootLayout = () => {
   return (
@@ -97,6 +98,7 @@ const router = createBrowserRouter([
           { path: "/admin/orders", element: <AdminOrders /> },
           { path: "/admin/listings", element: <AdminListing /> },
           { path: "/admin/categories", element: <AdminCategory /> },
+          { path: "/admin/plans", element: <Plan /> },
         ]
       }
     ]

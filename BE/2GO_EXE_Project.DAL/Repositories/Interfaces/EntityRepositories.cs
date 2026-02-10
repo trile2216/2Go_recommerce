@@ -5,11 +5,14 @@ namespace _2GO_EXE_Project.DAL.Repositories.Interfaces;
 public interface IActivityLogRepository : IGenericRepository<ActivityLog> { }
 public interface IAiModerationLogRepository : IGenericRepository<AiModerationLog> { }
 public interface IAiScanResultRepository : IGenericRepository<AiScanResult> { }
+public interface IAiAnalysisLogRepository : IGenericRepository<AiAnalysisLog> { }
+public interface IAiImageVisionCacheRepository : IGenericRepository<AiImageVisionCache> { }
 public interface IApiLogRepository : IGenericRepository<ApiLog> { }
 public interface ICategoryRepository : IGenericRepository<Category> { }
 public interface ICartRepository : IGenericRepository<Cart> { }
 public interface ICartItemRepository : IGenericRepository<CartItem> { }
 public interface IChatRepository : IGenericRepository<Chat> { }
+public interface IChatbotLogRepository : IGenericRepository<ChatbotLog> { }
 public interface ICityRepository : IGenericRepository<City> { }
 public interface IDeviceLogRepository : IGenericRepository<DeviceLog> { }
 public interface IDistrictRepository : IGenericRepository<District> { }
@@ -22,7 +25,15 @@ public interface IListingRepository : IGenericRepository<Listing> { }
 public interface IListingAttributeRepository : IGenericRepository<ListingAttribute> { }
 public interface IListingMediaRepository : IGenericRepository<ListingMedia> { }
 public interface IListingViewRepository : IGenericRepository<ListingView> { }
+public interface IListingCommentRepository : IGenericRepository<ListingComment>  
+{
+    Task<ListingComment?> GetByIdWithDetailsAsync(long commentId, CancellationToken cancellationToken = default);
+    Task<(int Total, IReadOnlyList<ListingComment> Items)> GetByListingIdAsync(long listingId, int skip, int take, CancellationToken cancellationToken = default);
+}
+public interface IManualReviewQueueRepository : IGenericRepository<ManualReviewQueue> { }
+public interface IMarketPriceRepository : IGenericRepository<MarketPrice> { }
 public interface IMessageRepository : IGenericRepository<Message> { }
+public interface INotificationRepository : IGenericRepository<Notification> { }
 public interface IOrderRepository : IGenericRepository<Order> { }
 public interface IOrderItemRepository : IGenericRepository<OrderItem> { }
 public interface IOrderTransactionRepository : IGenericRepository<OrderTransaction> { }
@@ -37,6 +48,8 @@ public interface ISavedListingRepository : IGenericRepository<SavedListing> { }
 public interface ISearchHistoryRepository : IGenericRepository<SearchHistory> { }
 public interface IShippingRequestRepository : IGenericRepository<ShippingRequest> { }
 public interface ISubCategoryRepository : IGenericRepository<SubCategory> { }
+public interface ISubscriptionPlanRepository : IGenericRepository<SubscriptionPlan> { }
+public interface ISubscriptionPlanAuditRepository : IGenericRepository<SubscriptionPlanAudit> { }
 public interface ISupportTicketRepository : IGenericRepository<SupportTicket> { }
 public interface IUserRepository : IGenericRepository<User> { }
 public interface IUserDeviceRepository : IGenericRepository<UserDevice> { }

@@ -4,6 +4,7 @@ using _2GO_EXE_Project.BAL.DTOs.Ratings;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
+using _2GO_EXE_Project.BAL.Validation;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -30,10 +31,7 @@ public class RatingService : IRatingService
 
     public async Task<UserRatingResponse> CreateAsync(ClaimsPrincipal userPrincipal, CreateUserRatingRequest request, CancellationToken cancellationToken = default)
     {
-        if (request.Score < 1 || request.Score > 5)
-        {
-            throw new InvalidOperationException("Score must be between 1 and 5.");
-        }
+        ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateCreateRating(request));
 
         var raterId = GetUserId(userPrincipal);
         var order = await _uow.Orders.Query()

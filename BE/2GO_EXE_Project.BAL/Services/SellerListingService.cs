@@ -7,6 +7,7 @@ using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
+using _2GO_EXE_Project.BAL.Validation;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -14,7 +15,6 @@ public class SellerListingService : ISellerListingService
 {
     private readonly IUnitOfWork _uow;
     private readonly INotificationService _notificationService;
-    private const int FreeListingLimit = 2;
     public SellerListingService(IUnitOfWork uow, INotificationService notificationService)
     {
         _uow = uow;
@@ -50,10 +50,19 @@ public class SellerListingService : ISellerListingService
     private async Task EnsureWardValidAsync(int wardId, CancellationToken cancellationToken)
     {
         var ward = await _uow.Wards.Query()
+            .AsNoTracking()
             .FirstOrDefaultAsync(w => w.WardId == wardId, cancellationToken);
         if (ward == null)
         {
-            throw new InvalidOperationException("Ward not found.");
+            var result = new ValidationResult();
+            result.Add("wardId", "WardId does not exist.");
+            throw new CustomValidationException(result.Errors, "INVALID_LOCATION");
+        }
+        if (!ward.DistrictId.HasValue || !ward.CityId.HasValue)
+        {
+            var result = new ValidationResult();
+            result.Add("wardId", "WardId is missing district or city.");
+            throw new CustomValidationException(result.Errors, "INVALID_LOCATION");
         }
     }
 
@@ -88,35 +97,7 @@ public class SellerListingService : ISellerListingService
 
     private static void ValidateMediaRequests(IReadOnlyList<ListingMediaRequest> mediaRequests)
     {
-        if (mediaRequests.Count == 0)
-        {
-            throw new InvalidOperationException("At least one media item is required.");
-        }
-
-        var primaryImageCount = 0;
-        foreach (var item in mediaRequests)
-        {
-            if (string.IsNullOrWhiteSpace(item.Url))
-            {
-                throw new InvalidOperationException("Media url is required.");
-            }
-
-            var normalizedType = NormalizeMediaType(item.MediaType);
-            if (string.Equals(normalizedType, MediaTypes.Video, StringComparison.OrdinalIgnoreCase) && item.IsPrimary)
-            {
-                throw new InvalidOperationException("Primary media must be an image.");
-            }
-
-            if (string.Equals(normalizedType, MediaTypes.Image, StringComparison.OrdinalIgnoreCase) && item.IsPrimary)
-            {
-                primaryImageCount++;
-            }
-        }
-
-        if (primaryImageCount > 1)
-        {
-            throw new InvalidOperationException("Only one primary image is allowed.");
-        }
+        ValidationGuard.ThrowIfInvalid(ListingValidator.ValidateMedia(mediaRequests));
     }
 
     public async Task<SellerListingListResponse> GetMyListingsAsync(ClaimsPrincipal sellerPrincipal, string? status, int skip, int take, CancellationToken cancellationToken = default)
@@ -167,6 +148,8 @@ public class SellerListingService : ISellerListingService
             .ThenInclude(sc => sc!.Category)
             .Include(l => l.ListingMedias)
             .Include(l => l.ListingAttributes)
+            .Include(l => l.Ward)
+            .ThenInclude(w => w!.District)
             .Include(l => l.Seller)
             .ThenInclude(s => s!.UserProfiles)
             .Where(l => l.ListingId == listingId && l.SellerId == sellerId)
@@ -224,11 +207,14 @@ public class SellerListingService : ISellerListingService
             listing.Seller?.Phone,
             primary,
             media,
-            attributes);
+            attributes,
+            listing.Ward?.Name,
+            listing.Ward?.District?.Name);
     }
 
     public async Task<ListingDetail> CreateAsync(ClaimsPrincipal sellerPrincipal, CreateSellerListingRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(ListingValidator.ValidateCreate(request));
         var sellerId = GetUserId(sellerPrincipal);
         await EnsureSubCategoryValidAsync(request.SubCategoryId, cancellationToken);
         if (request.WardId.HasValue)
@@ -260,7 +246,6 @@ public class SellerListingService : ISellerListingService
         }
 
         var mediaRequests = request.Media?.ToList() ?? new List<ListingMediaRequest>();
-        ValidateMediaRequests(mediaRequests);
         var imageRequests = mediaRequests
             .Where(m => string.IsNullOrWhiteSpace(m.MediaType) ||
                         m.MediaType == MediaTypes.Image)
@@ -273,6 +258,7 @@ public class SellerListingService : ISellerListingService
                 throw new InvalidOperationException("At least one image is required.");
             }
         }
+        ValidateMediaRequests(mediaRequests);
         var listing = new Listing
         {
             SellerId = sellerId,
@@ -337,6 +323,7 @@ public class SellerListingService : ISellerListingService
 
     public async Task<ListingDetail?> UpdateAsync(ClaimsPrincipal sellerPrincipal, long listingId, UpdateSellerListingRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(ListingValidator.ValidateUpdate(request));
         var sellerId = GetUserId(sellerPrincipal);
         var listing = await _uow.Listings.Query()
             .FirstOrDefaultAsync(l => l.ListingId == listingId && l.SellerId == sellerId, cancellationToken);
@@ -453,22 +440,29 @@ public class SellerListingService : ISellerListingService
         if (user == null) return new BasicResponse(false, "User not found.");
 
         var now = DateTime.UtcNow;
-        var hasActiveSubscription = user.SubscriptionUntil.HasValue && user.SubscriptionUntil.Value > now;
-        if (!hasActiveSubscription)
+        var plan = await ResolveCurrentPlanAsync(user.UserId, now, cancellationToken);
+        if (plan?.MonthlyListingLimit is int limit)
         {
-            if (user.FreeListingUsed >= FreeListingLimit)
+            var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var nextMonthStart = monthStart.AddMonths(1);
+            var publishedCount = await _uow.Listings.Query()
+                .Where(l => l.SellerId == sellerId &&
+                            l.PublishedAt.HasValue &&
+                            l.PublishedAt.Value >= monthStart &&
+                            l.PublishedAt.Value < nextMonthStart)
+                .CountAsync(cancellationToken);
+            if (publishedCount >= limit)
             {
-                return new BasicResponse(false, "Free publish limit reached. Please purchase a subscription to continue.");
+                return new BasicResponse(false, "Publish limit reached for your current plan. Please upgrade to continue.");
             }
-            user.FreeListingUsed += 1;
-            _uow.Users.Update(user);
         }
 
         listing.Status = ListingStatuses.PendingReview;
+        listing.PublishedAt = now;
         listing.UpdatedAt = now;
         _uow.Listings.Update(listing);
         await _uow.SaveChangesAsync(cancellationToken);
-        await NotifyAsync(sellerId, "LISTING", "Đã gửi duyệt bài đăng", $"Bài đăng #{listing.ListingId} đã được gửi để duyệt.", $"/seller/listings/{listing.ListingId}", cancellationToken);
+        await NotifyAsync(sellerId, "LISTING", ListingNotificationText.ForStatus(ListingStatuses.PendingReview).Title, ListingNotificationText.ForStatus(ListingStatuses.PendingReview).Message, $"/seller/listings/{listing.ListingId}", cancellationToken);
         await NotifyAdminsAsync("LISTING_REVIEW", "Có bài đăng cần duyệt", $"Bài đăng #{listing.ListingId} đang chờ duyệt.", $"/admin/listings/{listing.ListingId}", cancellationToken);
         return new BasicResponse(true, "Listing submitted for review.");
     }
@@ -489,7 +483,7 @@ public class SellerListingService : ISellerListingService
         listing.UpdatedAt = DateTime.UtcNow;
         _uow.Listings.Update(listing);
         await _uow.SaveChangesAsync(cancellationToken);
-        await NotifyAsync(sellerId, "LISTING", "Bài đăng đã lưu trữ", $"Bài đăng #{listing.ListingId} đã được lưu trữ.", $"/seller/listings/{listing.ListingId}", cancellationToken);
+        await NotifyAsync(sellerId, "LISTING", ListingNotificationText.ForStatus(ListingStatuses.Archived).Title, ListingNotificationText.ForStatus(ListingStatuses.Archived).Message, $"/seller/listings/{listing.ListingId}", cancellationToken);
         return new BasicResponse(true, "Listing archived.");
     }
 
@@ -509,12 +503,13 @@ public class SellerListingService : ISellerListingService
         listing.UpdatedAt = DateTime.UtcNow;
         _uow.Listings.Update(listing);
         await _uow.SaveChangesAsync(cancellationToken);
-        await NotifyAsync(sellerId, "LISTING", "Bài đăng đã xóa", $"Bài đăng #{listing.ListingId} đã bị xóa.", $"/seller/listings/{listing.ListingId}", cancellationToken);
+        await NotifyAsync(sellerId, "LISTING", ListingNotificationText.ForStatus(ListingStatuses.Deleted).Title, ListingNotificationText.ForStatus(ListingStatuses.Deleted).Message, $"/seller/listings/{listing.ListingId}", cancellationToken);
         return new BasicResponse(true, "Listing deleted (soft).");
     }
 
     public async Task<BasicResponse> UpdateMediaAsync(ClaimsPrincipal sellerPrincipal, long listingId, UpdateListingMediaRequest request, CancellationToken cancellationToken = default)
     {
+        ValidationGuard.ThrowIfInvalid(ListingValidator.ValidateMedia(request.Media));
         var sellerId = GetUserId(sellerPrincipal);
         var listing = await _uow.Listings.Query()
             .Include(l => l.ListingMedias)
@@ -545,10 +540,6 @@ public class SellerListingService : ISellerListingService
             .Where(m => string.IsNullOrWhiteSpace(m.MediaType) ||
                         m.MediaType == MediaTypes.Image)
             .ToList();
-        if (imageRequests.Count == 0)
-        {
-            throw new InvalidOperationException("At least one image is required.");
-        }
 
         var hasPrimaryImage = imageRequests.Any(i => i.IsPrimary);
         var newMedia = new List<ListingMedia>();
@@ -644,4 +635,56 @@ public class SellerListingService : ISellerListingService
             // ignore notification failures
         }
     }
+
+    private async Task<SubscriptionPlan?> ResolveCurrentPlanAsync(long userId, DateTime now, CancellationToken cancellationToken)
+    {
+        var hasActiveSubscription = await _uow.Users.Query()
+            .AnyAsync(u => u.UserId == userId && u.SubscriptionUntil.HasValue && u.SubscriptionUntil.Value > now, cancellationToken);
+
+        if (hasActiveSubscription)
+        {
+            var payment = await _uow.Payments.Query()
+                .Where(p => p.UserId == userId &&
+                            p.PaymentType == PaymentTypes.Subscription &&
+                            p.Status == PaymentStatuses.Paid &&
+                            p.SubscriptionValidUntil.HasValue &&
+                            p.SubscriptionValidUntil.Value > now)
+                .OrderByDescending(p => p.SubscriptionValidUntil)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var plan = await ResolvePlanForPaymentAsync(payment, cancellationToken);
+            if (plan != null) return plan;
+            return null;
+        }
+
+        var freePlan = await _uow.SubscriptionPlans.Query()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.IsActive && p.Price <= 0, cancellationToken);
+        return freePlan;
+    }
+
+    private async Task<SubscriptionPlan?> ResolvePlanForPaymentAsync(Payment? payment, CancellationToken cancellationToken)
+    {
+        if (payment == null) return null;
+
+        if (!string.IsNullOrWhiteSpace(payment.SubscriptionPlanCode))
+        {
+            var code = payment.SubscriptionPlanCode.Trim().ToUpperInvariant();
+            return await _uow.SubscriptionPlans.Query()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Code == code, cancellationToken);
+        }
+
+        if (payment.Amount.HasValue && payment.SubscriptionDays.HasValue)
+        {
+            return await _uow.SubscriptionPlans.Query()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p =>
+                    p.DurationDays == payment.SubscriptionDays.Value &&
+                    p.Price == payment.Amount.Value, cancellationToken);
+        }
+
+        return null;
+    }
 }
+
