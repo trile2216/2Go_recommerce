@@ -38,6 +38,10 @@ public class ChatService : IChatService
         var userId = GetUserId(userPrincipal);
         var chats = await _uow.Chats.Query()
             .Include(c => c.Messages)
+            .Include(c => c.User1)
+            .ThenInclude(u => u!.UserProfiles)
+            .Include(c => c.User2)
+            .ThenInclude(u => u!.UserProfiles)
             .Where(c => c.User1Id == userId || c.User2Id == userId)
             .ToListAsync(cancellationToken);
 
@@ -45,12 +49,19 @@ public class ChatService : IChatService
             .Select(c =>
             {
                 var otherUserId = c.User1Id == userId ? c.User2Id : c.User1Id;
+                var otherUser = c.User1Id == userId ? c.User2 : c.User1;
+                var otherProfile = otherUser?.UserProfiles
+                    .OrderBy(p => p.ProfileId)
+                    .FirstOrDefault();
                 var lastMessage = c.Messages
                     .OrderByDescending(m => m.SentAt)
                     .FirstOrDefault();
                 return new ChatThreadResponse(
                     c.ChatId,
                     otherUserId ?? 0,
+                    otherUser == null
+                        ? null
+                        : new ChatUserInfo(otherUser.UserId, otherUser.Email, otherProfile?.FullName, otherProfile?.AvatarUrl),
                     lastMessage?.Content ?? lastMessage?.ImageUrl,
                     lastMessage?.SentAt);
             })
@@ -69,6 +80,10 @@ public class ChatService : IChatService
 
         var existing = await _uow.Chats.Query()
             .Include(c => c.Messages)
+            .Include(c => c.User1)
+            .ThenInclude(u => u!.UserProfiles)
+            .Include(c => c.User2)
+            .ThenInclude(u => u!.UserProfiles)
             .FirstOrDefaultAsync(c =>
                     (c.User1Id == userId && c.User2Id == request.OtherUserId) ||
                     (c.User1Id == request.OtherUserId && c.User2Id == userId),
@@ -76,10 +91,17 @@ public class ChatService : IChatService
 
         if (existing != null)
         {
+            var otherUser = existing.User1Id == userId ? existing.User2 : existing.User1;
+            var otherProfile = otherUser?.UserProfiles
+                .OrderBy(p => p.ProfileId)
+                .FirstOrDefault();
             var lastMessage = existing.Messages.OrderByDescending(m => m.SentAt).FirstOrDefault();
             return new ChatThreadResponse(
                 existing.ChatId,
                 request.OtherUserId,
+                otherUser == null
+                    ? null
+                    : new ChatUserInfo(otherUser.UserId, otherUser.Email, otherProfile?.FullName, otherProfile?.AvatarUrl),
                 lastMessage?.Content ?? lastMessage?.ImageUrl,
                 lastMessage?.SentAt);
         }
@@ -93,7 +115,18 @@ public class ChatService : IChatService
         await _uow.Chats.AddAsync(chat, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
 
-        return new ChatThreadResponse(chat.ChatId, request.OtherUserId, null, null);
+        var other = await _uow.Users.Query()
+            .Include(u => u.UserProfiles)
+            .FirstOrDefaultAsync(u => u.UserId == request.OtherUserId, cancellationToken);
+        var otherProfileNew = other?.UserProfiles
+            .OrderBy(p => p.ProfileId)
+            .FirstOrDefault();
+        return new ChatThreadResponse(
+            chat.ChatId,
+            request.OtherUserId,
+            other == null ? null : new ChatUserInfo(other.UserId, other.Email, otherProfileNew?.FullName, otherProfileNew?.AvatarUrl),
+            null,
+            null);
     }
 
     public async Task<IReadOnlyList<MessageResponse>> GetMessagesAsync(ClaimsPrincipal userPrincipal, long chatId, int skip, int take, CancellationToken cancellationToken = default)
