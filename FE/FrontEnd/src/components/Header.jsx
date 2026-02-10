@@ -529,7 +529,7 @@ export default function Header() {
           <button
             className="icon-btn messages-btn"
             onClick={() => {
-              navigate("/chat");
+              navigate("/chats");
               closeAllMenus();
             }}
           >
@@ -657,7 +657,7 @@ export default function Header() {
 
                     <div className="menu-section">
                       <div className="menu-section-title">Khác</div>
-                      <button className="menu-item" onClick={() => { navigate('/chat'); closeAllMenus(); }}>Trung tâm tin nhắn</button>
+                      <button className="menu-item" onClick={() => { navigate('/chats'); closeAllMenus(); }}>Trung tâm tin nhắn</button>
                       <button className="menu-item" onClick={() => { navigate('/reports'); closeAllMenus(); }}>Báo cáo người bán</button>
                     </div>
 

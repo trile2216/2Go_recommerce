@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import UserLayout from "../../layouts/UserLayout";
 import { useToast } from "../../context/ToastContext";
 import { getMyOrders } from "../../service/home/api.order";
-import { Package, Loader2 } from "lucide-react";
+import { Package, Loader2, ShoppingBag, Store } from "lucide-react";
+import useAuth from "../../context/UseAuth";
 import "./Order.css";
 
 const STATUS_MAP = {
@@ -51,7 +52,7 @@ function OrderCard({ order }) {
           </p>
           <p className="order-card-date">{formatDate(order.createdAt)}</p>
           <p className="order-card-method">
-            {order.paymentMethod === "PayOS" ? "Thanh toán online" : "COD"}
+            {order.paymentMethod === "PAYOS" ? "Thanh toán online" : "COD"}
           </p>
         </div>
         <div className="order-card-actions">
@@ -60,7 +61,7 @@ function OrderCard({ order }) {
           </span>
           <button
             className="order-detail-btn"
-            onClick={() => navigate(`/order/${order.orderId}`)}
+            onClick={() => navigate(`/orders/${order.orderId}`)}
           >
             Xem chi tiết
           </button>
@@ -70,42 +71,47 @@ function OrderCard({ order }) {
   );
 }
 
-function EmptyState() {
+function EmptyState({ activeTab }) {
   const navigate = useNavigate();
+  const isBuying = activeTab === "buy";
+  
   return (
     <div className="empty-state">
       <div className="empty-state-icon">
         <Package size={64} />
       </div>
-      <h3 className="empty-state-title">Bạn chưa có đơn hàng nào</h3>
+      <h3 className="empty-state-title">
+        {isBuying ? "Bạn chưa có đơn mua nào" : "Bạn chưa có đơn bán nào"}
+      </h3>
       <p className="empty-state-description">
-        Hãy khám phá và mua sắm những sản phẩm yêu thích
+        {isBuying 
+          ? "Hãy khám phá và mua sắm những sản phẩm yêu thích"
+          : "Đăng bán sản phẩm để tiếp cận người mua ngay hôm nay"}
       </p>
-      <button className="empty-state-btn" onClick={() => navigate("/listings")}>
-        Khám phá sản phẩm
-      </button>
+      {isBuying && (
+        <button className="empty-state-btn" onClick={() => navigate("/listings")}>
+          Khám phá sản phẩm
+        </button>
+      )}
     </div>
   );
 }
 
 export default function Orders() {
   const toast = useToast();
+  const { user } = useAuth();
   const [orders, setOrders] = useState([]);
-  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [skip, setSkip] = useState(0);
-  const take = 20;
+  const [activeTab, setActiveTab] = useState("buy"); // 'buy' or 'sell'
 
-  const fetchOrders = async (currentSkip = 0) => {
+  const fetchOrders = async () => {
     try {
       setLoading(true);
-      const data = await getMyOrders(currentSkip, take);
-      if (currentSkip === 0) {
-        setOrders(data.items || []);
-      } else {
-        setOrders((prev) => [...prev, ...(data.items || [])]);
-      }
-      setTotal(data.total || 0);
+      // Currently fetching all orders. In a real app with pagination, 
+      // we might need to filter on server side or fetch more pages.
+      // For now, fetching first 100 to ensure we get a mix.
+      const data = await getMyOrders(0, 100); 
+      setOrders(data.items || []);
     } catch (error) {
       console.error("Error fetching orders:", error);
       toast.error("Không thể tải danh sách đơn hàng");
@@ -115,48 +121,57 @@ export default function Orders() {
   };
 
   useEffect(() => {
-    fetchOrders(0);
+    fetchOrders();
   }, []);
 
-  const handleLoadMore = () => {
-    const newSkip = skip + take;
-    setSkip(newSkip);
-    fetchOrders(newSkip);
-  };
+  // Filter orders based on active tab
+  const filteredOrders = orders.filter(order => {
+    if (activeTab === "buy") {
+      return order.buyerId === user?.userId;
+    } else {
+      return order.sellerId === user?.userId;
+    }
+  });
 
   return (
     <UserLayout>
       <div className="order-header">
-        <h1 className="order-title">Đơn hàng của tôi</h1>
-        <p className="order-subtitle">Quản lý các đơn hàng mua của bạn</p>
+        <h1 className="order-title">Quản lý đơn hàng</h1>
+        <p className="order-subtitle">Theo dõi đơn mua và đơn bán của bạn</p>
       </div>
 
-      {loading && orders.length === 0 ? (
+      <div className="order-tabs">
+        <div className="tabs-list">
+          <button 
+            className={`tab-trigger ${activeTab === "buy" ? "active" : ""}`}
+            onClick={() => setActiveTab("buy")}
+          >
+            <ShoppingBag size={18} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'text-bottom' }} />
+            Đơn mua
+          </button>
+          <button 
+            className={`tab-trigger ${activeTab === "sell" ? "active" : ""}`}
+            onClick={() => setActiveTab("sell")}
+          >
+            <Store size={18} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'text-bottom' }} />
+            Đơn bán
+          </button>
+        </div>
+      </div>
+
+      {loading ? (
         <div className="order-loading">
           <Loader2 size={32} className="spin" />
           <p>Đang tải đơn hàng...</p>
         </div>
-      ) : orders.length === 0 ? (
-        <EmptyState />
+      ) : filteredOrders.length === 0 ? (
+        <EmptyState activeTab={activeTab} />
       ) : (
-        <>
-          <div className="orders-list">
-            {orders.map((order) => (
-              <OrderCard key={order.orderId} order={order} />
-            ))}
-          </div>
-          {orders.length < total && (
-            <div className="load-more-container">
-              <button
-                className="order-load-more-btn"
-                onClick={handleLoadMore}
-                disabled={loading}
-              >
-                {loading ? "Đang tải..." : "Xem thêm"}
-              </button>
-            </div>
-          )}
-        </>
+        <div className="orders-list">
+          {filteredOrders.map((order) => (
+            <OrderCard key={order.orderId} order={order} />
+          ))}
+        </div>
       )}
     </UserLayout>
   );

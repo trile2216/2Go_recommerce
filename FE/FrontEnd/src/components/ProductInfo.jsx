@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { addToCompare, removeFromCompare } from '../store/slices/compareSlice';
 import { useToast } from '../context/ToastContext';
 import { getSavedStatus, saveListing, removeSavedListing } from '../service/home/api.savedListing';
+import { createOrGetChat } from '../service/home/api.chat';
 
 export default function ProductInfo({ product, listingId, primaryImageUrl, rawPrice }) {
   const { addToCart, isInCart } = useCart();
@@ -98,6 +99,20 @@ export default function ProductInfo({ product, listingId, primaryImageUrl, rawPr
     }
   };
 
+  const handleChatWithSeller = async () => {
+    try {
+      const chat = await createOrGetChat(product.sellerId);
+      if (chat && chat.chatId) {
+        navigate(`/chats/${chat.chatId}`);
+      } else {
+        toast.error('Không thể tạo cuộc trò chuyện với người bán.');
+      }
+    } catch (error) {
+      console.error('Error creating chat:', error);
+      toast.error('Đã xảy ra lỗi khi tạo cuộc trò chuyện.');
+    }
+  };
+
   return (
     <div className="product-info-detail">
       <h1 className="product-title-detail">{product.title}</h1>
@@ -128,16 +143,16 @@ export default function ProductInfo({ product, listingId, primaryImageUrl, rawPr
             <span className="detail-value">{product.condition === "USED" ? 'Đã sử dụng' : 'Mới'}</span>
           </div>
         )}
-        {product.seller && (
+        {product.sellerPhone && (
           <div className="detail-row">
             <span className="detail-label">📞 Số điện thoại:</span>
-            <span className="detail-value">{product.seller}</span>
+            <span className="detail-value">{product.sellerPhone}</span>
           </div>
         )}
-        {product.location && (
+        {product.sellerEmail && (
           <div className="detail-row">
             <span className="detail-label">✉️ Email:</span>
-            <span className="detail-value">{product.location}</span>
+            <span className="detail-value">{product.sellerEmail}</span>
           </div>
         )}
       </div>
@@ -163,13 +178,16 @@ export default function ProductInfo({ product, listingId, primaryImageUrl, rawPr
       <div className="seller-section">
         <div className="seller-card">
           <div className="seller-avatar">
-            <img src="" alt="Seller Avatar" />
+            <img 
+              src={product.sellerAvatar} 
+              alt={product.sellerName} 
+            />
           </div>
           <div className="seller-info">
-            <div className="seller-name">Người bán</div>
+            <div className="seller-name">{product.sellerName || 'Người bán'}</div>
             <div className="seller-rating">⭐ 4.8 (328 đánh giá)</div>
           </div>
-          <button className="btn-contact">Liên hệ</button>
+          <button className="btn-contact" onClick={handleChatWithSeller}>Chat với người bán</button>
         </div>
       </div>
     </div>
