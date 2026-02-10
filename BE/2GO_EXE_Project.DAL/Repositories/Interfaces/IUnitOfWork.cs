@@ -25,6 +25,7 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     IListingAttributeRepository ListingAttributes { get; }
     IListingMediaRepository ListingMedias { get; }
     IListingViewRepository ListingViews { get; }
+    IListingCommentRepository ListingComments { get; }  
     IManualReviewQueueRepository ManualReviewQueues { get; }
     IMarketPriceRepository MarketPrices { get; }
     IMessageRepository Messages { get; }

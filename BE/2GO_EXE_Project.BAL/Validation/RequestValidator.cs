@@ -8,10 +8,11 @@ using _2GO_EXE_Project.BAL.DTOs.Payments;
 using _2GO_EXE_Project.BAL.DTOs.Reports;
 using _2GO_EXE_Project.BAL.DTOs.Ratings;
 using _2GO_EXE_Project.BAL.DTOs.Shipping;
+using _2GO_EXE_Project.BAL.DTOs.Comments;
 
 namespace _2GO_EXE_Project.BAL.Validation;
 
-public static class RequestValidator
+public static partial class RequestValidator
 {
     private const int ReasonMaxLength = 500;
     private const int MessageMaxLength = 1000;
@@ -352,6 +353,36 @@ public static class RequestValidator
         {
             result.Add("reason", "Reason is required.");
         }
+        return result;
+    }
+
+    public static ValidationResult ValidateCreateComment(CreateCommentRequest request)
+    {
+        var result = new ValidationResult();
+
+        if (request.ListingId <= 0)
+            result.Add("listingId", "ListingId must be greater than 0.");
+
+        if (string.IsNullOrWhiteSpace(request.Content))
+            result.Add("content", "Content is required.");
+        else if (request.Content.Length > 2000)
+            result.Add("content", "Content must not exceed 2000 characters.");
+
+        if (request.ParentId.HasValue && request.ParentId.Value <= 0)
+            result.Add("parentId", "ParentId must be greater than 0 when provided.");
+
+        return result;
+    }
+
+    public static ValidationResult ValidateUpdateComment(UpdateCommentRequest request)
+    {
+        var result = new ValidationResult();
+
+        if (string.IsNullOrWhiteSpace(request.Content))
+            result.Add("content", "Content is required.");
+        else if (request.Content.Length > 2000)
+            result.Add("content", "Content must not exceed 2000 characters.");
+
         return result;
     }
 }

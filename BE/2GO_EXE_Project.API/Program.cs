@@ -19,6 +19,8 @@ using PayOS;
 using PayOS.Models;
 using Microsoft.AspNetCore.Http;
 using _2GO_EXE_Project.BAL.Validation;
+using _2GO_EXE_Project.DAL.Entities;
+using System.ComponentModel.DataAnnotations;
 
 var builder = WebApplication.CreateBuilder(args);
 var corsName = "AllowAll";
@@ -78,6 +80,7 @@ builder.Services.AddScoped<IEscrowService, EscrowService>();
 builder.Services.AddScoped<IShippingService, ShippingService>();
 builder.Services.AddScoped<IRatingService, RatingService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IDistrictService, DistrictService>();
 builder.Services.AddScoped<IWardService, WardService>();
 builder.Services.AddHttpClient<IGhnShippingService, GhnShippingService>();
@@ -242,14 +245,8 @@ app.Use(async (context, next) =>
     catch (ValidationException ex)
     {
         context.Response.StatusCode = StatusCodes.Status400BadRequest;
-        if (!string.IsNullOrWhiteSpace(ex.Code))
-        {
-            await context.Response.WriteAsJsonAsync(new { code = ex.Code, errors = ex.Errors });
-        }
-        else
-        {
-            await context.Response.WriteAsJsonAsync(new { errors = ex.Errors });
-        }
+        // Use ex.Message since ValidationException does not have an Errors property
+        await context.Response.WriteAsJsonAsync(new { errors = new[] { ex.Message } });
     }
 });
 
@@ -282,6 +279,16 @@ static string SanitizeConnectionString(string? connectionString)
     {
         return "<invalid connection string>";
     }
+}
+
+public interface IListingCommentRepository : IGenericRepository<ListingComment>
+{
+    Task<ListingComment?> GetByIdWithDetailsAsync(long commentId, CancellationToken cancellationToken = default);
+    Task<(int Total, IReadOnlyList<ListingComment> Items)> GetByListingIdAsync(
+        long listingId, 
+        int skip, 
+        int take, 
+        CancellationToken cancellationToken = default);
 }
 
 

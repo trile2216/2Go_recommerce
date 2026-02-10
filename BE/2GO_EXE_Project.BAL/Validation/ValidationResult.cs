@@ -10,6 +10,8 @@ public sealed class ValidationResult
     public IReadOnlyList<ValidationError> Errors => _errors;
     public bool IsValid => _errors.Count == 0;
 
+    public List<string> ErrorMessages => _errors.Select(e => e.Message).ToList();
+
     public void Add(string field, string message)
     {
         _errors.Add(new ValidationError(field, message));

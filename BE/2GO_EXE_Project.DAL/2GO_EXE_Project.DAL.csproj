@@ -15,7 +15,7 @@
     <Folder Include="Configurations\" />
     <Folder Include="Context\" />
     <Folder Include="Migrations\" />
-    <Folder Include="Repositories\" />
+    <Folder Include="Models\" />
   </ItemGroup>
 
   <ItemGroup>
