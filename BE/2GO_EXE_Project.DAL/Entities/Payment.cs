@@ -27,6 +27,10 @@ public partial class Payment
     public string? Status { get; set; }
 
     [StringLength(50)]
+    [Unicode(false)]
+    public string? PaymentStage { get; set; }
+
+    [StringLength(50)]
     public string? PaymentType { get; set; }  // "DEPOSIT", "FULL", "REMAINING"
 
     [Column(TypeName = "decimal(5, 2)")]

@@ -98,6 +98,7 @@ builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
 builder.Services.AddScoped<ISubscriptionPlanService, SubscriptionPlanService>();
 builder.Services.AddScoped<IAdminSubscriptionPlanService, AdminSubscriptionPlanService>();
 builder.Services.AddScoped<IAdminMarketPriceService, AdminMarketPriceService>();
+builder.Services.AddHostedService<EscrowExpiryService>();
 // Configure PayOS
 builder.Services.AddKeyedSingleton("OrderClient", (serviceProvider, key) =>
 {

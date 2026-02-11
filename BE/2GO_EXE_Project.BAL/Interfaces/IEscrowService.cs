@@ -8,4 +8,5 @@ public interface IEscrowService
     Task<EscrowContract?> FundForOrderAsync(long orderId, long? paymentId, CancellationToken cancellationToken = default);
     Task<EscrowContract?> ReleaseForOrderAsync(long orderId, CancellationToken cancellationToken = default);
     Task<EscrowContract?> RefundForOrderAsync(long orderId, CancellationToken cancellationToken = default);
+    Task<EscrowContract?> ForfeitDepositForOrderAsync(long orderId, string? reason = null, CancellationToken cancellationToken = default);
 }
