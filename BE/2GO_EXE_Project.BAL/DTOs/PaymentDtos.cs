@@ -1,6 +1,6 @@
 namespace _2GO_EXE_Project.BAL.DTOs.Payments;
 
-public record CreatePaymentRequest(long OrderId, string Method);
+public record CreatePaymentRequest(long OrderId, string Method, string? PaymentStage = null);
 
 public record CreateSubscriptionPaymentRequest(string Method, string PlanCode);
 
@@ -13,4 +13,5 @@ public record PaymentResponse(
     string? Status,
     string? ReferenceCode,
     DateTime? CreatedAt,
-    string? PayUrl);
+    string? PayUrl,
+    string? PaymentStage);

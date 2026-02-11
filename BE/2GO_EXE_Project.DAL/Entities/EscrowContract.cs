@@ -27,6 +27,17 @@ public partial class EscrowContract
     [Column(TypeName = "decimal(15, 2)")]
     public decimal? TotalAmount { get; set; }
 
+    [Column(TypeName = "decimal(5, 2)")]
+    public decimal? DepositRate { get; set; }
+
+    public DateTime? DepositDeadlineAt { get; set; }
+
+    public DateTime? DepositForfeitedAt { get; set; }
+
+    public DateTime? DepositRefundedAt { get; set; }
+
+    public DateTime? DepositReminderSentAt { get; set; }
+
     [StringLength(50)]
     [Unicode(false)]
     public string? Status { get; set; }

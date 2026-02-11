@@ -19,6 +19,7 @@ public class OrderService : IOrderService
     private readonly IEscrowService _escrowService;
     private readonly IMarketPriceProvider _marketPriceProvider;
     private readonly INotificationService _notificationService;
+    private const decimal CommissionRateValue = 0.07m;
 
     public OrderService(IUnitOfWork uow, IEscrowService escrowService, IMarketPriceProvider marketPriceProvider, INotificationService notificationService)
     {
@@ -84,20 +85,27 @@ public class OrderService : IOrderService
         await _uow.Orders.AddAsync(order, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
 
+        var totalAmount = order.TotalAmount ?? 0m;
+        var requiresDeposit = totalAmount >= EscrowRules.DepositThresholdAmount;
+        var depositAmount = Math.Round(totalAmount * EscrowRules.DepositRate, 2, MidpointRounding.AwayFromZero);
         var payment = new Payment
         {
             UserId = buyerId,
             OrderId = order.OrderId,
-            Amount = order.TotalAmount,
+            Amount = requiresDeposit ? depositAmount : totalAmount,
             Method = method,
             Status = PaymentStatuses.Pending,
+            PaymentStage = requiresDeposit ? PaymentStages.Deposit : PaymentStages.Remaining,
+            PaymentType = PaymentTypes.Commission,
+            CommissionRate = CommissionRateValue,
+            CommissionBaseAmount = order.TotalAmount,
             ReferenceCode = Guid.NewGuid().ToString("N"),
             CreatedAt = DateTime.UtcNow
         };
         await _uow.Payments.AddAsync(payment, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
 
-        await _escrowService.EnsureForOrderAsync(order, payment.PaymentId, cancellationToken);
+        var escrow = await _escrowService.EnsureForOrderAsync(order, payment.PaymentId, cancellationToken);
 
         listing.Status = ListingStatuses.Reserved;
         listing.AvailableQuantity = 0;
@@ -143,7 +151,9 @@ public class OrderService : IOrderService
             order.QrCodeUrl,
             order.PaymentExpiredAt,
             order.CreatedAt,
-            request.DeliveryAddress);
+            request.DeliveryAddress,
+            escrow.DepositAmount,
+            escrow.DepositDeadlineAt);
     }
 
     public async Task<OrderListResponse> GetMyOrdersAsync(ClaimsPrincipal userPrincipal, int skip, int take, CancellationToken cancellationToken = default)
@@ -189,6 +199,7 @@ public class OrderService : IOrderService
             .Include(o => o.Buyer)
             .Include(o => o.Seller)
             .Include(o => o.ShippingRequests)
+            .Include(o => o.Escrow)
             .FirstOrDefaultAsync(o => o.OrderId == orderId, cancellationToken);
         if (order == null) return null;
         if (order.BuyerId != userId && order.SellerId != userId)
@@ -217,7 +228,9 @@ public class OrderService : IOrderService
             order.Buyer?.Phone,
             order.Seller?.Email,
             order.Seller?.Phone,
-            order.ShippingRequests.Select(s => s.DeliveryAddress).FirstOrDefault());
+            order.ShippingRequests.Select(s => s.DeliveryAddress).FirstOrDefault(),
+            order.Escrow?.DepositAmount,
+            order.Escrow?.DepositDeadlineAt);
     }
 
     public async Task<BasicResponse> CancelAsync(ClaimsPrincipal userPrincipal, long orderId, CancellationToken cancellationToken = default)
@@ -230,20 +243,35 @@ public class OrderService : IOrderService
         {
             return new BasicResponse(false, "Order is in dispute.");
         }
-        if (!string.Equals(order.Status, OrderStatuses.Pending, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(order.Status, OrderStatuses.Pending, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(order.Status, OrderStatuses.Confirmed, StringComparison.OrdinalIgnoreCase))
         {
             if (string.Equals(order.Status, OrderStatuses.Cancelled, StringComparison.OrdinalIgnoreCase))
             {
                 return new BasicResponse(true, "Order already cancelled.");
             }
-            return new BasicResponse(false, "Only pending orders can be cancelled.");
+            return new BasicResponse(false, "Only pending or confirmed orders can be cancelled.");
         }
 
         order.Status = OrderStatuses.Cancelled;
         _uow.Orders.Update(order);
         await _uow.SaveChangesAsync(cancellationToken);
-        await UpdatePaymentStatusAsync(order.OrderId, PaymentStatuses.Cancelled, cancellationToken);
-        await _escrowService.RefundForOrderAsync(order.OrderId, cancellationToken);
+        var escrow = await _uow.EscrowContracts.Query()
+            .FirstOrDefaultAsync(e => e.OrderId == order.OrderId, cancellationToken);
+        var now = DateTime.UtcNow;
+        var canForfeit = escrow != null &&
+                         string.Equals(escrow.Status, EscrowStatuses.Funded, StringComparison.OrdinalIgnoreCase) &&
+                         escrow.DepositDeadlineAt.HasValue &&
+                         now > escrow.DepositDeadlineAt.Value;
+        if (canForfeit)
+        {
+            await _escrowService.ForfeitDepositForOrderAsync(order.OrderId, "Buyer cancelled after deposit deadline", cancellationToken);
+        }
+        else
+        {
+            await UpdatePaymentStatusAsync(order.OrderId, PaymentStatuses.Cancelled, PaymentStages.Deposit, cancellationToken);
+            await _escrowService.RefundForOrderAsync(order.OrderId, cancellationToken);
+        }
         await RestoreListingIfReservedAsync(order, cancellationToken);
         await LogOrderActionAsync(userId, "OrderCancelled", new { order.OrderId, order.Status }, cancellationToken);
         if (order.SellerId.HasValue)
@@ -308,16 +336,20 @@ public class OrderService : IOrderService
             return new BasicResponse(false, "Only confirmed orders can be completed.");
         }
 
-        if (!await IsPaymentPaidAsync(order.OrderId, cancellationToken))
+        var totalAmount = order.TotalAmount ?? 0m;
+        var requiresDeposit = totalAmount >= EscrowRules.DepositThresholdAmount;
+        var requiredStage = requiresDeposit ? PaymentStages.Remaining : PaymentStages.Remaining;
+        if (!await IsPaymentPaidAsync(order.OrderId, requiredStage, cancellationToken))
         {
             if (string.Equals(order.PaymentMethod, "COD", StringComparison.OrdinalIgnoreCase))
             {
-                await UpdatePaymentStatusAsync(order.OrderId, PaymentStatuses.Paid, cancellationToken);
-                await _escrowService.FundForOrderAsync(order.OrderId, null, cancellationToken);
+                await UpdatePaymentStatusAsync(order.OrderId, PaymentStatuses.Paid, requiredStage, cancellationToken);
             }
             else
             {
-                return new BasicResponse(false, "Payment must be paid before completing the order.");
+                return new BasicResponse(false, requiresDeposit
+                    ? "Remaining payment must be paid before completing the order."
+                    : "Payment must be paid before completing the order.");
             }
         }
 
@@ -341,21 +373,31 @@ public class OrderService : IOrderService
         throw new InvalidOperationException("Payment method not supported.");
     }
 
-    private async Task<bool> IsPaymentPaidAsync(long orderId, CancellationToken cancellationToken)
+    private async Task<bool> IsPaymentPaidAsync(long orderId, string stage, CancellationToken cancellationToken)
     {
         return await _uow.Payments.Query()
-            .AnyAsync(p => p.OrderId == orderId && p.Status == PaymentStatuses.Paid, cancellationToken);
+            .AnyAsync(p => p.OrderId == orderId &&
+                           (p.PaymentStage == stage ||
+                            (p.PaymentStage == null && stage == PaymentStages.Deposit)) &&
+                           p.Status == PaymentStatuses.Paid, cancellationToken);
     }
 
-    private async Task UpdatePaymentStatusAsync(long orderId, string status, CancellationToken cancellationToken)
+    private async Task UpdatePaymentStatusAsync(long orderId, string status, string stage, CancellationToken cancellationToken)
     {
         var payment = await _uow.Payments.Query()
-            .FirstOrDefaultAsync(p => p.OrderId == orderId, cancellationToken);
+            .FirstOrDefaultAsync(p => p.OrderId == orderId &&
+                                      (p.PaymentStage == stage ||
+                                       (p.PaymentStage == null && stage == PaymentStages.Deposit)), cancellationToken);
         if (payment == null) return;
+        if (!string.Equals(payment.Status, PaymentStatuses.Pending, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
         payment.Status = status;
         _uow.Payments.Update(payment);
         await _uow.SaveChangesAsync(cancellationToken);
     }
+
 
     private async Task RestoreListingIfReservedAsync(Order order, CancellationToken cancellationToken)
     {
@@ -465,6 +507,7 @@ public class OrderService : IOrderService
             .Include(o => o.Buyer)
             .Include(o => o.Seller)
             .Include(o => o.ShippingRequests)
+            .Include(o => o.Escrow)
             .FirstOrDefaultAsync(o => o.OrderCode == orderCode);
 
         if (order == null)
@@ -492,7 +535,9 @@ public class OrderService : IOrderService
             order.Buyer?.Phone,
             order.Seller?.Email,
             order.Seller?.Phone,
-            order.ShippingRequests.Select(s => s.DeliveryAddress).FirstOrDefault());
+            order.ShippingRequests.Select(s => s.DeliveryAddress).FirstOrDefault(),
+            order.Escrow?.DepositAmount,
+            order.Escrow?.DepositDeadlineAt);
     
     }
 

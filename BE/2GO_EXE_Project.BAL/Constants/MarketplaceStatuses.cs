@@ -92,6 +92,25 @@ public static class PaymentTypes
     };
 }
 
+public static class PaymentStages
+{
+    public const string Deposit = "DEPOSIT";
+    public const string Remaining = "REMAINING";
+
+    public static readonly IReadOnlyList<string> All = new[]
+    {
+        Deposit,
+        Remaining
+    };
+}
+
+public static class EscrowRules
+{
+    public const decimal DepositRate = 0.10m;
+    public const decimal DepositThresholdAmount = 20_000_000m;
+    public const int DepositHoldHours = 72;
+}
+
 public static class EscrowStatuses
 {
     public const string Pending = "Pending";

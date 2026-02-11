@@ -242,6 +242,7 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.EscrowId).HasName("PK__EscrowCo__557665D406EDB275");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+            entity.Property(e => e.DepositRate).HasPrecision(5, 2);
 
             entity.HasOne(d => d.Buyer).WithMany(p => p.EscrowContractBuyers).HasConstraintName("FK_Escrow_Buyer");
 

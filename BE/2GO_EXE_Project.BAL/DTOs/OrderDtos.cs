@@ -17,7 +17,9 @@ public record OrderResponse(
     string? QrCodeUrl,
     DateTime? PaymentExpiredAt,
     DateTime? CreatedAt,
-    string? DeliveryAddress);
+    string? DeliveryAddress,
+    decimal? DepositAmount,
+    DateTime? DepositDeadlineAt);
 
 public record OrderListItem(
     long OrderId,
@@ -60,4 +62,6 @@ public record OrderDetailResponse(
     string? BuyerPhone,
     string? SellerEmail,
     string? SellerPhone,
-    string? DeliveryAddress);
+    string? DeliveryAddress,
+    decimal? DepositAmount,
+    DateTime? DepositDeadlineAt);

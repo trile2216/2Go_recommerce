@@ -49,6 +49,7 @@ public class PaymentService : IPaymentService
     {
         ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateCreatePayment(request));
         var userId = GetUserId(userPrincipal);
+        var stage = NormalizePaymentStage(request.PaymentStage);
         var order = await _uow.Orders.GetByIdAsync(request.OrderId);
         if (order == null)
         {
@@ -63,8 +64,17 @@ public class PaymentService : IPaymentService
             throw new InvalidOperationException("Payment method does not match the order.");
         }
 
+        if (string.Equals(order.Status, OrderStatuses.Cancelled, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(order.Status, OrderStatuses.Completed, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(order.Status, OrderStatuses.Disputed, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Payments are not allowed for this order status.");
+        }
+
         var existing = await _uow.Payments.Query()
-            .FirstOrDefaultAsync(p => p.OrderId == order.OrderId, cancellationToken);
+            .FirstOrDefaultAsync(p => p.OrderId == order.OrderId &&
+                                      (p.PaymentStage == stage ||
+                                       (p.PaymentStage == null && stage == PaymentStages.Deposit)), cancellationToken);
         if (existing != null)
         {
             string? existingPayUrl = null;
@@ -127,24 +137,53 @@ public class PaymentService : IPaymentService
                     }
                 }
             }
-            return new PaymentResponse(existing.PaymentId, existing.Amount, existing.Method, existing.Status, existing.ReferenceCode, existing.CreatedAt, existingPayUrl);
+            return new PaymentResponse(existing.PaymentId, existing.Amount, existing.Method, existing.Status, existing.ReferenceCode, existing.CreatedAt, existingPayUrl, existing.PaymentStage);
         }
 
-        if (!string.Equals(order.Status, OrderStatuses.Pending, StringComparison.OrdinalIgnoreCase))
+        var totalAmount = order.TotalAmount ?? 0m;
+        var requiresDeposit = totalAmount >= EscrowRules.DepositThresholdAmount;
+
+        if (!requiresDeposit && string.Equals(stage, PaymentStages.Deposit, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("Payments can only be created when order status is Pending.");
+            stage = PaymentStages.Remaining;
         }
+
+        if (string.Equals(stage, PaymentStages.Deposit, StringComparison.OrdinalIgnoreCase))
+        {
+            if (!string.Equals(order.Status, OrderStatuses.Pending, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Deposit payment can only be created when order status is Pending.");
+            }
+        }
+        else if (string.Equals(stage, PaymentStages.Remaining, StringComparison.OrdinalIgnoreCase))
+        {
+            if (requiresDeposit && !string.Equals(order.Status, OrderStatuses.Confirmed, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Remaining payment can only be created when order status is Confirmed.");
+            }
+            if (requiresDeposit && !await HasPaidPaymentAsync(order.OrderId, PaymentStages.Deposit, cancellationToken))
+            {
+                throw new InvalidOperationException("Deposit must be paid before creating remaining payment.");
+            }
+        }
+
+        var depositAmount = CalculateDepositAmount(totalAmount);
+        var remainingAmount = Math.Max(totalAmount - depositAmount, 0m);
+        var paymentAmount = string.Equals(stage, PaymentStages.Deposit, StringComparison.OrdinalIgnoreCase)
+            ? depositAmount
+            : remainingAmount;
 
         var payment = new Payment
         {
             UserId = userId,
             OrderId = order.OrderId,
-            Amount = order.TotalAmount,
+            Amount = paymentAmount,
             Method = order.PaymentMethod,
             Status = PaymentStatuses.Pending,
             PaymentType = PaymentTypes.Commission,
-            CommissionRate = CommissionRateValue,
-            CommissionBaseAmount = order.TotalAmount,
+            PaymentStage = stage,
+            CommissionRate = string.Equals(stage, PaymentStages.Deposit, StringComparison.OrdinalIgnoreCase) ? CommissionRateValue : null,
+            CommissionBaseAmount = string.Equals(stage, PaymentStages.Deposit, StringComparison.OrdinalIgnoreCase) ? order.TotalAmount : null,
             ReferenceCode = Guid.NewGuid().ToString("N"),
             CreatedAt = DateTime.UtcNow
         };
@@ -198,7 +237,7 @@ public class PaymentService : IPaymentService
 
         await LogPaymentActionAsync(userId, "PaymentCreated", new { payment.PaymentId, payment.Amount, payment.Status }, cancellationToken);
 
-        return new PaymentResponse(payment.PaymentId, payment.Amount, payment.Method, payment.Status, payment.ReferenceCode, payment.CreatedAt, payUrl);
+        return new PaymentResponse(payment.PaymentId, payment.Amount, payment.Method, payment.Status, payment.ReferenceCode, payment.CreatedAt, payUrl, payment.PaymentStage);
     }
 
     public async Task<PaymentResponse> CreateSubscriptionAsync(ClaimsPrincipal userPrincipal, CreateSubscriptionPaymentRequest request, CancellationToken cancellationToken = default)
@@ -280,7 +319,7 @@ public class PaymentService : IPaymentService
         }
 
         await LogPaymentActionAsync(userId, "SubscriptionPaymentCreated", new { payment.PaymentId, payment.Amount, payment.Status }, cancellationToken);
-        return new PaymentResponse(payment.PaymentId, payment.Amount, payment.Method, payment.Status, payment.ReferenceCode, payment.CreatedAt, payUrl);
+        return new PaymentResponse(payment.PaymentId, payment.Amount, payment.Method, payment.Status, payment.ReferenceCode, payment.CreatedAt, payUrl, payment.PaymentStage);
     }
 
     public async Task<BasicResponse> VerifyAsync(ClaimsPrincipal userPrincipal, long paymentId, VerifyPaymentRequest request, CancellationToken cancellationToken = default)
@@ -541,34 +580,64 @@ public class PaymentService : IPaymentService
         if (!payment.OrderId.HasValue) return;
         var order = await _uow.Orders.GetByIdAsync(payment.OrderId.Value);
         if (order == null) return;
-        if (!string.Equals(order.Status, OrderStatuses.Pending, StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
+        var stage = NormalizePaymentStage(payment.PaymentStage);
 
-        if (string.Equals(payment.Status, PaymentStatuses.Paid, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(stage, PaymentStages.Deposit, StringComparison.OrdinalIgnoreCase))
         {
-            order.Status = OrderStatuses.Confirmed;
-            _uow.Orders.Update(order);
-            await _uow.SaveChangesAsync(cancellationToken);
-            await _escrowService.FundForOrderAsync(order.OrderId, payment.PaymentId, cancellationToken);
-            if (order.BuyerId.HasValue)
+            if (!string.Equals(order.Status, OrderStatuses.Pending, StringComparison.OrdinalIgnoreCase))
             {
-                await NotifyAsync(order.BuyerId.Value, "PAYMENT", "Thanh toán thành công", $"Đơn hàng #{order.OrderId} đã được thanh toán.", $"/orders/{order.OrderId}", cancellationToken);
+                return;
+            }
+
+            if (string.Equals(payment.Status, PaymentStatuses.Paid, StringComparison.OrdinalIgnoreCase))
+            {
+                order.Status = OrderStatuses.Confirmed;
+                _uow.Orders.Update(order);
+                await _uow.SaveChangesAsync(cancellationToken);
+                await _escrowService.FundForOrderAsync(order.OrderId, payment.PaymentId, cancellationToken);
+                if (order.BuyerId.HasValue)
+                {
+                    await NotifyAsync(order.BuyerId.Value, "PAYMENT", "Thanh toán thành công", $"Đơn hàng #{order.OrderId} đã được thanh toán cọc.", $"/orders/{order.OrderId}", cancellationToken);
+                }
+            }
+            else if (string.Equals(payment.Status, PaymentStatuses.Failed, StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(payment.Status, PaymentStatuses.Cancelled, StringComparison.OrdinalIgnoreCase))
+            {
+                order.Status = OrderStatuses.Cancelled;
+                _uow.Orders.Update(order);
+                await _uow.SaveChangesAsync(cancellationToken);
+                await _escrowService.RefundForOrderAsync(order.OrderId, cancellationToken);
+
+                await RestoreListingsForOrderAsync(order, cancellationToken);
+                if (order.BuyerId.HasValue)
+                {
+                    await NotifyAsync(order.BuyerId.Value, "PAYMENT", "Thanh toán thất bại", $"Thanh toán cọc cho đơn hàng #{order.OrderId} không thành công.", $"/orders/{order.OrderId}", cancellationToken);
+                }
             }
         }
-        else if (string.Equals(payment.Status, PaymentStatuses.Failed, StringComparison.OrdinalIgnoreCase) ||
-                 string.Equals(payment.Status, PaymentStatuses.Cancelled, StringComparison.OrdinalIgnoreCase))
+        else if (string.Equals(stage, PaymentStages.Remaining, StringComparison.OrdinalIgnoreCase))
         {
-            order.Status = OrderStatuses.Cancelled;
-            _uow.Orders.Update(order);
-            await _uow.SaveChangesAsync(cancellationToken);
-            await _escrowService.RefundForOrderAsync(order.OrderId, cancellationToken);
-
-            await RestoreListingsForOrderAsync(order, cancellationToken);
-            if (order.BuyerId.HasValue)
+            if (string.Equals(payment.Status, PaymentStatuses.Paid, StringComparison.OrdinalIgnoreCase))
             {
-                await NotifyAsync(order.BuyerId.Value, "PAYMENT", "Thanh toán thất bại", $"Thanh toán cho đơn hàng #{order.OrderId} không thành công.", $"/orders/{order.OrderId}", cancellationToken);
+                if (string.Equals(order.Status, OrderStatuses.Pending, StringComparison.OrdinalIgnoreCase))
+                {
+                    order.Status = OrderStatuses.Confirmed;
+                    _uow.Orders.Update(order);
+                    await _uow.SaveChangesAsync(cancellationToken);
+                    await _escrowService.FundForOrderAsync(order.OrderId, payment.PaymentId, cancellationToken);
+                }
+                if (order.BuyerId.HasValue)
+                {
+                    await NotifyAsync(order.BuyerId.Value, "PAYMENT", "Thanh toán thành công", $"Đơn hàng #{order.OrderId} đã được thanh toán phàn còn lại.", $"/orders/{order.OrderId}", cancellationToken);
+                }
+            }
+            else if (string.Equals(payment.Status, PaymentStatuses.Failed, StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(payment.Status, PaymentStatuses.Cancelled, StringComparison.OrdinalIgnoreCase))
+            {
+                if (order.BuyerId.HasValue)
+                {
+                    await NotifyAsync(order.BuyerId.Value, "PAYMENT", "Thanh toán thất bại", $"Thanh toán phàn còn lại cho đơn hàng #{order.OrderId} không thành công.", $"/orders/{order.OrderId}", cancellationToken);
+                }
             }
         }
     }
@@ -727,6 +796,42 @@ public class PaymentService : IPaymentService
         return null;
     }
 
+    private static string NormalizePaymentStage(string? stage)
+    {
+        if (string.IsNullOrWhiteSpace(stage)) return PaymentStages.Deposit;
+        if (string.Equals(stage, PaymentStages.Deposit, StringComparison.OrdinalIgnoreCase)) return PaymentStages.Deposit;
+        if (string.Equals(stage, PaymentStages.Remaining, StringComparison.OrdinalIgnoreCase)) return PaymentStages.Remaining;
+        return stage.Trim().ToUpperInvariant();
+    }
+
+    private static bool IsPaymentStageMatch(string? existingStage, string stage)
+    {
+        if (string.IsNullOrWhiteSpace(existingStage))
+        {
+            return string.Equals(stage, PaymentStages.Deposit, StringComparison.OrdinalIgnoreCase);
+        }
+        return string.Equals(existingStage, stage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static decimal CalculateDepositAmount(decimal totalAmount)
+    {
+        if (totalAmount < EscrowRules.DepositThresholdAmount)
+        {
+            return 0m;
+        }
+        var amount = totalAmount * EscrowRules.DepositRate;
+        return Math.Round(amount, 2, MidpointRounding.AwayFromZero);
+    }
+
+    private async Task<bool> HasPaidPaymentAsync(long orderId, string stage, CancellationToken cancellationToken)
+    {
+        return await _uow.Payments.Query()
+            .AnyAsync(p => p.OrderId == orderId &&
+                           (p.PaymentStage == stage ||
+                            (p.PaymentStage == null && stage == PaymentStages.Deposit)) &&
+                           p.Status == PaymentStatuses.Paid, cancellationToken);
+    }
+
     private async Task NotifyAsync(long userId, string type, string title, string message, string? link, CancellationToken cancellationToken)
     {
         try
@@ -744,3 +849,5 @@ public class PaymentService : IPaymentService
         }
     }
 }
+
+

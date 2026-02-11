@@ -56,6 +56,11 @@ public static partial class RequestValidator
         {
             result.Add("method", "Payment method is required.");
         }
+        if (!string.IsNullOrWhiteSpace(request.PaymentStage) &&
+            !PaymentStages.All.Contains(request.PaymentStage, StringComparer.OrdinalIgnoreCase))
+        {
+            result.Add("paymentStage", $"Invalid payment stage. Allowed: {string.Join(", ", PaymentStages.All)}.");
+        }
         return result;
     }
 
