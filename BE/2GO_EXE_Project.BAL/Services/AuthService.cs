@@ -6,6 +6,7 @@ using FirebaseAdmin.Auth;
 using System.Security.Claims;
 using _2GO_EXE_Project.BAL.Constants;
 using _2GO_EXE_Project.BAL.DTOs.Auth;
+using _2GO_EXE_Project.BAL.DTOs.Subscriptions;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
@@ -583,6 +584,39 @@ public class AuthService : IAuthService
             .ToListAsync(cancellationToken);
 
         return logs;
+    }
+
+    public async Task<UserSubscriptionResponse> GetMySubscriptionAsync(ClaimsPrincipal userPrincipal, CancellationToken cancellationToken = default)
+    {
+        var sub = userPrincipal.FindFirst("sub")?.Value
+                  ?? userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                  ?? userPrincipal.FindFirst(ClaimTypes.Name)?.Value;
+
+        if (!long.TryParse(sub, out var userId))
+        {
+            throw new UnauthorizedAccessException("Invalid user id in token.");
+        }
+
+        var user = await _uow.Users.Query()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.UserId == userId, cancellationToken);
+
+        if (user == null)
+        {
+            throw new UnauthorizedAccessException("User not found.");
+        }
+
+        var now = DateTime.UtcNow;
+        var until = user.SubscriptionUntil;
+        var isActive = until.HasValue && until.Value > now;
+        int? remainingDays = null;
+        if (until.HasValue)
+        {
+            var remaining = until.Value - now;
+            remainingDays = remaining.TotalDays <= 0 ? 0 : (int)Math.Ceiling(remaining.TotalDays);
+        }
+
+        return new UserSubscriptionResponse(user.UserId, until, isActive, remainingDays);
     }
 
     public async Task<BasicResponse> UpdateAvatarAsync(ClaimsPrincipal userPrincipal, UpdateAvatarRequest request, CancellationToken cancellationToken = default)
