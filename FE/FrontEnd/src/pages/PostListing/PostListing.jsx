@@ -486,16 +486,41 @@ export default function PostListing() {
 
             // Call precheck API before creating listing (only for PendingReview)
             if (status === 'PendingReview') {
+                // Validate userId exists
+                const userId = user?.userId || user?.id;
+                console.log('=== USER DEBUG ===');
+                console.log('user object:', user);
+                console.log('user?.userId:', user?.userId);
+                console.log('user?.id:', user?.id);
+                console.log('Final userId:', userId);
+                console.log('=== END USER DEBUG ===');
+                
+                if (!userId) {
+                    hideLoadingMsg();
+                    message.error("Lỗi: Không tìm thấy ID người dùng. Vui lòng đăng nhập lại.");
+                    setIsSubmitting(false);
+                    return;
+                }
+
+                // Validate mediaUrls
+                if (allMediaUrls.length === 0) {
+                    hideLoadingMsg();
+                    message.error("Lỗi: Không có hình ảnh hoặc video để gửi kiểm tra.");
+                    setIsSubmitting(false);
+                    return;
+                }
+
                 const precheckData = {
                     title: values.title,
                     description: values.description,
-                    categoryId: selectedCategory?.id || 0,
+                    categoryId: selectedCategory?.id,
                     brand: values.brand || "",
                     price: values.isFree ? 0 : parseFloat(values.price) || 0,
                     mediaUrls: allMediaUrls,
-                    userId: user?.userId || user?.id || "",
+                    userId: String(userId), // Convert to string - backend expects string UUID
                 };
 
+                console.log('Submitting precheck with data:', precheckData);
                 const precheckResult = await listingPrecheck(precheckData);
 
                 if (!precheckResult.canPublish) {
@@ -568,10 +593,23 @@ export default function PostListing() {
             hideLoadingMsg();
             setIsSubmitting(false); // Re-enable blocker if failed
             console.error("Error creating/updating listing:", error);
-            message.error(
-                error.response?.data?.message || 
-                "Có lỗi xảy ra. Vui lòng thử lại!"
-            );
+            
+            // Extract validation errors from backend
+            const validationErrors = error.response?.data?.errors;
+            let errorMessage = error.response?.data?.message || "Có lỗi xảy ra. Vui lòng thử lại!";
+            
+            if (validationErrors) {
+                console.error("Validation errors:", validationErrors);
+                const errorList = Object.entries(validationErrors)
+                    .map(([field, messages]) => {
+                        const msgs = Array.isArray(messages) ? messages[0] : messages;
+                        return `${field}: ${msgs}`;
+                    })
+                    .join('\n');
+                errorMessage = `Lỗi validate:\n${errorList}`;
+            }
+            
+            message.error(errorMessage);
         }
     };
 
