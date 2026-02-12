@@ -4,12 +4,13 @@ import api from '../../config/axios';
  * Tạo báo cáo mới (báo cáo người bán qua đơn hàng)
  * @param {Object} data
  * @param {number} data.orderId - ID đơn hàng liên quan
- * @param {number} [data.targetUserId] - ID người bị báo cáo (tự xác định nếu không truyền)
+ * @param {number} [data.targetUserId] - ID người bị báo cáo
  * @param {string} data.reason - Lý do báo cáo
+ * @param {string[]} [data.evidenceUrls] - Danh sách URL ảnh/video làm bằng chứng
  * @returns {Promise<ReportResponse>}
  */
-export const createReport = async ({ orderId, targetUserId, reason }) => {
-    const response = await api.post('/reports', { orderId, targetUserId, reason });
+export const createReport = async ({ orderId, targetUserId, reason, evidenceUrls }) => {
+    const response = await api.post('/reports', { orderId, targetUserId, reason, evidenceUrls });
     return response.data;
 };
 

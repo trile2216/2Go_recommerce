@@ -21,14 +21,14 @@ export const reverseGeocode = async (latitude, longitude) => {
     }
 
     const data = await response.json();
-    
+
     // Extract useful address information
     const address = data.address || {};
-    
+
     return {
       // Full formatted address
       displayName: data.display_name,
-      
+
       // Structured address components
       address: {
         road: address.road || '',
@@ -40,13 +40,13 @@ export const reverseGeocode = async (latitude, longitude) => {
         country: address.country || '',
         countryCode: address.country_code || ''
       },
-      
+
       // Coordinates
       coordinates: {
         latitude: data.lat,
         longitude: data.lon
       },
-      
+
       // Raw data for advanced usage
       raw: data
     };
@@ -69,9 +69,9 @@ export const getUserLocationWithAddress = (options = {}) => {
     }
 
     const defaultOptions = {
-      enableHighAccuracy: false, // Use network location for faster results
+      enableHighAccuracy: true, // Use GPS for accurate results
       timeout: 15000, // Increase timeout to 15 seconds
-      maximumAge: 300000, // Accept cached position up to 5 minutes old
+      maximumAge: 0, // Always get fresh position, no cache
       ...options
     };
 
@@ -79,10 +79,10 @@ export const getUserLocationWithAddress = (options = {}) => {
       async (position) => {
         try {
           const { latitude, longitude } = position.coords;
-          
+
           // Get address from coordinates
           const addressData = await reverseGeocode(latitude, longitude);
-          
+
           resolve({
             coordinates: { latitude, longitude },
             address: addressData,

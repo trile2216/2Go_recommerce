@@ -35,7 +35,9 @@ import PaymentResult from './pages/PaymentResult/PaymentResult';
 import SellerListings from './pages/SellerListings/SellerListings';
 import SellerListingDetail from './pages/SellerListingDetail/SellerListingDetail';
 import SavedListings from './pages/SavedListings/SavedListings';
+import MyReviews from './pages/MyReviews/MyReviews';
 import Plan from './pages/Admin/Plan/Plan';
+import RepairShopMap from './pages/RepairShopMap/RepairShopMap';
 
 const RootLayout = () => {
   return (
@@ -58,6 +60,7 @@ const router = createBrowserRouter([
       { path: "/listings/:id", element: <ProductDetail /> },
       { path: "/compare", element: <Compare /> },
       { path: "/listings", element: <Listings /> },
+      { path: "/repair-shops", element: <RepairShopMap /> },
       
       // Protected Routes - Requires login
       {
@@ -71,6 +74,7 @@ const router = createBrowserRouter([
           { path: "/seller/listings", element: <SellerListings /> },
           { path: "/seller/listings/:id", element: <SellerListingDetail /> },
           { path: "/saved-listings", element: <SavedListings /> },
+          { path: "/reviews", element: <MyReviews /> },
           { 
             path: "/post/listing", 
             element: (

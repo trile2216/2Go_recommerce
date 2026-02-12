@@ -4,6 +4,8 @@ import UserLayout from "../../layouts/UserLayout";
 import { useToast } from "../../context/ToastContext";
 import { getOrderById, cancelOrder, confirmOrder, completeOrder } from "../../service/home/api.order";
 import { createReport } from "../../service/home/api.report";
+import { createRating } from "../../service/home/api.rating";
+import { uploadImageAndGetUrl, uploadVideoAndGetUrl } from "../../service/upload/api.upload";
 import CreateShippingModal from "../../components/CreateShippingModal";
 import OrderStatusStepper, { getStatusLabel } from "../../components/OrderStatusStepper";
 import useAuth from "../../context/UseAuth";
@@ -24,7 +26,10 @@ import {
   ShoppingBag,
   Package,
   Flag,
-  X
+  X,
+  ImagePlus,
+  Trash2,
+  Star
 } from "lucide-react";
 import "./OrderDetail.css";
 import PageEmptyState from "../../components/PageEmptyState";
@@ -43,6 +48,12 @@ export default function OrderDetail() {
   const [showShippingModal, setShowShippingModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState("");
+  const [reportFiles, setReportFiles] = useState([]);
+  const [reportUploading, setReportUploading] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [ratingScore, setRatingScore] = useState(0);
+  const [ratingComment, setRatingComment] = useState("");
+  const [ratingHover, setRatingHover] = useState(0);
 
   const fetchOrder = useCallback(async () => {
     try {
@@ -103,7 +114,27 @@ export default function OrderDetail() {
 
   const handleReport = () => {
     setReportReason("");
+    setReportFiles([]);
     setShowReportModal(true);
+  };
+
+  const handleReportFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    const newFiles = files.map((f) => ({
+      file: f,
+      preview: URL.createObjectURL(f),
+      type: f.type.startsWith("video") ? "video" : "image",
+    }));
+    setReportFiles((prev) => [...prev, ...newFiles]);
+    e.target.value = "";
+  };
+
+  const removeReportFile = (index) => {
+    setReportFiles((prev) => {
+      const removed = prev[index];
+      URL.revokeObjectURL(removed.preview);
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const submitReport = async () => {
@@ -113,15 +144,64 @@ export default function OrderDetail() {
     }
     try {
       setActionLoading(true);
+
+      // Upload evidence files
+      let evidenceUrls = [];
+      if (reportFiles.length > 0) {
+        setReportUploading(true);
+        const imageFiles = reportFiles.filter((f) => f.type === "image").map((f) => f.file);
+        const videoFiles = reportFiles.filter((f) => f.type === "video").map((f) => f.file);
+
+        if (imageFiles.length > 0) {
+          const urls = await uploadImageAndGetUrl(imageFiles);
+          evidenceUrls.push(...(Array.isArray(urls) ? urls : [urls]));
+        }
+        if (videoFiles.length > 0) {
+          const urls = await uploadVideoAndGetUrl(videoFiles);
+          evidenceUrls.push(...(Array.isArray(urls) ? urls : [urls]));
+        }
+        setReportUploading(false);
+      }
+
       await createReport({
         orderId: order.orderId,
         targetUserId: order.sellerId,
         reason: reportReason,
+        evidenceUrls: evidenceUrls.length > 0 ? evidenceUrls : null,
       });
       toast.success("Đã gửi báo cáo thành công!");
       setShowReportModal(false);
     } catch (error) {
       toast.error(error.response?.data?.message || "Gửi báo cáo thất bại");
+    } finally {
+      setActionLoading(false);
+      setReportUploading(false);
+    }
+  };
+
+  const handleRating = () => {
+    setRatingScore(0);
+    setRatingComment("");
+    setRatingHover(0);
+    setShowRatingModal(true);
+  };
+
+  const submitRating = async () => {
+    if (ratingScore < 1 || ratingScore > 5) {
+      toast.error("Vui lòng chọn số sao đánh giá");
+      return;
+    }
+    try {
+      setActionLoading(true);
+      await createRating({
+        orderId: order.orderId,
+        score: ratingScore,
+        comment: ratingComment || null,
+      });
+      toast.success("Đánh giá thành công!");
+      setShowRatingModal(false);
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.response?.data || "Đánh giá thất bại");
     } finally {
       setActionLoading(false);
     }
@@ -377,6 +457,18 @@ export default function OrderDetail() {
                              {actionLoading ? "Đang xử lý..." : "Hủy đơn hàng này"}
                            </button>
                         )}
+                        
+                        {/* RATING for Buyer (Completed orders) */}
+                        {isBuyer && order.status === "Completed" && (
+                           <button
+                             className="od-action-button primary-button"
+                             onClick={handleRating}
+                             disabled={actionLoading}
+                           >
+                             <Star size={16} />
+                             Đánh giá người bán
+                           </button>
+                        )}
 
                         {/* REPORT for Buyer (Completed orders) */}
                         {isBuyer && order.status === "Completed" && (
@@ -389,6 +481,8 @@ export default function OrderDetail() {
                              {actionLoading ? "Đang xử lý..." : "Báo cáo sản phẩm"}
                            </button>
                         )}
+
+                       
                     </div>
                  </div>
               </div>
@@ -409,7 +503,7 @@ export default function OrderDetail() {
 
       {showReportModal && (
         <div className="shipping-modal-overlay" onClick={() => setShowReportModal(false)}>
-          <div className="shipping-modal" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
+          <div className="shipping-modal" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
             <div className="sm-header">
               <h3><Flag size={20} /> Báo cáo sản phẩm</h3>
               <button className="sm-close-btn" onClick={() => setShowReportModal(false)}><X size={20} /></button>
@@ -426,6 +520,36 @@ export default function OrderDetail() {
                   style={{ resize: "vertical" }}
                 />
               </div>
+
+              <div className="sm-section">
+                <h4 className="sm-section-title"><ImagePlus size={16} /> Bằng chứng (ảnh/video)</h4>
+                <label className="sm-btn sm-btn-outline" style={{ width: "100%", cursor: "pointer" }}>
+                  <ImagePlus size={16} /> Chọn ảnh hoặc video
+                  <input
+                    type="file"
+                    accept="image/*,video/*"
+                    multiple
+                    onChange={handleReportFileChange}
+                    style={{ display: "none" }}
+                  />
+                </label>
+                {reportFiles.length > 0 && (
+                  <div className="report-evidence-preview">
+                    {reportFiles.map((f, i) => (
+                      <div key={i} className="evidence-item">
+                        {f.type === "image" ? (
+                          <img src={f.preview} alt={`Evidence ${i + 1}`} />
+                        ) : (
+                          <video src={f.preview} />
+                        )}
+                        <button className="evidence-remove" onClick={() => removeReportFile(i)}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="sm-footer">
               <button className="sm-btn sm-btn-secondary" onClick={() => setShowReportModal(false)} disabled={actionLoading}>
@@ -433,7 +557,64 @@ export default function OrderDetail() {
               </button>
               <button className="sm-btn sm-btn-primary" style={{ backgroundColor: "#b45309" }} onClick={submitReport} disabled={actionLoading || !reportReason.trim()}>
                 <Flag size={16} />
-                {actionLoading ? "Đang gửi..." : "Gửi báo cáo"}
+                {reportUploading ? "Đang tải file..." : actionLoading ? "Đang gửi..." : "Gửi báo cáo"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRatingModal && (
+        <div className="shipping-modal-overlay" onClick={() => setShowRatingModal(false)}>
+          <div className="shipping-modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
+            <div className="sm-header">
+              <h3><Star size={20} /> Đánh giá người bán</h3>
+              <button className="sm-close-btn" onClick={() => setShowRatingModal(false)}><X size={20} /></button>
+            </div>
+            <div className="sm-body">
+              <div className="sm-section">
+                <h4 className="sm-section-title">Chấm điểm</h4>
+                <div className="rating-stars">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      className={`rating-star ${star <= (ratingHover || ratingScore) ? "active" : ""}`}
+                      onClick={() => setRatingScore(star)}
+                      onMouseEnter={() => setRatingHover(star)}
+                      onMouseLeave={() => setRatingHover(0)}
+                    >
+                      <Star size={32} fill={star <= (ratingHover || ratingScore) ? "#f59e0b" : "none"} />
+                    </button>
+                  ))}
+                </div>
+                <p className="rating-label">
+                  {ratingScore === 1 && "Rất tệ"}
+                  {ratingScore === 2 && "Tệ"}
+                  {ratingScore === 3 && "Bình thường"}
+                  {ratingScore === 4 && "Tốt"}
+                  {ratingScore === 5 && "Rất tốt"}
+                </p>
+              </div>
+              <div className="sm-section">
+                <h4 className="sm-section-title">Nhận xét (tuỳ chọn)</h4>
+                <textarea
+                  className="sm-input"
+                  rows={3}
+                  placeholder="Chia sẻ trải nghiệm của bạn với người bán..."
+                  value={ratingComment}
+                  onChange={(e) => setRatingComment(e.target.value)}
+                  style={{ resize: "vertical" }}
+                />
+              </div>
+            </div>
+            <div className="sm-footer">
+              <button className="sm-btn sm-btn-secondary" onClick={() => setShowRatingModal(false)} disabled={actionLoading}>
+                Hủy
+              </button>
+              <button className="sm-btn sm-btn-primary" onClick={submitRating} disabled={actionLoading || ratingScore === 0}>
+                <Star size={16} />
+                {actionLoading ? "Đang gửi..." : "Gửi đánh giá"}
               </button>
             </div>
           </div>

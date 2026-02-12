@@ -4,10 +4,12 @@ import { logout as logoutAPI } from "../service/auth/api.auth";
 import { getUserInfo } from "../service/home/api.user";
 import api from "../config/axios";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "./ToastContext";
 
 const useAuth = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const user = useSelector((state) => state.user.user);
   const token = useSelector((state) => state.user.token);
@@ -35,6 +37,8 @@ const useAuth = () => {
     } catch (err) {
       console.error("Failed to fetch user profile after login:", err);
     }
+
+    toast.success("Đăng nhập thành công!");
 
     switch (role) {
         case "Admin":
@@ -75,6 +79,8 @@ const useAuth = () => {
       console.error("Failed to fetch user profile after OAuth login:", err);
     }
 
+    toast.success("Đăng nhập thành công!");
+
     switch (role) {
         case "Admin":
           navigate("/admin");
@@ -102,6 +108,7 @@ const useAuth = () => {
       console.error("Error during logout API call:", error);
     } finally {
       dispatch(logoutAction());
+      toast.success("Đăng xuất thành công!");
     }
   };
 

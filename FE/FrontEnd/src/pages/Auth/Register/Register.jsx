@@ -4,6 +4,7 @@ import { register } from '../../../service/auth/api.auth';
 import { useDispatch } from 'react-redux';
 import { loginSuccess } from '../../../context/UserSlice';
 import useAuth from '../../../context/UseAuth';
+import { useToast } from '../../../context/ToastContext';
 import './Register.css';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../../../config/firebase';
@@ -20,6 +21,7 @@ const Register = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { loginWithOAuthAction } = useAuth();
+  const toast = useToast();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -51,6 +53,7 @@ const Register = () => {
         }));
       }
       
+      toast.success('Đăng ký thành công!');
       navigate('/login');
     } catch (err) {
       console.error('Registration error:', err);

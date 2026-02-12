@@ -659,6 +659,7 @@ export default function Header() {
                       <div className="menu-section-title">Khác</div>
                       <button className="menu-item" onClick={() => { navigate('/chats'); closeAllMenus(); }}>Trung tâm tin nhắn</button>
                       <button className="menu-item" onClick={() => { navigate('/reports'); closeAllMenus(); }}>Báo cáo người bán</button>
+                      <button className="menu-item" onClick={() => { navigate('/repair-shops'); closeAllMenus(); }}>Cửa hàng sửa chữa</button>
                     </div>
 
                     <div className="dropdown-divider"></div>
