@@ -81,6 +81,7 @@ public class RatingService : IRatingService
             rating.RatedUserId ?? 0,
             rating.Score ?? 0,
             rating.Comment,
+            null,
             rating.CreatedAt);
     }
 
@@ -90,6 +91,13 @@ public class RatingService : IRatingService
             .Where(r => r.RatedUserId == userId);
 
         var total = await query.CountAsync(cancellationToken);
+        double? avgRating = null;
+        if (total > 0)
+        {
+            avgRating = await query
+                .Where(r => r.Score != null)
+                .AverageAsync(r => (double?)r.Score, cancellationToken);
+        }
         var items = await query
             .OrderByDescending(r => r.CreatedAt)
             .Skip(skip < 0 ? 0 : skip)
@@ -101,10 +109,16 @@ public class RatingService : IRatingService
                 r.RatedUserId ?? 0,
                 r.Score ?? 0,
                 r.Comment,
+                r.Rater == null
+                    ? null
+                    : new RaterInfo(
+                        r.Rater.UserId,
+                        r.Rater.UserProfiles.Select(p => p.FullName).FirstOrDefault(),
+                        r.Rater.UserProfiles.Select(p => p.AvatarUrl).FirstOrDefault()),
                 r.CreatedAt))
             .ToListAsync(cancellationToken);
 
-        return new UserRatingListResponse(total, items);
+        return new UserRatingListResponse(total, avgRating, items);
     }
 
     public async Task<UserRatingListResponse> GetMyRatingsAsync(ClaimsPrincipal userPrincipal, int skip, int take, CancellationToken cancellationToken = default)
@@ -125,9 +139,15 @@ public class RatingService : IRatingService
                 r.RatedUserId ?? 0,
                 r.Score ?? 0,
                 r.Comment,
+                r.Rater == null
+                    ? null
+                    : new RaterInfo(
+                        r.Rater.UserId,
+                        r.Rater.UserProfiles.Select(p => p.FullName).FirstOrDefault(),
+                        r.Rater.UserProfiles.Select(p => p.AvatarUrl).FirstOrDefault()),
                 r.CreatedAt))
             .ToListAsync(cancellationToken);
 
-        return new UserRatingListResponse(total, items);
+        return new UserRatingListResponse(total, null, items);
     }
 }
