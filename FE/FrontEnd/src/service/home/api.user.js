@@ -1,11 +1,11 @@
-import api from "../../config/axios";  
+import api from "../../config/axios";
 
 /**
  * Lấy thông tin user hiện tại
  * GET /api/users/me
  * @returns {Promise<UserInfoResponse>}
  * UserInfoResponse: { userId, email, phone, role, status, createdAt, lastLoginAt, emailVerified, phoneVerified,
- *   profile: { fullName, birthday, gender, address, bio, avatarUrl } }
+ *   profile: { fullName, birthday, gender, address, bio, avatarUrl, bankAccountNumber, bankAccountName } }
  */
 export const getUserInfo = async () => {
     const response = await api.get('/users/me');
@@ -15,9 +15,14 @@ export const getUserInfo = async () => {
 /**
  * Cập nhật thông tin profile
  * PATCH /api/users/me
- * @param {{ fullName?: string, birthday?: string, gender?: string, address?: string, bio?: string, avatarUrl?: string }} profileData
+ * @param {{ fullName?: string, birthday?: string, gender?: string, address?: string, bio?: string, avatarUrl?: string, bankAccountNumber?: string, bankAccountName?: string }} profileData
  * @returns {Promise<UserInfoResponse>}
- */
+ *//**
+* Cập nhật thông tin profile
+* PATCH /api/users/me
+* @param {{ fullName?: string, birthday?: string, gender?: string, address?: string, bio?: string, avatarUrl?: string, bankAccountNumber?: string, bankAccountName?: string }} profileData
+* @returns {Promise<UserInfoResponse>}
+*/
 export const updateUserProfile = async (profileData) => {
     const response = await api.patch('/users/me', profileData);
     return response.data;

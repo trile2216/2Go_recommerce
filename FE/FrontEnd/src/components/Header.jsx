@@ -397,7 +397,9 @@ export default function Header() {
               }}
             >
               <Heart size={20} />
-              <span className="icon-badge">{favorites.length}</span>
+              { favorites.length > 0 && ( 
+                <span className="icon-badge">{favorites.length}</span>
+              )}
             </button>
             {showFavoritesMenu && (
               <div className="dropdown-content favorites-menu">
@@ -412,7 +414,7 @@ export default function Header() {
                 </div>
                 {favorites.length > 0 ? (
                   <div className="dropdown-list">
-                    {favorites.slice(0, 3).map((item) => (
+                    {favorites.map((item) => (
                       <div key={item.id} className="dropdown-item">
                         <img src={item.image} alt={item.title} className="item-image" />
                         <div className="item-info">
@@ -481,7 +483,7 @@ export default function Header() {
                 {cartItems.length > 0 ? (
                   <>
                     <div className="dropdown-list">
-                      {cartItems.slice(0, 4).map((item) => (
+                      {cartItems.map((item) => (
                         <div key={item.cartItemId} className="dropdown-item">
                           {item.imageUrl ? (
                             <img src={item.imageUrl} alt={item.title} className="item-image" />
@@ -649,6 +651,7 @@ export default function Header() {
                       <div className="menu-section-title">Tiện ích</div>
                       <button className="menu-item" onClick={() => { navigate('/orders'); closeAllMenus(); }}>Đơn của tôi</button>
                       <button className="menu-item" onClick={() => { navigate('/seller/listings'); closeAllMenus(); }}>Bài đăng của tôi</button>
+                      <button className="menu-item" onClick={() => { navigate('/subscription-plans'); closeAllMenus(); }}>Gói hội viên</button>
                       <button className="menu-item" onClick={() => { navigate('/saved-listings'); closeAllMenus(); }}>Tin đã lưu</button>
                       <button className="menu-item" onClick={() => { navigate('/reviews'); closeAllMenus(); }}>Đánh giá của tôi</button>
                     </div>

@@ -583,8 +583,24 @@
   border: 2px solid #e0e0e0;
 }
 
-.avatar-upload-filename {
-  font-size: 0.85rem;
-  color: #52c41a;
-  font-weight: 500;
+
+/* Bank Display */
+.bank-display-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bank-logo-small {
+  height: 24px;
+  width: auto;
+  object-fit: contain;
+}
+
+.bank-select option {
+  padding: 8px;
+}
+
+.bank-select {
+  width: 100%;
 }

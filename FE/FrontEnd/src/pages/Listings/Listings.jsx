@@ -8,6 +8,7 @@ import Footer from '../../components/Footer';
 import ProductCard from '../../components/ProductCard';
 import { fetchProducts } from '../../service/home/api.product';
 import { fetchAllCategories, fetchSubCategoriesByCategoryId } from '../../service/home/api.category';
+import Pagination from '../../components/Pagination/Pagination';
 
 const PAGE_SIZE = 20;
 
@@ -113,7 +114,7 @@ export default function Listings() {
 
       const data = await fetchProducts(params);
       setProducts(data.items || []);
-      setTotalCount(data.totalCount ?? data.items?.length ?? 0);
+      setTotalCount(data.total ?? data.totalCount ?? data.items?.length ?? 0);
     } catch (error) {
       console.error('Error loading products:', error);
       setProducts([]);
@@ -373,38 +374,11 @@ export default function Listings() {
               </div>
 
               {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="listings-pagination">
-                  <button
-                    className="pagination-btn"
-                    disabled={page === 0}
-                    onClick={() => setPage(p => p - 1)}
-                  >
-                    ← Trước
-                  </button>
-                  <div className="pagination-pages">
-                    {Array.from({ length: totalPages }, (_, i) => (
-                      <button
-                        key={i}
-                        className={`pagination-page ${i === page ? 'active' : ''}`}
-                        onClick={() => setPage(i)}
-                      >
-                        {i + 1}
-                      </button>
-                    )).slice(
-                      Math.max(0, page - 2),
-                      Math.min(totalPages, page + 3)
-                    )}
-                  </div>
-                  <button
-                    className="pagination-btn"
-                    disabled={page >= totalPages - 1}
-                    onClick={() => setPage(p => p + 1)}
-                  >
-                    Tiếp →
-                  </button>
-                </div>
-              )}
+              <Pagination 
+                currentPage={page + 1} 
+                totalPages={totalPages} 
+                onPageChange={(p) => setPage(p - 1)} 
+              />
             </>
           ) : (
             <div className="listings-empty">

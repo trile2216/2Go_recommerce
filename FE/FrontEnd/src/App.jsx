@@ -38,6 +38,7 @@ import SavedListings from './pages/SavedListings/SavedListings';
 import MyReviews from './pages/MyReviews/MyReviews';
 import Plan from './pages/Admin/Plan/Plan';
 import RepairShopMap from './pages/RepairShopMap/RepairShopMap';
+import SubscriptionPlans from './pages/Subscription/SubscriptionPlans';
 
 const RootLayout = () => {
   return (
@@ -61,6 +62,14 @@ const router = createBrowserRouter([
       { path: "/compare", element: <Compare /> },
       { path: "/listings", element: <Listings /> },
       { path: "/repair-shops", element: <RepairShopMap /> },
+      { 
+        path: "/subscription-plans", 
+        element: (
+          <UserLayout>
+            <SubscriptionPlans />
+          </UserLayout>
+        ) 
+      },
       
       // Protected Routes - Requires login
       {

@@ -113,7 +113,7 @@ export const calculatePercentage = (current, total) => {
 };
 
 /**
- * Get time ago string
+ * Get time ago string (English)
  */
 export const getTimeAgo = (dateString) => {
   const date = new Date(dateString);
@@ -127,6 +127,49 @@ export const getTimeAgo = (dateString) => {
   if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
   if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
   return `${Math.floor(diffDays / 365)} years ago`;
+};
+
+/**
+ * Format time ago (Vietnamese)
+ */
+export const formatTimeAgo = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Vừa xong';
+  if (diffMins < 60) return `${diffMins} phút trước`;
+  if (diffHours < 24) return `${diffHours} giờ trước`;
+  if (diffDays < 7) return `${diffDays} ngày trước`;
+  return date.toLocaleDateString('vi-VN');
+};
+
+/**
+ * Format message time (HH:mm)
+ */
+export const formatMessageTime = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+};
+
+/**
+ * Format date label for message groups (Today, Yesterday, Date)
+ */
+export const formatDateLabel = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  if (date.toDateString() === today.toDateString()) return 'Hôm nay';
+  if (date.toDateString() === yesterday.toDateString()) return 'Hôm qua';
+  return date.toLocaleDateString('vi-VN');
 };
 
 /**
@@ -188,6 +231,9 @@ export default {
   formatNumber,
   calculatePercentage,
   getTimeAgo,
+  formatTimeAgo,
+  formatMessageTime,
+  formatDateLabel,
   validateEmail,
   validatePhone,
   deepClone,

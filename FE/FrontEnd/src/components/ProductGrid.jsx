@@ -16,7 +16,7 @@ export default function ProductGrid({ products, totalCount = 0 }) {
         )}
       </div>
 
-      {totalCount > products?.length && (
+      {products?.length > 10 && (
         <div className="load-more-wrapper">
           <button className="hp-load-more-btn" onClick={() => navigate('/listings')}>
             Xem thêm

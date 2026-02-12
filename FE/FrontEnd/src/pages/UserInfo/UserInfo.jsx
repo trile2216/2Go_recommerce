@@ -9,6 +9,7 @@ import {
   updateUserProfile, 
   changePassword 
 } from '../../service/home/api.user';
+import { getBanks } from '../../service/payment/api.bank';
 import { uploadImageAndGetUrl } from '../../service/upload/api.upload';
 import '../../styles/loader.css';
 import './userinfo.css';
@@ -34,8 +35,15 @@ export default function UserInfo() {
     gender: '',
     address: '',
     bio: '',
-    avatarUrl: ''
+    avatarUrl: '',
+    bankAccountNumber: '',
+    bankAccountName: '',
+    bankBin: '',
+    bankLogo: '',
+    bankShortName: ''
   });
+  
+  const [banks, setBanks] = useState([]);
 
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
@@ -50,6 +58,19 @@ export default function UserInfo() {
   });
 
   useEffect(() => {
+    // Fetch banks list
+    const fetchBanks = async () => {
+      try {
+        const response = await getBanks();
+        if (response && response.data) {
+          setBanks(response.data);
+        }
+      } catch (error) {
+        console.error("Error fetching banks:", error);
+      }
+    };
+    fetchBanks();
+
     // Pre-fill form from stored data
     if (storedUser) {
       setProfileForm({
@@ -58,7 +79,12 @@ export default function UserInfo() {
         gender: storedUser.profile?.gender || '',
         address: storedUser.profile?.address || '',
         bio: storedUser.profile?.bio || '',
-        avatarUrl: storedUser.profile?.avatarUrl || ''
+        avatarUrl: storedUser.profile?.avatarUrl || '',
+        bankAccountNumber: storedUser.profile?.bankAccountNumber || '',
+        bankAccountName: storedUser.profile?.bankAccountName || '',
+        bankBin: storedUser.profile?.bankBin || '',
+        bankLogo: storedUser.profile?.bankLogo || '',
+        bankShortName: storedUser.profile?.bankShortName || ''
       });
     }
     // Also refresh from API to get latest data
@@ -79,7 +105,12 @@ export default function UserInfo() {
         gender: data.profile?.gender || '',
         address: data.profile?.address || '',
         bio: data.profile?.bio || '',
-        avatarUrl: data.profile?.avatarUrl || ''
+        avatarUrl: data.profile?.avatarUrl || '',
+        bankAccountNumber: data.profile?.bankAccountNumber || '',
+        bankAccountName: data.profile?.bankAccountName || '',
+        // Try to find bank details if we have bank name but missing other info
+        // This part depends on if backend stores all bank details or just name/number
+        // For now assuming we just load what we have
       });
     } catch (err) {
       console.error('Error loading user info:', err);
@@ -91,6 +122,21 @@ export default function UserInfo() {
 
   const handleProfileFormChange = (e) => {
     const { name, value } = e.target;
+    
+    if (name === 'bankId') {
+      const selectedBank = banks.find(b => b.id.toString() === value);
+      if (selectedBank) {
+        setProfileForm(prev => ({
+          ...prev,
+          bankAccountName: selectedBank.shortName, // Using shortName as the bank name
+          bankBin: selectedBank.bin,
+          bankLogo: selectedBank.logo,
+          bankShortName: selectedBank.shortName
+        }));
+      }
+      return;
+    }
+
     setProfileForm(prev => ({ ...prev, [name]: value }));
   };
 
@@ -451,6 +497,27 @@ export default function UserInfo() {
                       <td className="value">{userInfo.profile?.address || 'Chưa cập nhật'}</td>
                     </tr>
                     <tr>
+                      <td className="label">Số tài khoản</td>
+                      <td className="value">{userInfo.profile?.bankAccountNumber || 'Chưa cập nhật'}</td>
+                    </tr>
+                    <tr>
+                      <td className="label">Tên ngân hàng</td>
+                      <td className="value">
+                        {userInfo.profile?.bankAccountName ? (
+                          <div className="bank-display-info">
+                            {(() => {
+                              const bank = banks.find(b => b.shortName === userInfo.profile.bankAccountName || b.name === userInfo.profile.bankAccountName);
+                              return bank?.logo ? (
+                                <><img src={bank.logo} alt={userInfo.profile.bankAccountName} className="bank-logo-small" /> {bank.shortName}</>
+                              ) : (
+                                userInfo.profile.bankAccountName
+                              );
+                            })()}
+                          </div>
+                        ) : 'Chưa cập nhật'}
+                      </td>
+                    </tr>
+                    <tr>
                       <td className="label">Ngày sinh</td>
                       <td className="value">{userInfo.profile?.birthday || 'Chưa cập nhật'}</td>
                     </tr>
@@ -543,6 +610,35 @@ export default function UserInfo() {
                       onChange={handleProfileFormChange}
                       placeholder="Nhập địa chỉ"
                     />
+                  </div>
+                </div>
+
+                <div className="ui-form-row">
+                  <div className="ui-form-group">
+                    <label>Số tài khoản</label>
+                    <input
+                      type="text"
+                      name="bankAccountNumber"
+                      value={profileForm.bankAccountNumber}
+                      onChange={handleProfileFormChange}
+                      placeholder="Nhập số tài khoản"
+                    />
+                  </div>
+                  <div className="ui-form-group">
+                    <label>Tên ngân hàng</label>
+                    <select
+                      name="bankId"
+                      value={banks.find(b => b.shortName === profileForm.bankAccountName)?.id || ''}
+                      onChange={handleProfileFormChange}
+                      className="bank-select"
+                    >
+                      <option value="">Chọn ngân hàng</option>
+                      {banks.map((bank) => (
+                        <option key={bank.id} value={bank.id}>
+                          {bank.shortName} ({bank.name})
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 

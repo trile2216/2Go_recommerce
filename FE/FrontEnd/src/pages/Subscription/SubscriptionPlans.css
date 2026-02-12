@@ -1,0 +1,177 @@
+.subscription-plans-container {
+    padding: 40px 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: #f8f9fa;
+    min-height: calc(100vh - 80px);
+    /* Adjust based on header height */
+}
+
+.subscription-plans-header {
+    text-align: center;
+    margin-bottom: 50px;
+}
+
+.subscription-plans-title {
+    font-size: 2.5rem;
+    color: #2d3748;
+    margin-bottom: 16px;
+    font-weight: 700;
+}
+
+.subscription-plans-subtitle {
+    font-size: 1.1rem;
+    color: #718096;
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+.subscription-plans-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+    justify-content: center;
+}
+
+.plan-card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 15px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid #e2e8f0;
+    position: relative;
+    overflow: hidden;
+}
+
+.plan-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.plan-card.featured {
+    border: 2px solid #3182ce;
+    transform: scale(1.05);
+}
+
+.plan-card.featured:hover {
+    transform: scale(1.05) translateY(-5px);
+}
+
+.featured-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background-color: #3182ce;
+    color: white;
+    padding: 5px 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-bottom-left-radius: 12px;
+    text-transform: uppercase;
+}
+
+.plan-header {
+    text-align: center;
+    margin-bottom: 24px;
+    border-bottom: 1px solid #edf2f7;
+    padding-bottom: 24px;
+}
+
+.plan-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 8px;
+}
+
+.plan-price {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #3182ce;
+}
+
+.plan-currency {
+    font-size: 1rem;
+    vertical-align: super;
+}
+
+.plan-duration {
+    font-size: 0.9rem;
+    color: #718096;
+    margin-top: 4px;
+}
+
+.plan-features {
+    flex-grow: 1;
+    margin-bottom: 30px;
+    list-style: none;
+    padding: 0;
+}
+
+.plan-feature-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    color: #4a5568;
+    font-size: 0.95rem;
+}
+
+.feature-icon {
+    color: #48bb78;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.plan-action {
+    margin-top: auto;
+}
+
+.plan-btn {
+    width: 100%;
+    padding: 12px 20px;
+    background-color: #3182ce;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.plan-btn:hover {
+    background-color: #2c5282;
+}
+
+.plan-btn.outline {
+    background-color: transparent;
+    border: 2px solid #3182ce;
+    color: #3182ce;
+}
+
+.plan-btn.outline:hover {
+    background-color: #ebf8ff;
+}
+
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+}
+
+.error-message {
+    text-align: center;
+    color: #e53e3e;
+    padding: 20px;
+    background-color: #fff5f5;
+    border-radius: 8px;
+    border: 1px solid #fed7d7;
+    max-width: 600px;
+    margin: 40px auto;
+}

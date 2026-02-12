@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { fetchMyChats, fetchMessages, sendMessage, createOrGetChat } from '../../service/home/api.chat';
 import useAuth from '../../context/UseAuth';
+import { formatTimeAgo, formatMessageTime, formatDateLabel } from '../../utils/utils';
 import './Chat.css';
 
 const { Sider, Content } = Layout;
@@ -72,43 +73,6 @@ export default function Chat() {
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
   }, []);
-
-  // Format time ago
-  const formatTimeAgo = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Vừa xong';
-    if (diffMins < 60) return `${diffMins} phút trước`;
-    if (diffHours < 24) return `${diffHours} giờ trước`;
-    if (diffDays < 7) return `${diffDays} ngày trước`;
-    return date.toLocaleDateString('vi-VN');
-  };
-
-  // Format message time
-  const formatMessageTime = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-  };
-
-  // Format date label for message groups
-  const formatDateLabel = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    if (date.toDateString() === today.toDateString()) return 'Hôm nay';
-    if (date.toDateString() === yesterday.toDateString()) return 'Hôm qua';
-    return date.toLocaleDateString('vi-VN');
-  };
 
   // Get initials from a user ID
   const getInitials = (userId) => {

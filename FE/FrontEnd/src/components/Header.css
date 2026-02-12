@@ -248,6 +248,7 @@
 .apply-location-btn:hover {
   opacity: 0.9;
 }
+
 .location-menu-actions {
   display: flex;
   gap: 12px;
@@ -273,6 +274,7 @@
   background-color: #e5e7eb;
   border-color: #9ca3af;
 }
+
 /* ===== Search Button ===== */
 .search-btn {
   display: flex;
@@ -400,6 +402,7 @@
     opacity: 0;
     transform: translateY(-8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -737,6 +740,8 @@
   flex-direction: column;
   gap: 8px;
   padding: 8px;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .dropdown-item {
@@ -928,6 +933,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -950,6 +956,7 @@
     transform: translateY(20px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -1080,6 +1087,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -1089,5 +1097,3 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
-
-

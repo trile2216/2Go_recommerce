@@ -14,11 +14,11 @@ export const createPayment = async (orderId, method) => {
 /**
  * Tạo thanh toán subscription
  * @param {string} method
- * @param {number|null} days
+ * @param {string} planCode
  * @returns {Promise<PaymentResponse>}
  */
-export const createSubscriptionPayment = async (method, days = null) => {
-    const response = await api.post('/payments/subscription', { method, days });
+export const createSubscriptionPayment = async (method, planCode) => {
+    const response = await api.post('/payments/subscription', { method, planCode });
     return response.data;
 };
 

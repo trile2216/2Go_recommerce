@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { addToCompare, removeFromCompare } from '../store/slices/compareSlice';
 import { useToast } from '../context/ToastContext';
 import { getSavedStatus, saveListing, removeSavedListing } from '../service/home/api.savedListing';
+import { getRatingsForUser as getSellerRating } from '../service/home/api.rating';
 
 export default function ProductInfo({ product, listingId, primaryImageUrl, rawPrice }) {
   const { addToCart, isInCart } = useCart();
@@ -17,6 +18,7 @@ export default function ProductInfo({ product, listingId, primaryImageUrl, rawPr
 
   const [isSaved, setIsSaved] = useState(false);
   const [savingListing, setSavingListing] = useState(false);
+  const [sellerRating, setSellerRating] = useState({ avg: 0, count: 0 });
 
   useEffect(() => {
     if (!listingId) return;
@@ -31,9 +33,33 @@ export default function ProductInfo({ product, listingId, primaryImageUrl, rawPr
     checkSavedStatus();
   }, [listingId]);
 
+  useEffect(() => {
+    if (!product?.sellerId) return;
+    const fetchSellerRating = async () => {
+      try {
+        const data = await getSellerRating(product.sellerId, 0, 1);
+        setSellerRating({ avg: data.avgRating || 0, count: data.total });
+      } catch (error) {
+        console.error("Failed to fetch seller rating:", error);
+      }
+    };
+    fetchSellerRating();
+  }, [product?.sellerId]);
+
   const handleAddToCart = async () => {
     if (!listingId || addedToCart) return;
-    const result = await addToCart(listingId);
+    
+    // Pass full product object for optimistic update
+    const result = await addToCart({
+      listingId,
+      title: product.title,
+      price: rawPrice || product.price,
+      primaryImageUrl,
+      priceSnapshot: rawPrice || product.price,
+      sellerName: product.sellerName,
+      ...product
+    });
+
     if (result.success) {
       toast.success('Đã thêm vào giỏ hàng');
     } else {
@@ -178,7 +204,7 @@ export default function ProductInfo({ product, listingId, primaryImageUrl, rawPr
           </div>
           <div className="seller-info">
             <div className="seller-name">{product.sellerName || 'Người bán'}</div>
-            <div className="seller-rating">⭐ 4.8 (328 đánh giá)</div>
+            <div className="seller-rating">⭐ {sellerRating.avg > 0 ? sellerRating.avg.toFixed(1) : "N/A"} ({sellerRating.count} đánh giá)</div>
           </div>
           <button className="btn-contact" onClick={handleChatWithSeller}>Chat với người bán</button>
         </div>

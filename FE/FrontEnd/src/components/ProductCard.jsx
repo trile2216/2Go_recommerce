@@ -9,7 +9,7 @@ import { useToast } from '../context/ToastContext';
 export default function ProductCard({ product }) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { addToCart, isInCart } = useCart();
+  const { addToCart, removeFromCart, isInCart, cartItems } = useCart();
   const toast = useToast();
   
   // Get favorites and compare items from Redux
@@ -85,8 +85,26 @@ export default function ProductCard({ product }) {
 
   const handleAddToCart = async (e) => {
     e.stopPropagation();
-    if (isAddedToCart) return;
-    const result = await addToCart(product.listingId);
+    if (isAddedToCart) {
+      const cartItem = cartItems.find(item => item.listingId === product.listingId);
+      if (cartItem) {
+        await removeFromCart(cartItem.cartItemId);
+        toast.info('Đã xóa khỏi giỏ hàng');
+      }
+      return;
+    }
+    
+    // Pass full product object for optimistic update
+    const result = await addToCart({
+      listingId: product.listingId,
+      title: product.title,
+      price: product.price,
+      primaryImageUrl: product.primaryImageUrl,
+      priceSnapshot: product.price,
+      sellerName: product.sellerName,
+      ...product
+    });
+
     if (result.success) {
       toast.success('Đã thêm vào giỏ hàng');
     } else {
@@ -122,7 +140,7 @@ export default function ProductCard({ product }) {
           <button 
             className={`action-btn ${isAddedToCart ? 'active' : ''}`}
             onClick={handleAddToCart}
-            title={isAddedToCart ? 'Đã trong giỏ hàng' : 'Thêm vào giỏ hàng'}
+            title={isAddedToCart ? 'Xóa khỏi giỏ hàng' : 'Thêm vào giỏ hàng'}
           >
             <ShoppingCart size={16} color={isAddedToCart ? '#22c55e' : '#1e293b'} />
           </button>
