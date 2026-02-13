@@ -488,8 +488,15 @@ public class SellerListingService : ISellerListingService
         }
 
         var user = await _uow.Users.Query()
+            .Include(u => u.UserProfiles)
+            .Include(u => u.UserVerifications)
             .FirstOrDefaultAsync(u => u.UserId == sellerId, cancellationToken);
         if (user == null) return new BasicResponse(false, "User not found.");
+        var eligibilityError = GetSellerEligibilityError(user);
+        if (!string.IsNullOrWhiteSpace(eligibilityError))
+        {
+            return new BasicResponse(false, eligibilityError);
+        }
 
         var categoryId = await _uow.SubCategories.Query()
             .Where(sc => sc.SubCategoryId == listing.SubCategoryId.Value)
@@ -674,6 +681,32 @@ public class SellerListingService : ISellerListingService
         if (string.IsNullOrWhiteSpace(listingType)) return ListingTypes.Single;
         if (string.Equals(listingType, ListingTypes.Single, StringComparison.OrdinalIgnoreCase)) return ListingTypes.Single;
         throw new InvalidOperationException("ListingType only supports SINGLE for this marketplace.");
+    }
+
+    private static string? GetSellerEligibilityError(User user)
+    {
+        var profile = user.UserProfiles
+            .OrderBy(p => p.ProfileId)
+            .FirstOrDefault();
+
+        var verification = user.UserVerifications
+            .OrderByDescending(v => v.VerifiedAt)
+            .FirstOrDefault();
+
+        var missing = new List<string>();
+        if (profile == null) missing.Add("profile");
+        if (profile != null && string.IsNullOrWhiteSpace(profile.FullName)) missing.Add("fullName");
+        if (string.IsNullOrWhiteSpace(user.Phone)) missing.Add("phone");
+        if (profile != null && string.IsNullOrWhiteSpace(profile.AddressLine)) missing.Add("address");
+
+        var phoneVerified = verification?.PhoneVerified == true;
+        var emailVerified = verification?.EmailVerified == true;
+        if (!phoneVerified && !emailVerified) missing.Add("verification");
+
+        if (missing.Count == 0) return null;
+
+        return "Complete your profile (fullName, phone, address) and verify your account (email or phone) before submitting a listing. " +
+               $"Missing: {string.Join(", ", missing.Distinct(StringComparer.OrdinalIgnoreCase))}.";
     }
 
     private async Task NotifyAsync(long userId, string type, string title, string message, string? link, CancellationToken cancellationToken)
