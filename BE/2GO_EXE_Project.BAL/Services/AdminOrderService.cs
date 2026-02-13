@@ -253,13 +253,14 @@ public class AdminOrderService : IAdminOrderService
         }
         await RestoreListingIfReservedAsync(order, cancellationToken);
 
+        var cancelText = OrderNotificationText.ForStatus(OrderStatuses.Cancelled, order.OrderId);
         if (order.BuyerId.HasValue)
         {
-            await NotifyAsync(order.BuyerId.Value, "ORDER", "Order cancelled", $"Order #{order.OrderId} was cancelled.", $"/orders/{order.OrderId}", cancellationToken);
+            await NotifyAsync(order.BuyerId.Value, "ORDER", cancelText.Title, cancelText.Message, $"/orders/{order.OrderId}", cancellationToken);
         }
         if (order.SellerId.HasValue)
         {
-            await NotifyAsync(order.SellerId.Value, "ORDER", "Order cancelled", $"Order #{order.OrderId} was cancelled.", $"/orders/{order.OrderId}", cancellationToken);
+            await NotifyAsync(order.SellerId.Value, "ORDER", cancelText.Title, cancelText.Message, $"/orders/{order.OrderId}", cancellationToken);
         }
         await LogAdminActionAsync(adminPrincipal, "UpdateOrderStatus", new { order.OrderId, From = fromStatus, To = order.Status, reason }, cancellationToken);
         return new BasicResponse(true, "Order cancelled.");
@@ -278,9 +279,10 @@ public class AdminOrderService : IAdminOrderService
         await _uow.SaveChangesAsync(cancellationToken);
         await _escrowService.EnsureForOrderAsync(order, null, cancellationToken);
 
+        var confirmText = OrderNotificationText.ForStatus(OrderStatuses.Confirmed, order.OrderId);
         if (order.BuyerId.HasValue)
         {
-            await NotifyAsync(order.BuyerId.Value, "ORDER", "Order confirmed", $"Order #{order.OrderId} was confirmed.", $"/orders/{order.OrderId}", cancellationToken);
+            await NotifyAsync(order.BuyerId.Value, "ORDER", confirmText.Title, confirmText.Message, $"/orders/{order.OrderId}", cancellationToken);
         }
         await LogAdminActionAsync(adminPrincipal, "UpdateOrderStatus", new { order.OrderId, From = fromStatus, To = order.Status, reason }, cancellationToken);
         return new BasicResponse(true, "Order confirmed.");
@@ -312,9 +314,10 @@ public class AdminOrderService : IAdminOrderService
         await _escrowService.ReleaseForOrderAsync(order.OrderId, cancellationToken);
         await MarkListingSoldAsync(order, cancellationToken);
 
+        var completeText = OrderNotificationText.ForStatus(OrderStatuses.Completed, order.OrderId);
         if (order.SellerId.HasValue)
         {
-            await NotifyAsync(order.SellerId.Value, "ORDER", "Order completed", $"Order #{order.OrderId} was completed.", $"/orders/{order.OrderId}", cancellationToken);
+            await NotifyAsync(order.SellerId.Value, "ORDER", completeText.Title, completeText.Message, $"/orders/{order.OrderId}", cancellationToken);
         }
         await LogAdminActionAsync(adminPrincipal, "UpdateOrderStatus", new { order.OrderId, From = fromStatus, To = order.Status, reason }, cancellationToken);
         return new BasicResponse(true, "Order completed.");
@@ -327,13 +330,14 @@ public class AdminOrderService : IAdminOrderService
         _uow.Orders.Update(order);
         await _uow.SaveChangesAsync(cancellationToken);
 
+        var disputeText = OrderNotificationText.ForStatus(OrderStatuses.Disputed, order.OrderId);
         if (order.BuyerId.HasValue)
         {
-            await NotifyAsync(order.BuyerId.Value, "ORDER", "Order disputed", $"Order #{order.OrderId} is now in dispute.", $"/orders/{order.OrderId}", cancellationToken);
+            await NotifyAsync(order.BuyerId.Value, "ORDER", disputeText.Title, disputeText.Message, $"/orders/{order.OrderId}", cancellationToken);
         }
         if (order.SellerId.HasValue)
         {
-            await NotifyAsync(order.SellerId.Value, "ORDER", "Order disputed", $"Order #{order.OrderId} is now in dispute.", $"/orders/{order.OrderId}", cancellationToken);
+            await NotifyAsync(order.SellerId.Value, "ORDER", disputeText.Title, disputeText.Message, $"/orders/{order.OrderId}", cancellationToken);
         }
         await LogAdminActionAsync(adminPrincipal, "UpdateOrderStatus", new { order.OrderId, From = fromStatus, To = order.Status, reason }, cancellationToken);
         return new BasicResponse(true, "Order marked as disputed.");

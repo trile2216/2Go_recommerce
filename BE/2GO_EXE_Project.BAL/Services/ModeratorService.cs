@@ -486,9 +486,10 @@ public class ModeratorService : IModeratorService
 
     private async Task NotifyReportStatusAsync(Report report, string nextStatus, CancellationToken cancellationToken)
     {
+        var text = ReportNotificationText.ForStatus(nextStatus, report.ReportId);
         if (string.Equals(nextStatus, ReportStatuses.WaitingOtherParty, StringComparison.OrdinalIgnoreCase) && report.WaitingForUserId.HasValue)
         {
-            await NotifyAsync(report.WaitingForUserId.Value, "REPORT", "Cần phản hồi báo cáo", $"Báo cáo #{report.ReportId} đang chờ phản hồi của bạn.", $"/reports/{report.ReportId}", cancellationToken);
+            await NotifyAsync(report.WaitingForUserId.Value, "REPORT", text.Title, text.Message, $"/reports/{report.ReportId}", cancellationToken);
             return;
         }
 
@@ -496,22 +497,21 @@ public class ModeratorService : IModeratorService
         {
             if (report.ReporterId.HasValue)
             {
-                await NotifyAsync(report.ReporterId.Value, "REPORT", "Báo cáo đã được xử lý", $"Báo cáo #{report.ReportId} đã được xử lý.", $"/reports/{report.ReportId}", cancellationToken);
+                await NotifyAsync(report.ReporterId.Value, "REPORT", text.Title, text.Message, $"/reports/{report.ReportId}", cancellationToken);
             }
             if (report.TargetUserId.HasValue)
             {
-                await NotifyAsync(report.TargetUserId.Value, "REPORT", "Báo cáo đã được xử lý", $"Báo cáo #{report.ReportId} đã được xử lý.", $"/reports/{report.ReportId}", cancellationToken);
+                await NotifyAsync(report.TargetUserId.Value, "REPORT", text.Title, text.Message, $"/reports/{report.ReportId}", cancellationToken);
             }
             return;
         }
 
         if (string.Equals(nextStatus, ReportStatuses.Rejected, StringComparison.OrdinalIgnoreCase) && report.ReporterId.HasValue)
         {
-            await NotifyAsync(report.ReporterId.Value, "REPORT", "Báo cáo bị từ chối", $"Báo cáo #{report.ReportId} đã bị từ chối.", $"/reports/{report.ReportId}", cancellationToken);
+            await NotifyAsync(report.ReporterId.Value, "REPORT", text.Title, text.Message, $"/reports/{report.ReportId}", cancellationToken);
         }
     }
-
-    private async Task NotifyAsync(long userId, string type, string title, string message, string? link, CancellationToken cancellationToken)
+private async Task NotifyAsync(long userId, string type, string title, string message, string? link, CancellationToken cancellationToken)
     {
         try
         {
@@ -528,3 +528,4 @@ public class ModeratorService : IModeratorService
         }
     }
 }
+
