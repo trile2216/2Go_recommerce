@@ -27,7 +27,7 @@ import {
 import "./PostListing.css"; 
 import Header from "../../components/Header";
 import { uploadImageAndGetUrl, uploadVideoAndGetUrl } from "../../service/upload/api.upload";
-import { createListing, getMyListingById, updateListing, updateListingMedia } from "../../service/home/api.sellerListing";
+import { createListing, getMyListingById, updateListing, updateListingMedia, publishListing } from "../../service/home/api.sellerListing";
 import { fetchAllCategories, fetchSubCategoriesByCategoryId } from "../../service/home/api.category";
 import { fetchAllDistricts, fetchAllWards } from "../../service/home/api.ward";
 import { listingPrecheck } from "../../service/ai/api.analyze";
@@ -407,9 +407,9 @@ export default function PostListing() {
     };
 
     const submitListing = async (values, status) => {
-        // Validation for PendingReview
-        if (status === 'PendingReview') {
-             // Validation: at least 1 image required
+        // Validation for PendingReview and Draft
+        if (status === 'PendingReview' || status === 'Draft') {
+            // Validation: at least 1 image required
             if (imageList.length === 0) {
                 message.error("Vui lòng tải lên ít nhất 1 hình ảnh!");
                 return;
@@ -534,6 +534,10 @@ export default function PostListing() {
                 }
             }
 
+            // For PendingReview: Create as Draft first, then publish
+            // For Draft: Just create as Draft directly
+            const creationStatus = status === 'PendingReview' ? 'Draft' : 'Draft';
+
             // Prepare request body matching CreateSellerListingRequest DTO
             const requestData = {
                 title: values.title,
@@ -555,7 +559,7 @@ export default function PostListing() {
                     { name: "Bảo hành", value: values.warranty || "" },
                     { name: "Xuất xứ", value: values.origin || "" }
                 ].filter(attr => attr.value),
-                status: status
+                status: creationStatus
             };
             
             setIsSubmitting(true); // Allow navigation
@@ -565,23 +569,37 @@ export default function PostListing() {
                  await updateListing(editId, requestData);
                  
                  // Update Media
-                 // Map mediaData back to API format (API expects array of {url, mediaType, isPrimary, sortOrder})
                  await updateListingMedia(editId, mediaData);
                  
-                 hideLoadingMsg();
-                 message.success("Cập nhật bài đăng thành công!");
+                 // If user was updating with PendingReview, publish it
+                 if (status === 'PendingReview') {
+                     await publishListing(editId);
+                     hideLoadingMsg();
+                     message.success("Cập nhật và gửi duyệt bài đăng thành công!");
+                 } else {
+                     hideLoadingMsg();
+                     message.success("Cập nhật bài đăng thành công!");
+                 }
                  navigate(`/seller/listings/${editId}`);
             } else {
-                // Call API to create listing
+                // Call API to create listing (always as Draft)
                 const response = await createListing(requestData);
+                const newListingId = response.id || response.listingId;
 
-                hideLoadingMsg();
-                message.success(
-                    status === 'Draft' ? "Đã lưu nháp!" : "Tin của bạn đã được gửi duyệt!"
-                );
+                // If user wanted to publish, call publish endpoint now
+                if (status === 'PendingReview') {
+                    await publishListing(newListingId);
+                    hideLoadingMsg();
+                    message.success("Tin của bạn đã được gửi duyệt!");
+                } else {
+                    hideLoadingMsg();
+                    message.success("Đã lưu nháp!");
+                }
+
                 console.log("Listing created:", response);
 
                 // Handle blocker/navigation
+                setIsFormDirty(false); // Mark form as clean before leaving
                 if (blocker.state === "blocked") {
                     blocker.proceed();
                 } else {
