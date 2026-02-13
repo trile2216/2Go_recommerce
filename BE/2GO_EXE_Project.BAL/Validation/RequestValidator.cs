@@ -363,6 +363,24 @@ public static partial class RequestValidator
         return result;
     }
 
+    public static ValidationResult ValidateUpdateOrderStatus(UpdateOrderStatusRequest request)
+    {
+        var result = new ValidationResult();
+        if (string.IsNullOrWhiteSpace(request.Status))
+        {
+            result.Add("status", "Status is required.");
+        }
+        else if (!OrderStatuses.All.Contains(request.Status, StringComparer.OrdinalIgnoreCase))
+        {
+            result.Add("status", $"Invalid order status. Allowed: {string.Join(", ", OrderStatuses.All)}.");
+        }
+        if (!string.IsNullOrWhiteSpace(request.Reason) && request.Reason.Trim().Length > ReasonMaxLength)
+        {
+            result.Add("reason", $"Reason must be <= {ReasonMaxLength} chars.");
+        }
+        return result;
+    }
+
     public static ValidationResult ValidateRejectListing(RejectListingRequest request)
     {
         var result = new ValidationResult();

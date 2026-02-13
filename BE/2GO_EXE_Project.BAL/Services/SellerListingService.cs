@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using _2GO_EXE_Project.BAL.Constants;
+using _2GO_EXE_Project.BAL.DTOs.Ai;
 using _2GO_EXE_Project.BAL.DTOs.Auth;
 using _2GO_EXE_Project.BAL.DTOs.Listings;
 using _2GO_EXE_Project.BAL.DTOs.Notifications;
@@ -17,13 +18,19 @@ public class SellerListingService : ISellerListingService
 {
     private readonly IUnitOfWork _uow;
     private readonly INotificationService _notificationService;
+    private readonly IAiListingService _aiListingService;
     private readonly string _cloudinaryCloudName;
 
-    public SellerListingService(IUnitOfWork uow, INotificationService notificationService, IOptions<CloudinarySettings> cloudinaryOptions)
+    public SellerListingService(
+        IUnitOfWork uow,
+        INotificationService notificationService,
+        IOptions<CloudinarySettings> cloudinaryOptions,
+        IAiListingService aiListingService)
     {
         _uow = uow;
         _notificationService = notificationService;
         _cloudinaryCloudName = cloudinaryOptions.Value.CloudName ?? string.Empty;
+        _aiListingService = aiListingService;
     }
 
     private static long GetUserId(ClaimsPrincipal principal)
@@ -481,8 +488,44 @@ public class SellerListingService : ISellerListingService
         }
 
         var user = await _uow.Users.Query()
+            .Include(u => u.UserProfiles)
+            .Include(u => u.UserVerifications)
             .FirstOrDefaultAsync(u => u.UserId == sellerId, cancellationToken);
         if (user == null) return new BasicResponse(false, "User not found.");
+        var eligibilityError = GetSellerEligibilityError(user);
+        if (!string.IsNullOrWhiteSpace(eligibilityError))
+        {
+            return new BasicResponse(false, eligibilityError);
+        }
+
+        var categoryId = await _uow.SubCategories.Query()
+            .Where(sc => sc.SubCategoryId == listing.SubCategoryId.Value)
+            .Select(sc => sc.CategoryId ?? 0)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (categoryId <= 0)
+        {
+            return new BasicResponse(false, "Category not found for listing.");
+        }
+
+        var precheckRequest = new AiListingPrecheckRequest(
+            listing.Title ?? string.Empty,
+            listing.Description ?? string.Empty,
+            categoryId,
+            listing.Brand,
+            listing.Price,
+            images.Select(i => i.Url ?? string.Empty).Where(x => !string.IsNullOrWhiteSpace(x)).ToList(),
+            sellerId.ToString());
+
+        var precheck = await _aiListingService.PrecheckAsync(precheckRequest, cancellationToken);
+        if (!string.Equals(precheck.Quality.Decision, "PASS", StringComparison.OrdinalIgnoreCase))
+        {
+            return new BasicResponse(false, "Images did not pass quality checks. Please update your photos.");
+        }
+
+        if (string.Equals(precheck.Risk.Action, "REJECTED", StringComparison.OrdinalIgnoreCase))
+        {
+            return new BasicResponse(false, "Listing rejected due to risk checks. Please revise your content.");
+        }
 
         var now = DateTime.UtcNow;
         var plan = await ResolveCurrentPlanAsync(user.UserId, now, cancellationToken);
@@ -638,6 +681,34 @@ public class SellerListingService : ISellerListingService
         if (string.IsNullOrWhiteSpace(listingType)) return ListingTypes.Single;
         if (string.Equals(listingType, ListingTypes.Single, StringComparison.OrdinalIgnoreCase)) return ListingTypes.Single;
         throw new InvalidOperationException("ListingType only supports SINGLE for this marketplace.");
+    }
+
+    private static string? GetSellerEligibilityError(User user)
+    {
+        var profile = user.UserProfiles
+            .OrderBy(p => p.ProfileId)
+            .FirstOrDefault();
+
+        var verification = user.UserVerifications
+            .OrderByDescending(v => v.VerifiedAt)
+            .FirstOrDefault();
+
+        var missing = new List<string>();
+        if (profile == null) missing.Add("profile");
+        if (profile != null && string.IsNullOrWhiteSpace(profile.FullName)) missing.Add("fullName");
+        if (string.IsNullOrWhiteSpace(user.Phone)) missing.Add("phone");
+        if (profile != null && string.IsNullOrWhiteSpace(profile.AddressLine)) missing.Add("address");
+        if (profile != null && string.IsNullOrWhiteSpace(profile.BankAccountNumber)) missing.Add("bankAccountNumber");
+        if (profile != null && string.IsNullOrWhiteSpace(profile.BankAccountName)) missing.Add("bankAccountName");
+
+        var phoneVerified = verification?.PhoneVerified == true;
+        var emailVerified = verification?.EmailVerified == true;
+        if (!phoneVerified && !emailVerified) missing.Add("verification");
+
+        if (missing.Count == 0) return null;
+
+        return "Complete your profile (fullName, phone, address, bankAccountNumber, bankAccountName) and verify your account (email or phone) before submitting a listing. " +
+               $"Missing: {string.Join(", ", missing.Distinct(StringComparer.OrdinalIgnoreCase))}.";
     }
 
     private async Task NotifyAsync(long userId, string type, string title, string message, string? link, CancellationToken cancellationToken)

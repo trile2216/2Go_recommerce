@@ -244,6 +244,36 @@ public class AuthService : IAuthService
         return new BasicResponse(true, "Email verified.");
     }
 
+    public async Task<BasicResponse> ResendVerifyEmailAsync(ResendVerifyEmailRequest request, CancellationToken cancellationToken = default)
+    {
+        ValidationGuard.ThrowIfInvalid(UserValidator.ValidateResendVerifyEmail(request));
+        var user = await _uow.Users.Query().FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
+        if (user == null)
+        {
+            return new BasicResponse(true, "If the email exists, a code has been sent.");
+        }
+
+        var userVerify = await _uow.UserVerifications.Query()
+            .FirstOrDefaultAsync(v => v.UserId == user.UserId, cancellationToken);
+        if (userVerify?.EmailVerified == true)
+        {
+            return new BasicResponse(true, "Email already verified.");
+        }
+
+        var code = await CreateVerificationCodeAsync(user.UserId, "EmailVerify", cancellationToken);
+        try
+        {
+            await _emailService.SendAsync(user.Email, "Verify your email", $"Your verification code is: {code}", cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to send verification email to {Email}", user.Email);
+        }
+
+        await _uow.SaveChangesAsync(cancellationToken);
+        return new BasicResponse(true, "If the email exists, a code has been sent.");
+    }
+
     public async Task<AuthResponse> FirebaseLoginAsync(FirebaseLoginRequest request, CancellationToken cancellationToken = default)
     {
         ValidationGuard.ThrowIfInvalid(UserValidator.ValidateFirebaseLogin(request));
