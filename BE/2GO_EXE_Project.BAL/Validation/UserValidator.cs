@@ -231,7 +231,16 @@ public static class UserValidator
 
     public static ValidationResult ValidateUpdateProfile(UpdateProfileRequest request)
     {
-        return ValidateProfileFields(request.FullName, request.Birthday, request.Gender, request.Address, request.Bio, request.AvatarUrl, request.BankAccountNumber, request.BankAccountName);
+        var result = ValidateProfileFields(request.FullName, request.Birthday, request.Gender, request.Address, request.Bio, request.AvatarUrl, request.BankAccountNumber, request.BankAccountName);
+
+        if (!string.IsNullOrWhiteSpace(request.Phone))
+        {
+            var phone = request.Phone.Trim();
+            result.AddIf(phone.Length > PhoneMaxLength, "phone", "Phone must be <= 20 chars.");
+            result.AddIf(!ValidationRules.IsValidPhone(phone), "phone", "Phone must be exactly 10 digits.");
+        }
+
+        return result;
     }
 
     public static ValidationResult ValidateUpdateAvatar(UpdateAvatarRequest request)
