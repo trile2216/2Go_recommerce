@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using _2GO_EXE_Project.BAL.Constants;
+using _2GO_EXE_Project.BAL.DTOs.Ai;
 using _2GO_EXE_Project.BAL.DTOs.Auth;
 using _2GO_EXE_Project.BAL.DTOs.Listings;
 using _2GO_EXE_Project.BAL.DTOs.Notifications;
@@ -17,13 +18,19 @@ public class SellerListingService : ISellerListingService
 {
     private readonly IUnitOfWork _uow;
     private readonly INotificationService _notificationService;
+    private readonly IAiListingService _aiListingService;
     private readonly string _cloudinaryCloudName;
 
-    public SellerListingService(IUnitOfWork uow, INotificationService notificationService, IOptions<CloudinarySettings> cloudinaryOptions)
+    public SellerListingService(
+        IUnitOfWork uow,
+        INotificationService notificationService,
+        IOptions<CloudinarySettings> cloudinaryOptions,
+        IAiListingService aiListingService)
     {
         _uow = uow;
         _notificationService = notificationService;
         _cloudinaryCloudName = cloudinaryOptions.Value.CloudName ?? string.Empty;
+        _aiListingService = aiListingService;
     }
 
     private static long GetUserId(ClaimsPrincipal principal)
@@ -451,6 +458,35 @@ public class SellerListingService : ISellerListingService
         var user = await _uow.Users.Query()
             .FirstOrDefaultAsync(u => u.UserId == sellerId, cancellationToken);
         if (user == null) return new BasicResponse(false, "User not found.");
+
+        var categoryId = await _uow.SubCategories.Query()
+            .Where(sc => sc.SubCategoryId == listing.SubCategoryId.Value)
+            .Select(sc => sc.CategoryId)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (categoryId <= 0)
+        {
+            return new BasicResponse(false, "Category not found for listing.");
+        }
+
+        var precheckRequest = new AiListingPrecheckRequest(
+            listing.Title ?? string.Empty,
+            listing.Description ?? string.Empty,
+            categoryId,
+            listing.Brand,
+            listing.Price,
+            images.Select(i => i.Url ?? string.Empty).Where(x => !string.IsNullOrWhiteSpace(x)).ToList(),
+            sellerId.ToString());
+
+        var precheck = await _aiListingService.PrecheckAsync(precheckRequest, cancellationToken);
+        if (!string.Equals(precheck.Quality.Decision, "PASS", StringComparison.OrdinalIgnoreCase))
+        {
+            return new BasicResponse(false, "Images did not pass quality checks. Please update your photos.");
+        }
+
+        if (string.Equals(precheck.Risk.Action, "REJECTED", StringComparison.OrdinalIgnoreCase))
+        {
+            return new BasicResponse(false, "Listing rejected due to risk checks. Please revise your content.");
+        }
 
         var now = DateTime.UtcNow;
         var plan = await ResolveCurrentPlanAsync(user.UserId, now, cancellationToken);
