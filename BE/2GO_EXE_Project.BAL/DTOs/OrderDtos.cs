@@ -65,3 +65,5 @@ public record OrderDetailResponse(
     string? DeliveryAddress,
     decimal? DepositAmount,
     DateTime? DepositDeadlineAt);
+
+public record UpdateOrderStatusRequest(string Status, string? Reason);
