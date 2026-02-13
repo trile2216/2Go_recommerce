@@ -16,6 +16,7 @@ public class AiQualityCheckService : IAiQualityCheckService
     private const int MinResolution = 300;
     private const int MaxBytesToRead = 64 * 1024;
     private const int MaxVisionChecks = 2;
+    private const int MaxNsfwChecks = 1;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IGeminiService _geminiService;
     private readonly IUnitOfWork _uow;
@@ -31,7 +32,6 @@ public class AiQualityCheckService : IAiQualityCheckService
     {
         var issues = new List<string>();
         var score = 1.0;
-        var hasUnknownResolution = false;
 
         if (mediaUrls == null || mediaUrls.Count == 0)
         {
@@ -48,7 +48,6 @@ public class AiQualityCheckService : IAiQualityCheckService
         {
             if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
             {
-                hasUnknownResolution = true;
                 issues.Add("Invalid media URL.");
                 continue;
             }
@@ -63,20 +62,18 @@ public class AiQualityCheckService : IAiQualityCheckService
 
             if (!info.ContentLength.HasValue)
             {
-                hasUnknownResolution = true;
                 issues.Add("Cannot verify content length.");
             }
 
             if (!info.Width.HasValue || !info.Height.HasValue)
             {
-                hasUnknownResolution = true;
                 issues.Add("Cannot verify image resolution.");
                 continue;
             }
 
             if (info.Width.Value < MinResolution || info.Height.Value < MinResolution)
             {
-                score -= 0.4;
+                // Keep as warning only; do not reject based on resolution.
                 issues.Add($"Image resolution too low: {info.Width.Value}x{info.Height.Value}.");
             }
         }
@@ -104,6 +101,24 @@ public class AiQualityCheckService : IAiQualityCheckService
             else if (avg <= 6)
             {
                 score -= 0.2;
+            }
+        }
+
+        // Gemini Vision NSFW check (best-effort, single image)
+        var nsfwChecks = mediaUrls.Take(MaxNsfwChecks).ToList();
+        foreach (var url in nsfwChecks)
+        {
+            var nsfw = await TryGeminiNsfwAsync(url, cancellationToken);
+            if (string.IsNullOrWhiteSpace(nsfw)) continue;
+            issues.Add($"NSFW check: {nsfw}");
+            if (string.Equals(nsfw, "NSFW", StringComparison.OrdinalIgnoreCase))
+            {
+                score = 0;
+                break;
+            }
+            if (string.Equals(nsfw, "SUGGESTIVE", StringComparison.OrdinalIgnoreCase))
+            {
+                score = Math.Min(score, 0.4);
             }
         }
 
@@ -214,6 +229,55 @@ public class AiQualityCheckService : IAiQualityCheckService
                 }
             }, cancellationToken);
             return label == "none" ? null : label;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private async Task<string?> TryGeminiNsfwAsync(string imageUrl, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var prompt =
+                "Ban dang thuc hien kiem duyet hinh anh cho mot nen tang mua ban/thanh ly do dung cu.\n\n" +
+                "Hay phan loai hinh anh vao dung MOT trong ba nhan sau:\n" +
+                "SAFE\n" +
+                "SUGGESTIVE\n" +
+                "NSFW\n\n" +
+                "Dinh nghia:\n\n" +
+                "SAFE:\n" +
+                "- Khong co noi dung khoa than hoac tinh duc.\n" +
+                "- Anh san pham thong thuong (quan ao, dien thoai, do gia dung, noi that, v.v.).\n" +
+                "- Nguoi mac trang phuc day du, tao dang binh thuong, khong goi duc.\n" +
+                "- Do boi, do the thao, mannequin hoac tuong nghe thuat duoc chup theo cach trung tinh, khong nhan manh yeu to tinh duc.\n" +
+                "- Anh quan ao, do lot duoc chup nhu san pham thong thuong, khong tao dang khieu goi.\n\n" +
+                "SUGGESTIVE:\n" +
+                "- Tu the tao dang goi cam hoac nhan manh bo phan co the.\n" +
+                "- Trang phuc ho hang (bikini, do lot, lingerie) kem tao dang goi duc.\n" +
+                "- Bieu cam hoac goc chup mang tinh khieu goi.\n" +
+                "- Ham y khoa than nhung khong lo ro bo phan sinh duc.\n\n" +
+                "NSFW:\n" +
+                "- Lo ro bo phan sinh duc, nguc phu nu, hoac mong trong boi canh tinh duc.\n" +
+                "- Hanh vi tinh duc hoac tuong tac tinh duc.\n" +
+                "- Noi dung khieu dam ro rang.\n" +
+                "- Anh tap trung vao bo phan nhay cam voi muc dich kich thich tinh duc.\n" +
+                "- Bat ky noi dung tinh duc nao lien quan den tre vi thanh nien.\n\n" +
+                "Quy tac quan trong:\n" +
+                "- Danh gia dua tren muc do ro rang va y do tinh duc, khong chi dua vao luong da lo ra.\n" +
+                "- Anh san pham binh thuong luon duoc xem la SAFE neu khong co yeu to goi duc.\n" +
+                "- Neu phan van giua SAFE va SUGGESTIVE, chon SUGGESTIVE.\n" +
+                "- Neu co yeu to tinh duc ro rang, chon NSFW.\n" +
+                "- Chi tra ve duy nhat mot trong ba nhan: SAFE, SUGGESTIVE, hoac NSFW.\n" +
+                "- Khong giai thich them.";
+            var text = await _geminiService.GenerateFromImageAsync(prompt, imageUrl, null, cancellationToken);
+            if (string.IsNullOrWhiteSpace(text)) return null;
+            var normalized = text.Trim().ToUpperInvariant();
+            if (normalized.Contains("NSFW")) return "NSFW";
+            if (normalized.Contains("SUGGESTIVE")) return "SUGGESTIVE";
+            if (normalized.Contains("SAFE")) return "SAFE";
+            return null;
         }
         catch
         {

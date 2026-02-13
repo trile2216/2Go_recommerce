@@ -25,7 +25,7 @@ public record UserInfoResponse(
     bool PhoneVerified,
     UserProfileInfo? Profile);
 
-public record UpdateProfileRequest(string? FullName, DateOnly? Birthday, string? Gender, string? Address, string? Bio, string? AvatarUrl, string? BankAccountNumber, string? BankAccountName);
+public record UpdateProfileRequest(string? Phone, string? FullName, DateOnly? Birthday, string? Gender, string? Address, string? Bio, string? AvatarUrl, string? BankAccountNumber, string? BankAccountName);
 public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
 public record DeviceResponse(long DeviceId, string? DeviceInfo, string? IpAddress, DateTime? LastActive);
 public record ActivityResponse(long LogId, string? Action, string? Details, DateTime? CreatedAt);

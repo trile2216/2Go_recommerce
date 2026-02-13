@@ -88,7 +88,7 @@ public class CommentsController : ControllerBase
         {
             return BadRequest(ex.Message);
         }
-        catch (UnauthorizedAccessException ex)
+        catch (UnauthorizedAccessException)
         {
             return Forbid();
         }
@@ -106,7 +106,7 @@ public class CommentsController : ControllerBase
         {
             return BadRequest(ex.Message);
         }
-        catch (UnauthorizedAccessException ex)
+        catch (UnauthorizedAccessException)
         {
             return Forbid();
         }
