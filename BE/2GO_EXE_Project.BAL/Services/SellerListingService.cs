@@ -493,7 +493,7 @@ public class SellerListingService : ISellerListingService
 
         var categoryId = await _uow.SubCategories.Query()
             .Where(sc => sc.SubCategoryId == listing.SubCategoryId.Value)
-            .Select(sc => sc.CategoryId)
+            .Select(sc => sc.CategoryId ?? 0)
             .FirstOrDefaultAsync(cancellationToken);
         if (categoryId <= 0)
         {
