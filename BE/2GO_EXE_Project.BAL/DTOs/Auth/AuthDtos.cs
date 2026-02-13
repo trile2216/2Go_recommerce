@@ -4,6 +4,7 @@ public record RegisterRequest(string? Email, string? Phone, string Password, str
 public record LoginRequest(string Identifier, string Password); // Identifier = email or phone
 public record RefreshTokenRequest(string RefreshToken);
 public record VerifyEmailRequest(string Email, string Code);
+public record ResendVerifyEmailRequest(string Email);
 public record ForgotPasswordRequest(string Email);
 public record ResetPasswordRequest(string Email, string Code, string NewPassword);
 

@@ -10,6 +10,7 @@ public interface IAuthService
     Task<BasicResponse> LogoutAsync(RefreshTokenRequest request, CancellationToken cancellationToken = default);
     Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request, CancellationToken cancellationToken = default);
     Task<BasicResponse> VerifyEmailAsync(VerifyEmailRequest request, CancellationToken cancellationToken = default);
+    Task<BasicResponse> ResendVerifyEmailAsync(ResendVerifyEmailRequest request, CancellationToken cancellationToken = default);
     Task<BasicResponse> ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken cancellationToken = default);
     Task<BasicResponse> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default);
     Task<AuthResponse> FirebaseLoginAsync(FirebaseLoginRequest request, CancellationToken cancellationToken = default);

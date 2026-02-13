@@ -91,6 +91,20 @@ public static class UserValidator
         return result;
     }
 
+    public static ValidationResult ValidateResendVerifyEmail(ResendVerifyEmailRequest request)
+    {
+        var result = new ValidationResult();
+        if (string.IsNullOrWhiteSpace(request.Email))
+        {
+            result.Add("email", "Email is required.");
+        }
+        else
+        {
+            result.AddIf(!ValidationRules.IsValidEmail(request.Email), "email", "Email must be a valid email address.");
+        }
+        return result;
+    }
+
     public static ValidationResult ValidateForgotPassword(ForgotPasswordRequest request)
     {
         var result = new ValidationResult();
