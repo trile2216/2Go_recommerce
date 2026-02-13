@@ -13,7 +13,7 @@ namespace _2GO_EXE_Project.BAL.Services;
 
 public class AiQualityCheckService : IAiQualityCheckService
 {
-    private const int MinResolution = 600;
+    private const int MinResolution = 300;
     private const int MaxBytesToRead = 64 * 1024;
     private const int MaxVisionChecks = 2;
     private readonly IHttpClientFactory _httpClientFactory;
