@@ -119,6 +119,23 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPost("resend-verify-email")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ResendVerifyEmail([FromBody] ResendVerifyEmailRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email))
+        {
+            return BadRequest("Email is required.");
+        }
+        if (!IsValidEmail(request.Email))
+        {
+            return BadRequest("Email must be a valid email address.");
+        }
+
+        var result = await _authService.ResendVerifyEmailAsync(request, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpPost("forgot-password")]
     [AllowAnonymous]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken cancellationToken)
