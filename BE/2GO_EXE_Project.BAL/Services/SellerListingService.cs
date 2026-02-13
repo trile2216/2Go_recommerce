@@ -545,14 +545,22 @@ public class SellerListingService : ISellerListingService
             }
         }
 
-        listing.Status = ListingStatuses.PendingReview;
+        var targetStatus = string.Equals(precheck.Risk.Action, "PENDING_REVIEW", StringComparison.OrdinalIgnoreCase)
+            ? ListingStatuses.PendingReview
+            : ListingStatuses.Active;
+
+        listing.Status = targetStatus;
         listing.PublishedAt = now;
         listing.UpdatedAt = now;
         _uow.Listings.Update(listing);
         await _uow.SaveChangesAsync(cancellationToken);
-        await NotifyAsync(sellerId, "LISTING", ListingNotificationText.ForStatus(ListingStatuses.PendingReview).Title, ListingNotificationText.ForStatus(ListingStatuses.PendingReview).Message, $"/seller/listings/{listing.ListingId}", cancellationToken);
-        await NotifyAdminsAsync("LISTING_REVIEW", "Có bài đăng cần duyệt", $"Bài đăng #{listing.ListingId} đang chờ duyệt.", $"/admin/listings/{listing.ListingId}", cancellationToken);
-        return new BasicResponse(true, "Listing submitted for review.");
+        var notifyText = ListingNotificationText.ForStatus(targetStatus);
+        await NotifyAsync(sellerId, "LISTING", notifyText.Title, notifyText.Message, $"/seller/listings/{listing.ListingId}", cancellationToken);
+        if (string.Equals(targetStatus, ListingStatuses.PendingReview, StringComparison.OrdinalIgnoreCase))
+        {
+            await NotifyAdminsAsync("LISTING_REVIEW", "Có bài đăng cần duyệt", $"Bài đăng #{listing.ListingId} đang chờ duyệt.", $"/admin/listings/{listing.ListingId}", cancellationToken);
+        }
+        return new BasicResponse(true, targetStatus == ListingStatuses.Active ? "Listing published." : "Listing submitted for review.");
     }
 
     public async Task<BasicResponse> ArchiveAsync(ClaimsPrincipal sellerPrincipal, long listingId, CancellationToken cancellationToken = default)
