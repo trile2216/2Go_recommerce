@@ -4,5 +4,5 @@ namespace _2GO_EXE_Project.BAL.Interfaces;
 
 public interface IAiQualityCheckService
 {
-    Task<AiQualityResult> CheckAsync(IReadOnlyList<string> mediaUrls, CancellationToken cancellationToken = default);
+    Task<AiQualityResult> CheckAsync(IReadOnlyList<string> mediaUrls, bool deepChecks, CancellationToken cancellationToken = default);
 }

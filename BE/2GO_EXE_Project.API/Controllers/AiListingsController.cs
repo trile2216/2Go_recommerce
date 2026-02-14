@@ -25,7 +25,7 @@ public class AiListingsController : ControllerBase
     [HttpPost("precheck")]
     public async Task<IActionResult> Precheck([FromBody] AiListingPrecheckRequest request, CancellationToken cancellationToken = default)
     {
-        var result = await _aiListingService.PrecheckAsync(request, cancellationToken);
+        var result = await _aiListingService.PrecheckAsync(request, deepChecks: false, cancellationToken);
         return Ok(result);
     }
 }
