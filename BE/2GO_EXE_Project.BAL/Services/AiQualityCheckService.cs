@@ -55,9 +55,9 @@ public class AiQualityCheckService : IAiQualityCheckService
             var info = await TryGetImageInfoAsync(uri, cancellationToken);
             if (!info.IsImage)
             {
-                score -= 0.4;
                 issues.Add("Media is not a valid image.");
-                continue;
+                score = 0;
+                break;
             }
 
             if (!info.ContentLength.HasValue)
