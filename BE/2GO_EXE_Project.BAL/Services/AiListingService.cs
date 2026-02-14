@@ -47,7 +47,7 @@ public class AiListingService : IAiListingService
 
     public async Task<AiListingAnalyzeResponse> AnalyzeAsync(AiListingAnalyzeRequest request, CancellationToken cancellationToken = default)
     {
-        var quality = await _qualityCheckService.CheckAsync(request.MediaUrls, cancellationToken);
+        var quality = await _qualityCheckService.CheckAsync(request.MediaUrls, deepChecks: true, cancellationToken);
 
         var conditionAi = await InferConditionAsync(request.Title, request.Description, request.MediaUrls, request.UserId, cancellationToken);
         var productKey = await BuildProductKeyAsync(request.CategoryId, request.Brand, request.Title, cancellationToken);
@@ -83,9 +83,9 @@ public class AiListingService : IAiListingService
         return response;
     }
 
-    public async Task<AiListingPrecheckResponse> PrecheckAsync(AiListingPrecheckRequest request, CancellationToken cancellationToken = default)
+    public async Task<AiListingPrecheckResponse> PrecheckAsync(AiListingPrecheckRequest request, bool deepChecks, CancellationToken cancellationToken = default)
     {
-        var quality = await _qualityCheckService.CheckAsync(request.MediaUrls, cancellationToken);
+        var quality = await _qualityCheckService.CheckAsync(request.MediaUrls, deepChecks, cancellationToken);
 
         var conditionAi = await InferConditionAsync(request.Title, request.Description, request.MediaUrls, request.UserId, cancellationToken);
         var productKey = await BuildProductKeyAsync(request.CategoryId, request.Brand, request.Title, cancellationToken);

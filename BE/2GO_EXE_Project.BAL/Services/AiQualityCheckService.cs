@@ -17,6 +17,9 @@ public class AiQualityCheckService : IAiQualityCheckService
     private const int MaxBytesToRead = 64 * 1024;
     private const int MaxVisionChecks = 2;
     private const int MaxNsfwChecks = 1;
+    private static readonly object GeminiLock = new();
+    private static DateTime? GeminiDownUntilUtc;
+    private static readonly TimeSpan GeminiCooldown = TimeSpan.FromMinutes(10);
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IGeminiService _geminiService;
     private readonly IUnitOfWork _uow;
@@ -28,7 +31,7 @@ public class AiQualityCheckService : IAiQualityCheckService
         _uow = uow;
     }
 
-    public async Task<AiQualityResult> CheckAsync(IReadOnlyList<string> mediaUrls, CancellationToken cancellationToken = default)
+    public async Task<AiQualityResult> CheckAsync(IReadOnlyList<string> mediaUrls, bool deepChecks, CancellationToken cancellationToken = default)
     {
         var issues = new List<string>();
         var score = 1.0;
@@ -78,15 +81,25 @@ public class AiQualityCheckService : IAiQualityCheckService
             }
         }
 
+        var geminiUnavailable = IsGeminiDown();
+        if (geminiUnavailable)
+        {
+            issues.Add("Gemini unavailable; manual review required.");
+            score = Math.Min(score, 0.5);
+        }
+
         // Gemini Vision assessment (best-effort, limited images to control quota)
         var visionScores = new List<int>();
-        var visionChecks = mediaUrls.Take(MaxVisionChecks).ToList();
-        foreach (var url in visionChecks)
+        if (!geminiUnavailable)
         {
-            var vision = await TryGeminiVisionAsync(url, cancellationToken);
-            if (vision.HasValue)
+            var visionChecks = mediaUrls.Take(MaxVisionChecks).ToList();
+            foreach (var url in visionChecks)
             {
-                visionScores.Add(vision.Value.Score);
+                var vision = await TryGeminiVisionAsync(url, cancellationToken);
+                if (vision.HasValue)
+                {
+                    visionScores.Add(vision.Value.Score);
+                }
             }
         }
 
@@ -105,25 +118,41 @@ public class AiQualityCheckService : IAiQualityCheckService
         }
 
         // Gemini Vision NSFW check (best-effort, single image)
-        var nsfwChecks = mediaUrls.Take(MaxNsfwChecks).ToList();
-        foreach (var url in nsfwChecks)
+        if (!geminiUnavailable && deepChecks)
         {
-            var nsfw = await TryGeminiNsfwAsync(url, cancellationToken);
-            if (string.IsNullOrWhiteSpace(nsfw)) continue;
-            issues.Add($"NSFW check: {nsfw}");
-            if (string.Equals(nsfw, "NSFW", StringComparison.OrdinalIgnoreCase))
+            var nsfwChecks = mediaUrls.Take(MaxNsfwChecks).ToList();
+            foreach (var url in nsfwChecks)
             {
-                score = 0;
-                break;
-            }
-            if (string.Equals(nsfw, "SUGGESTIVE", StringComparison.OrdinalIgnoreCase))
-            {
-                score = Math.Min(score, 0.4);
+                try
+                {
+                    var nsfw = await TryGeminiNsfwAsync(url, cancellationToken);
+                    if (string.IsNullOrWhiteSpace(nsfw)) continue;
+                    issues.Add($"NSFW check: {nsfw}");
+                    if (string.Equals(nsfw, "NSFW", StringComparison.OrdinalIgnoreCase))
+                    {
+                        score = 0;
+                        break;
+                    }
+                    if (string.Equals(nsfw, "SUGGESTIVE", StringComparison.OrdinalIgnoreCase))
+                    {
+                        score = Math.Min(score, 0.4);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (IsGeminiFailure(ex))
+                    {
+                        MarkGeminiDown();
+                        issues.Add("Gemini unavailable; manual review required.");
+                        score = Math.Min(score, 0.5);
+                    }
+                    issues.Add($"NSFW check failed: {ex.Message}");
+                }
             }
         }
 
         // Gemini Vision damage check (best-effort, single image)
-        if (mediaUrls.Count > 0)
+        if (!geminiUnavailable && deepChecks && mediaUrls.Count > 0)
         {
             var damage = await TryGeminiDamageAsync(mediaUrls[0], cancellationToken);
             if (!string.IsNullOrWhiteSpace(damage))
@@ -166,6 +195,7 @@ public class AiQualityCheckService : IAiQualityCheckService
 
         private async Task<(int Score, string Raw)?> TryGeminiVisionAsync(string imageUrl, CancellationToken cancellationToken)
     {
+        if (IsGeminiDown()) return null;
         try
         {
             var cached = await _uow.AiImageVisionCaches.Query()
@@ -192,14 +222,19 @@ public class AiQualityCheckService : IAiQualityCheckService
             }, cancellationToken);
             return (score, text);
         }
-        catch
+        catch (Exception ex)
         {
+            if (IsGeminiFailure(ex))
+            {
+                MarkGeminiDown();
+            }
             return null;
         }
     }
 
         private async Task<string?> TryGeminiDamageAsync(string imageUrl, CancellationToken cancellationToken)
     {
+        if (IsGeminiDown()) return null;
         try
         {
             var cached = await _uow.AiImageVisionCaches.Query()
@@ -230,59 +265,83 @@ public class AiQualityCheckService : IAiQualityCheckService
             }, cancellationToken);
             return label == "none" ? null : label;
         }
-        catch
+        catch (Exception ex)
         {
+            if (IsGeminiFailure(ex))
+            {
+                MarkGeminiDown();
+            }
             return null;
         }
     }
 
     private async Task<string?> TryGeminiNsfwAsync(string imageUrl, CancellationToken cancellationToken)
     {
-        try
+        if (IsGeminiDown()) return null;
+        var prompt =
+            "Ban dang thuc hien kiem duyet hinh anh cho mot nen tang mua ban/thanh ly do dung cu.\n\n" +
+            "Hay phan loai hinh anh vao dung MOT trong ba nhan sau:\n" +
+            "SAFE\n" +
+            "SUGGESTIVE\n" +
+            "NSFW\n\n" +
+            "Dinh nghia:\n\n" +
+            "SAFE:\n" +
+            "- Khong co noi dung khoa than hoac tinh duc.\n" +
+            "- Anh san pham thong thuong (quan ao, dien thoai, do gia dung, noi that, v.v.).\n" +
+            "- Nguoi mac trang phuc day du, tao dang binh thuong, khong goi duc.\n" +
+            "- Do boi, do the thao, mannequin hoac tuong nghe thuat duoc chup theo cach trung tinh, khong nhan manh yeu to tinh duc.\n" +
+            "- Anh quan ao, do lot duoc chup nhu san pham thong thuong, khong tao dang khieu goi.\n\n" +
+            "SUGGESTIVE:\n" +
+            "- Tu the tao dang goi cam hoac nhan manh bo phan co the.\n" +
+            "- Trang phuc ho hang (bikini, do lot, lingerie) kem tao dang goi duc.\n" +
+            "- Bieu cam hoac goc chup mang tinh khieu goi.\n" +
+            "- Ham y khoa than nhung khong lo ro bo phan sinh duc.\n\n" +
+            "NSFW:\n" +
+            "- Lo ro bo phan sinh duc, nguc phu nu, hoac mong trong boi canh tinh duc.\n" +
+            "- Hanh vi tinh duc hoac tuong tac tinh duc.\n" +
+            "- Noi dung khieu dam ro rang.\n" +
+            "- Anh tap trung vao bo phan nhay cam voi muc dich kich thich tinh duc.\n" +
+            "- Bat ky noi dung tinh duc nao lien quan den tre vi thanh nien.\n\n" +
+            "Quy tac quan trong:\n" +
+            "- Danh gia dua tren muc do ro rang va y do tinh duc, khong chi dua vao luong da lo ra.\n" +
+            "- Anh san pham binh thuong luon duoc xem la SAFE neu khong co yeu to goi duc.\n" +
+            "- Neu phan van giua SAFE va SUGGESTIVE, chon SUGGESTIVE.\n" +
+            "- Neu co yeu to tinh duc ro rang, chon NSFW.\n" +
+            "- Chi tra ve duy nhat mot trong ba nhan: SAFE, SUGGESTIVE, hoac NSFW.\n" +
+            "- Khong giai thich them.";
+        var text = await _geminiService.GenerateFromImageAsync(prompt, imageUrl, null, cancellationToken);
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        var normalized = text.Trim().ToUpperInvariant();
+        if (normalized.Contains("NSFW")) return "NSFW";
+        if (normalized.Contains("SUGGESTIVE")) return "SUGGESTIVE";
+        if (normalized.Contains("SAFE")) return "SAFE";
+        return null;
+    }
+
+    private static bool IsGeminiDown()
+    {
+        lock (GeminiLock)
         {
-            var prompt =
-                "Ban dang thuc hien kiem duyet hinh anh cho mot nen tang mua ban/thanh ly do dung cu.\n\n" +
-                "Hay phan loai hinh anh vao dung MOT trong ba nhan sau:\n" +
-                "SAFE\n" +
-                "SUGGESTIVE\n" +
-                "NSFW\n\n" +
-                "Dinh nghia:\n\n" +
-                "SAFE:\n" +
-                "- Khong co noi dung khoa than hoac tinh duc.\n" +
-                "- Anh san pham thong thuong (quan ao, dien thoai, do gia dung, noi that, v.v.).\n" +
-                "- Nguoi mac trang phuc day du, tao dang binh thuong, khong goi duc.\n" +
-                "- Do boi, do the thao, mannequin hoac tuong nghe thuat duoc chup theo cach trung tinh, khong nhan manh yeu to tinh duc.\n" +
-                "- Anh quan ao, do lot duoc chup nhu san pham thong thuong, khong tao dang khieu goi.\n\n" +
-                "SUGGESTIVE:\n" +
-                "- Tu the tao dang goi cam hoac nhan manh bo phan co the.\n" +
-                "- Trang phuc ho hang (bikini, do lot, lingerie) kem tao dang goi duc.\n" +
-                "- Bieu cam hoac goc chup mang tinh khieu goi.\n" +
-                "- Ham y khoa than nhung khong lo ro bo phan sinh duc.\n\n" +
-                "NSFW:\n" +
-                "- Lo ro bo phan sinh duc, nguc phu nu, hoac mong trong boi canh tinh duc.\n" +
-                "- Hanh vi tinh duc hoac tuong tac tinh duc.\n" +
-                "- Noi dung khieu dam ro rang.\n" +
-                "- Anh tap trung vao bo phan nhay cam voi muc dich kich thich tinh duc.\n" +
-                "- Bat ky noi dung tinh duc nao lien quan den tre vi thanh nien.\n\n" +
-                "Quy tac quan trong:\n" +
-                "- Danh gia dua tren muc do ro rang va y do tinh duc, khong chi dua vao luong da lo ra.\n" +
-                "- Anh san pham binh thuong luon duoc xem la SAFE neu khong co yeu to goi duc.\n" +
-                "- Neu phan van giua SAFE va SUGGESTIVE, chon SUGGESTIVE.\n" +
-                "- Neu co yeu to tinh duc ro rang, chon NSFW.\n" +
-                "- Chi tra ve duy nhat mot trong ba nhan: SAFE, SUGGESTIVE, hoac NSFW.\n" +
-                "- Khong giai thich them.";
-            var text = await _geminiService.GenerateFromImageAsync(prompt, imageUrl, null, cancellationToken);
-            if (string.IsNullOrWhiteSpace(text)) return null;
-            var normalized = text.Trim().ToUpperInvariant();
-            if (normalized.Contains("NSFW")) return "NSFW";
-            if (normalized.Contains("SUGGESTIVE")) return "SUGGESTIVE";
-            if (normalized.Contains("SAFE")) return "SAFE";
-            return null;
+            return GeminiDownUntilUtc.HasValue && GeminiDownUntilUtc.Value > DateTime.UtcNow;
         }
-        catch
+    }
+
+    private static void MarkGeminiDown()
+    {
+        lock (GeminiLock)
         {
-            return null;
+            GeminiDownUntilUtc = DateTime.UtcNow.Add(GeminiCooldown);
         }
+    }
+
+    private static bool IsGeminiFailure(Exception ex)
+    {
+        var msg = ex.Message ?? string.Empty;
+        return msg.Contains("Gemini", StringComparison.OrdinalIgnoreCase) ||
+               msg.Contains("rate limit", StringComparison.OrdinalIgnoreCase) ||
+               msg.Contains("quota", StringComparison.OrdinalIgnoreCase) ||
+               msg.Contains("API request failed", StringComparison.OrdinalIgnoreCase) ||
+               msg.Contains("RESOURCE_EXHAUSTED", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task<ImageInfo> TryGetImageInfoAsync(Uri uri, CancellationToken cancellationToken)

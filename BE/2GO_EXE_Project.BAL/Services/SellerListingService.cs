@@ -516,7 +516,7 @@ public class SellerListingService : ISellerListingService
             images.Select(i => i.Url ?? string.Empty).Where(x => !string.IsNullOrWhiteSpace(x)).ToList(),
             sellerId.ToString());
 
-        var precheck = await _aiListingService.PrecheckAsync(precheckRequest, cancellationToken);
+        var precheck = await _aiListingService.PrecheckAsync(precheckRequest, deepChecks: true, cancellationToken);
         if (!string.Equals(precheck.Quality.Decision, "PASS", StringComparison.OrdinalIgnoreCase))
         {
             return new BasicResponse(false, "Images did not pass quality checks. Please update your photos.");
