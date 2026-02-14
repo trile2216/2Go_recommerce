@@ -428,13 +428,18 @@ export default function PostListing() {
             }
         }
 
-        // Show loading message
-        const hideLoadingMsg = message.loading(
-            status === 'Draft' ? "Đang lưu nháp..." : "Đang gửi duyệt...", 
-            0
-        );
-
+        // Show loading message based on status
+        let hideLoadingMsg;
+        
         try {
+            // Start loading with appropriate message
+            if (status === 'Draft') {
+                hideLoadingMsg = message.loading("Đang lưu nháp...", 0);
+            } else {
+                // For PendingReview: show initial message about checking
+                hideLoadingMsg = message.loading("Đang kiểm tra bài đăng...", 0);
+            }
+
             // Upload images
             const imageFiles = imageList.map((img) => img.file).filter(Boolean);
             let mediaData = [];
@@ -484,7 +489,8 @@ export default function PostListing() {
             const allMediaUrls = [...imageUrlArr];
             if (videoUrl) allMediaUrls.push(videoUrl);
 
-            // Call precheck API before creating listing (only for PendingReview)
+            // Quick precheck before creating listing (only for PendingReview)
+            // Precheck: kiểm tra quick (ảnh hợp lệ, chất lượng cơ bản, spam, link, giá...)
             if (status === 'PendingReview') {
                 // Validate userId exists
                 const userId = user?.userId || user?.id;
@@ -525,11 +531,13 @@ export default function PostListing() {
 
                 if (!precheckResult.canPublish) {
                     hideLoadingMsg();
+                    // Precheck failed - user can still save as draft
                     message.error(
                         precheckResult.risk?.message || 
                         precheckResult.note || 
-                        "Bài đăng không đủ điều kiện. Vui lòng kiểm tra lại!"
+                        "Bài đăng không đủ điều kiện để đăng ngay. Bạn có thể lưu nháp và chỉnh sửa lại."
                     );
+                    setIsSubmitting(false);
                     return;
                 }
             }
@@ -582,16 +590,47 @@ export default function PostListing() {
                  }
                  navigate(`/seller/listings/${editId}`);
             } else {
-                // Call API to create listing (always as Draft)
+                // Create new listing
+
+                // Step 1: Create Draft
                 const response = await createListing(requestData);
                 const newListingId = response.id || response.listingId;
 
-                // If user wanted to publish, call publish endpoint now
+                // Step 2: If user wanted to publish, proceed with publishing
                 if (status === 'PendingReview') {
-                    await publishListing(newListingId);
+                    // Show intermediate message after draft created
                     hideLoadingMsg();
-                    message.success("Tin của bạn đã được gửi duyệt!");
+                    const hidePublishingMsg = message.loading(
+                        "Tin đã được tạo. Đang gửi duyệt...", 
+                        0
+                    );
+
+                    try {
+                        // Deep check happens on BE during publish:
+                        // - NSFW/damage check
+                        // - Eligibility check
+                        // - Quota limits check
+                        // - If pass -> Active or PendingReview (for manual review)
+                        // - If fail or quota exceeded -> Manual review (PendingReview)
+                        await publishListing(newListingId);
+                        hidePublishingMsg();
+                        
+                        message.success({
+                            content: "Tin đã được tạo. Hệ thống sẽ kiểm tra nội dung chi tiết trước khi hiển thị.",
+                            duration: 3
+                        });
+                    } catch (publishError) {
+                        hidePublishingMsg();
+                        console.error("Publish error:", publishError);
+                        
+                        // Publish might fail due to deep check or quota issues
+                        // In those cases, listing is already created as Draft and waiting for manual review
+                        const publishErrorMsg = publishError.response?.data?.message || 
+                            "Bài đăng đã được tạo nhưng chờ kiểm duyệt. Hệ thống sẽ xem xét sớm.";
+                        message.warning(publishErrorMsg);
+                    }
                 } else {
+                    // Just save draft - no publishing
                     hideLoadingMsg();
                     message.success("Đã lưu nháp!");
                 }
@@ -608,9 +647,13 @@ export default function PostListing() {
             }
 
         } catch (error) {
-            hideLoadingMsg();
-            setIsSubmitting(false); // Re-enable blocker if failed
-            console.error("Error creating/updating listing:", error);
+            // If we had a loading message, hide it first
+            if (typeof hideLoadingMsg === 'function') {
+                hideLoadingMsg();
+            }
+            
+            setIsSubmitting(false); // Allow user to retry or save as draft
+            console.error("Error in listing submission:", error);
             
             // Extract validation errors from backend
             const validationErrors = error.response?.data?.errors;
