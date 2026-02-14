@@ -531,14 +531,22 @@ export default function PostListing() {
 
                 if (!precheckResult.canPublish) {
                     hideLoadingMsg();
-                    // Precheck failed - user can still save as draft
-                    message.error(
-                        precheckResult.risk?.message || 
-                        precheckResult.note || 
-                        "Bài đăng không đủ điều kiện để đăng ngay. Bạn có thể lưu nháp và chỉnh sửa lại."
-                    );
-                    setIsSubmitting(false);
-                    return;
+                    const riskAction = precheckResult.risk?.action || precheckResult.risk?.Action;
+                    const qualityDecision = precheckResult.quality?.decision || precheckResult.quality?.Decision;
+                    const shouldBlock =
+                        String(riskAction).toUpperCase() === "REJECTED" ||
+                        String(qualityDecision).toUpperCase() === "REJECT";
+                    if (shouldBlock) {
+                        message.error(
+                            precheckResult.risk?.message ||
+                            "Bài đăng không đủ điều kiện. Vui lòng kiểm tra lại!"
+                        );
+                        return;
+                    }
+                }
+
+                if (precheckResult.note) {
+                    message.warning(precheckResult.note);
                 }
             }
 
@@ -1018,3 +1026,4 @@ export default function PostListing() {
         </div >
     );
 }
+

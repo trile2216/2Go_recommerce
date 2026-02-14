@@ -263,7 +263,10 @@ public class AuthService : IAuthService
         var code = await CreateVerificationCodeAsync(user.UserId, "EmailVerify", cancellationToken);
         try
         {
-            await _emailService.SendAsync(user.Email, "Verify your email", $"Your verification code is: {code}", cancellationToken);
+            if (!string.IsNullOrWhiteSpace(user.Email))
+            {
+                await _emailService.SendAsync(user.Email, "Verify your email", $"Your verification code is: {code}", cancellationToken);
+            }
         }
         catch (Exception ex)
         {
@@ -453,6 +456,38 @@ public class AuthService : IAuthService
         }
 
         ValidationGuard.ThrowIfInvalid(UserValidator.ValidateUpdateProfile(request));
+
+        var newPhone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
+        if (!string.IsNullOrWhiteSpace(newPhone) &&
+            !string.Equals(newPhone, user.Phone, StringComparison.Ordinal))
+        {
+            var phoneExists = await _uow.Users.Query()
+                .AsNoTracking()
+                .AnyAsync(u => u.UserId != user.UserId && u.Phone == newPhone, cancellationToken);
+            if (phoneExists)
+            {
+                throw new InvalidOperationException("Phone already in use.");
+            }
+
+            user.Phone = newPhone;
+
+            var phoneVerification = user.UserVerifications.FirstOrDefault();
+            if (phoneVerification == null)
+            {
+                phoneVerification = new UserVerification
+                {
+                    UserId = user.UserId,
+                    PhoneVerified = false,
+                    EmailVerified = false
+                };
+                await _uow.UserVerifications.AddAsync(phoneVerification, cancellationToken);
+            }
+            else
+            {
+                phoneVerification.PhoneVerified = false;
+                _uow.UserVerifications.Update(phoneVerification);
+            }
+        }
 
         var profile = user.UserProfiles.FirstOrDefault();
         var isNewProfile = profile == null;

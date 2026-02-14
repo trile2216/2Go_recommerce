@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using _2GO_EXE_Project.BAL.DTOs.Ai;
 using _2GO_EXE_Project.BAL.Interfaces;
 
@@ -16,16 +18,39 @@ public class AiListingsController : ControllerBase
     }
 
     [HttpPost("analyze")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Analyze([FromBody] AiListingAnalyzeRequest request, CancellationToken cancellationToken = default)
     {
-        var result = await _aiListingService.AnalyzeAsync(request, cancellationToken);
-        return Ok(result);
+        try
+        {
+            var result = await _aiListingService.AnalyzeAsync(request, cancellationToken);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex) when (IsGeminiQuotaError(ex))
+        {
+            return StatusCode(StatusCodes.Status429TooManyRequests, new
+            {
+                message = "Gemini quota exceeded. Please retry later.",
+                detail = ex.Message
+            });
+        }
     }
 
     [HttpPost("precheck")]
     public async Task<IActionResult> Precheck([FromBody] AiListingPrecheckRequest request, CancellationToken cancellationToken = default)
     {
-        var result = await _aiListingService.PrecheckAsync(request, cancellationToken);
+        var result = await _aiListingService.PrecheckAsync(request, deepChecks: false, cancellationToken);
         return Ok(result);
     }
+
+    private static bool IsGeminiQuotaError(Exception ex)
+    {
+        var msg = ex.Message ?? string.Empty;
+        return msg.Contains("Gemini", StringComparison.OrdinalIgnoreCase) ||
+               msg.Contains("rate limit", StringComparison.OrdinalIgnoreCase) ||
+               msg.Contains("quota", StringComparison.OrdinalIgnoreCase) ||
+               msg.Contains("RESOURCE_EXHAUSTED", StringComparison.OrdinalIgnoreCase) ||
+               msg.Contains("API request failed", StringComparison.OrdinalIgnoreCase);
+    }
 }
+

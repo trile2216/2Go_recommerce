@@ -90,6 +90,7 @@ builder.Services.AddScoped<IAiListingService, AiListingService>();
 builder.Services.AddScoped<IAiQualityCheckService, AiQualityCheckService>();
 builder.Services.AddScoped<IPricingService, PricingService>();
 builder.Services.AddScoped<IModerationService, ModerationService>();
+builder.Services.AddScoped<IUserRiskInfoService, UserRiskInfoService>();
 builder.Services.AddScoped<IUserPrecheckService, UserPrecheckService>();
 builder.Services.AddScoped<INoteGenerationService, NoteGenerationService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
@@ -143,7 +144,7 @@ builder.Services.AddAuthentication(options =>
     var jwtSection = builder.Configuration.GetSection("Jwt").Get<JwtSettings>() ?? new JwtSettings();
     var JwtIssuer = jwtSection.Issuer ?? builder.Configuration.GetValue<string>("Jwt__Issuer");
     var JwtAudience = jwtSection.Audience ?? builder.Configuration.GetValue<string>("Jwt__Audience");
-    var JwtSecret = jwtSection.Secret ?? builder.Configuration.GetValue<string>("Jwt__Secret");
+    var JwtSecret = jwtSection.Secret ?? builder.Configuration.GetValue<string>("Jwt__Secret") ?? string.Empty;
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,

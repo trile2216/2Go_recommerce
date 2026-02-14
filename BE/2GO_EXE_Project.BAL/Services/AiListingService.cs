@@ -17,6 +17,7 @@ public class AiListingService : IAiListingService
     private readonly IMarketPriceProvider _marketPriceProvider;
     private readonly IPricingService _pricingService;
     private readonly IUserPrecheckService _precheckService;
+    private readonly IUserRiskInfoService _userRiskInfoService;
     private readonly INoteGenerationService _noteGenerationService;
     private readonly INotificationService _notificationService;
     private readonly IGeminiService _geminiService;
@@ -27,6 +28,7 @@ public class AiListingService : IAiListingService
         IMarketPriceProvider marketPriceProvider,
         IPricingService pricingService,
         IUserPrecheckService precheckService,
+        IUserRiskInfoService userRiskInfoService,
         INoteGenerationService noteGenerationService,
         INotificationService notificationService,
         IGeminiService geminiService,
@@ -36,6 +38,7 @@ public class AiListingService : IAiListingService
         _marketPriceProvider = marketPriceProvider;
         _pricingService = pricingService;
         _precheckService = precheckService;
+        _userRiskInfoService = userRiskInfoService;
         _noteGenerationService = noteGenerationService;
         _notificationService = notificationService;
         _geminiService = geminiService;
@@ -44,7 +47,7 @@ public class AiListingService : IAiListingService
 
     public async Task<AiListingAnalyzeResponse> AnalyzeAsync(AiListingAnalyzeRequest request, CancellationToken cancellationToken = default)
     {
-        var quality = await _qualityCheckService.CheckAsync(request.MediaUrls, cancellationToken);
+        var quality = await _qualityCheckService.CheckAsync(request.MediaUrls, deepChecks: true, cancellationToken);
 
         var conditionAi = await InferConditionAsync(request.Title, request.Description, request.MediaUrls, request.UserId, cancellationToken);
         var productKey = await BuildProductKeyAsync(request.CategoryId, request.Brand, request.Title, cancellationToken);
@@ -61,7 +64,7 @@ public class AiListingService : IAiListingService
             null);
         pricing = _pricingService.BuildSuggestedRange(pricing);
 
-        var userInfo = await BuildUserRiskInfoAsync(request.UserId, cancellationToken);
+        var userInfo = await _userRiskInfoService.BuildUserRiskInfoAsync(request.UserId, cancellationToken);
         var risk = _precheckService.Evaluate(
             request.Title,
             request.Description,
@@ -80,9 +83,9 @@ public class AiListingService : IAiListingService
         return response;
     }
 
-    public async Task<AiListingPrecheckResponse> PrecheckAsync(AiListingPrecheckRequest request, CancellationToken cancellationToken = default)
+    public async Task<AiListingPrecheckResponse> PrecheckAsync(AiListingPrecheckRequest request, bool deepChecks, CancellationToken cancellationToken = default)
     {
-        var quality = await _qualityCheckService.CheckAsync(request.MediaUrls, cancellationToken);
+        var quality = await _qualityCheckService.CheckAsync(request.MediaUrls, deepChecks, cancellationToken);
 
         var conditionAi = await InferConditionAsync(request.Title, request.Description, request.MediaUrls, request.UserId, cancellationToken);
         var productKey = await BuildProductKeyAsync(request.CategoryId, request.Brand, request.Title, cancellationToken);
@@ -99,7 +102,7 @@ public class AiListingService : IAiListingService
             null);
         pricing = _pricingService.BuildSuggestedRange(pricing);
 
-        var userInfo = await BuildUserRiskInfoAsync(request.UserId, cancellationToken);
+        var userInfo = await _userRiskInfoService.BuildUserRiskInfoAsync(request.UserId, cancellationToken);
         var risk = _precheckService.Evaluate(
             request.Title,
             request.Description,
@@ -133,59 +136,6 @@ public class AiListingService : IAiListingService
         if (string.IsNullOrWhiteSpace(input)) return string.Empty;
         return SpaceRegex.Replace(input, " ").Trim().ToLowerInvariant();
     }
-
-    private async Task<AiUserRiskInfo> BuildUserRiskInfoAsync(string userId, CancellationToken cancellationToken)
-    {
-        if (!long.TryParse(userId, out var id))
-        {
-            return new AiUserRiskInfo(0, 0, 0, 0, 0, 0, false, false);
-        }
-
-        var now = DateTime.UtcNow;
-        var accountAgeDays = await _uow.Users.Query()
-            .Where(u => u.UserId == id)
-            .Select(u => u.CreatedAt.HasValue ? (int)(now - u.CreatedAt.Value).TotalDays : 0)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        var recentListingsCount = await _uow.Listings.Query()
-            .Where(l => l.SellerId == id && l.CreatedAt.HasValue && l.CreatedAt.Value >= now.AddMinutes(-10))
-            .CountAsync(cancellationToken);
-
-        var totalListingsCount = await _uow.Listings.Query()
-            .Where(l => l.SellerId == id)
-            .CountAsync(cancellationToken);
-
-        var completedSalesCount = await _uow.Orders.Query()
-            .Where(o => o.SellerId == id && o.Status == "Completed")
-            .CountAsync(cancellationToken);
-
-        var reportsCount = await _uow.Reports.Query()
-            .Where(r => r.TargetUserId == id && r.CreatedAt.HasValue && r.CreatedAt.Value >= now.AddDays(-30))
-            .CountAsync(cancellationToken);
-
-        var deviceCount = await _uow.UserDevices.Query()
-            .Where(d => d.UserId == id)
-            .CountAsync(cancellationToken);
-
-        var verification = await _uow.UserVerifications.Query()
-            .Where(v => v.UserId == id)
-            .OrderByDescending(v => v.VerifiedAt)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        var phoneVerified = verification?.PhoneVerified == true;
-        var emailVerified = verification?.EmailVerified == true;
-
-        return new AiUserRiskInfo(
-            Math.Max(0, accountAgeDays),
-            recentListingsCount,
-            totalListingsCount,
-            completedSalesCount,
-            reportsCount,
-            deviceCount,
-            phoneVerified,
-            emailVerified);
-    }
-
     private async Task<string> InferConditionAsync(string title, string description, IReadOnlyList<string> mediaUrls, string userId, CancellationToken cancellationToken)
     {
         var vision = await TryGeminiConditionAsync(title, description, mediaUrls, userId, cancellationToken);
@@ -193,7 +143,6 @@ public class AiListingService : IAiListingService
         {
             return vision!;
         }
-
         var text = $"{title} {description}".ToLowerInvariant();
         if (text.Contains("mới") || text.Contains("like new") || text.Contains("99%"))
         {
@@ -222,7 +171,6 @@ public class AiListingService : IAiListingService
             {
                 return cached.ConditionLabel;
             }
-
             var prompt =
                 "Hãy phân loại tình trạng sản phẩm theo 1 trong 4 nhãn: NEW, GOOD, FAIR, POOR. " +
                 "Chỉ trả về đúng 1 nhãn.\n" +
@@ -353,3 +301,12 @@ public class AiListingService : IAiListingService
         }
     }
 }
+
+
+
+
+
+
+
+
+
