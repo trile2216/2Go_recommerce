@@ -41,6 +41,8 @@ const STATUS_CLASS = {
   Deleted: 'sl-badge-deleted',
 };
 
+const REVIEW_NOTE_KEY = 'listingReviewNotes';
+
 export default function SellerListings() {
   const navigate = useNavigate();
   const toast = useToast();
@@ -126,11 +128,26 @@ export default function SellerListings() {
     }
   };
 
-  const renderBadge = (status) => (
-    <span className={`sl-badge ${STATUS_CLASS[status] || ''}`}>
-      {STATUS_LABEL[status] || status}
-    </span>
-  );
+  const renderBadge = (status, listingId) => {
+    let note = null;
+    if (status === 'PendingReview') {
+      try {
+        const stored = JSON.parse(localStorage.getItem(REVIEW_NOTE_KEY) || '{}');
+        note = stored[String(listingId)]?.note || null;
+      } catch {
+        note = null;
+      }
+    }
+
+    return (
+      <span
+        className={`sl-badge ${STATUS_CLASS[status] || ''}`}
+        title={note || undefined}
+      >
+        {STATUS_LABEL[status] || status}
+      </span>
+    );
+  };
 
   const renderActions = (item) => {
     const isProcessing = actionLoading === item.listingId;
@@ -253,7 +270,7 @@ export default function SellerListings() {
                 <ListingCard
                   key={item.listingId}
                   listing={item}
-                  badge={renderBadge(item.status)}
+                  badge={renderBadge(item.status, item.listingId)}
                   meta={
                     <>
                       <span>Ngày tạo: {formatDate(item.createdAt)}</span>

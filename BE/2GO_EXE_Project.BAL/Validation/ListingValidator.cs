@@ -26,9 +26,9 @@ public static class ListingValidator
             result.Add("title", "Title must be <= 255 chars.");
         }
 
-        if (!request.Price.HasValue || request.Price.Value <= 0)
+        if (!request.Price.HasValue || request.Price.Value < 0)
         {
-            result.Add("price", "Price must be greater than 0.");
+            result.Add("price", "Price must be >= 0.");
         }
 
         if (!string.IsNullOrWhiteSpace(request.Condition) && request.Condition.Trim().Length > ConditionMaxLength)
@@ -73,9 +73,9 @@ public static class ListingValidator
             result.Add("title", "Title must be <= 255 chars.");
         }
 
-        if (request.Price.HasValue && request.Price.Value <= 0)
+        if (request.Price.HasValue && request.Price.Value < 0)
         {
-            result.Add("price", "Price must be greater than 0.");
+            result.Add("price", "Price must be >= 0.");
         }
 
         if (!string.IsNullOrWhiteSpace(request.Condition) && request.Condition.Trim().Length > ConditionMaxLength)

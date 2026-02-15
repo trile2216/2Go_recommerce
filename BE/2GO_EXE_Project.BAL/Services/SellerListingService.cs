@@ -290,9 +290,9 @@ public class SellerListingService : ISellerListingService
 
         if (string.Equals(status, ListingStatuses.PendingReview, StringComparison.OrdinalIgnoreCase))
         {
-            if (!request.Price.HasValue || request.Price.Value <= 0)
+            if (!request.Price.HasValue || request.Price.Value < 0)
             {
-                throw new InvalidOperationException("Price must be greater than 0 for listings.");
+                throw new InvalidOperationException("Price must be >= 0 for listings.");
             }
         }
 
@@ -463,9 +463,9 @@ public class SellerListingService : ISellerListingService
             return new BasicResponse(false, "Title is required before submitting.");
         }
 
-        if (!listing.Price.HasValue || listing.Price.Value <= 0)
+        if (!listing.Price.HasValue || listing.Price.Value < 0)
         {
-            return new BasicResponse(false, "Price must be greater than 0 before submitting.");
+            return new BasicResponse(false, "Price must be >= 0 before submitting.");
         }
 
         if (!listing.SubCategoryId.HasValue)
