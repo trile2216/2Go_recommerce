@@ -432,6 +432,8 @@ export default function PostListing() {
         let hideLoadingMsg;
         
         try {
+            let forcePendingReview = false;
+            let precheckNote = null;
             // Start loading with appropriate message
             if (status === 'Draft') {
                 hideLoadingMsg = message.loading("Đang lưu nháp...", 0);
@@ -530,29 +532,56 @@ export default function PostListing() {
                 const precheckResult = await listingPrecheck(precheckData);
 
                 if (!precheckResult.canPublish) {
-                    hideLoadingMsg();
                     const riskAction = precheckResult.risk?.action || precheckResult.risk?.Action;
                     const qualityDecision = precheckResult.quality?.decision || precheckResult.quality?.Decision;
                     const shouldBlock =
                         String(riskAction).toUpperCase() === "REJECTED" ||
                         String(qualityDecision).toUpperCase() === "REJECT";
                     if (shouldBlock) {
+                        hideLoadingMsg();
                         message.error(
                             precheckResult.risk?.message ||
                             "Bài đăng không đủ điều kiện. Vui lòng kiểm tra lại!"
                         );
+                        setIsSubmitting(false);
                         return;
                     }
+                    forcePendingReview = true;
+                    precheckNote = precheckResult.note || null;
+
+                    const issues = Array.isArray(precheckResult.quality?.issues)
+                        ? precheckResult.quality.issues
+                        : [];
+                    const filteredIssues = issues.filter((issue) => !/gemini/i.test(issue));
+                    const suggestions = [];
+                    if (issues.some((issue) => /only\s*1\s*media/i.test(issue))) {
+                        suggestions.push('Tải thêm ít nhất 2 ảnh rõ nét');
+                    }
+                    if (issues.some((issue) => /image resolution too low/i.test(issue))) {
+                        suggestions.push('Chụp lại ảnh có độ phân giải cao');
+                    }
+
+                    const warningLines = [
+                        'Bài đăng sẽ chờ kiểm duyệt thủ công.',
+                        'Lý do:',
+                        ...filteredIssues.map((issue) => `- ${issue}`),
+                    ];
+                    if (suggestions.length > 0) {
+                        warningLines.push('Gợi ý:', ...suggestions.map((s) => `- ${s}`));
+                    }
+                    message.warning(warningLines.join('\n'));
                 }
 
-                if (precheckResult.note) {
+                if (precheckResult.note && precheckResult.canPublish) {
                     message.warning(precheckResult.note);
                 }
             }
 
             // For PendingReview: Create as Draft first, then publish
             // For Draft: Just create as Draft directly
-            const creationStatus = status === 'PendingReview' ? 'Draft' : 'Draft';
+            const creationStatus = status === 'PendingReview'
+                ? (forcePendingReview ? 'PendingReview' : 'Draft')
+                : 'Draft';
 
             // Prepare request body matching CreateSellerListingRequest DTO
             const requestData = {
@@ -588,15 +617,34 @@ export default function PostListing() {
                  await updateListingMedia(editId, mediaData);
                  
                  // If user was updating with PendingReview, publish it
-                 if (status === 'PendingReview') {
-                     await publishListing(editId);
-                     hideLoadingMsg();
-                     message.success("Cập nhật và gửi duyệt bài đăng thành công!");
-                 } else {
-                     hideLoadingMsg();
-                     message.success("Cập nhật bài đăng thành công!");
-                 }
-                 navigate(`/seller/listings/${editId}`);
+                if (status === 'PendingReview') {
+                    if (forcePendingReview) {
+                        hideLoadingMsg();
+                        message.warning("Cập nhật thành công. Bài đăng đang chờ kiểm duyệt.");
+                        if (precheckNote) {
+                            const key = 'listingReviewNotes';
+                            let stored = {};
+                            try {
+                                stored = JSON.parse(localStorage.getItem(key) || '{}');
+                            } catch {
+                                stored = {};
+                            }
+                            stored[String(editId)] = {
+                                note: precheckNote,
+                                updatedAt: new Date().toISOString(),
+                            };
+                            localStorage.setItem(key, JSON.stringify(stored));
+                        }
+                    } else {
+                        await publishListing(editId);
+                        hideLoadingMsg();
+                        message.success("Cập nhật và gửi duyệt bài đăng thành công!");
+                    }
+                } else {
+                    hideLoadingMsg();
+                    message.success("Cập nhật bài đăng thành công!");
+                }
+                navigate(`/seller/listings/${editId}`);
             } else {
                 // Create new listing
 
@@ -606,6 +654,31 @@ export default function PostListing() {
 
                 // Step 2: If user wanted to publish, proceed with publishing
                 if (status === 'PendingReview') {
+                    if (forcePendingReview) {
+                        hideLoadingMsg();
+                        message.warning("Bài đăng đã được tạo và đang chờ kiểm duyệt.");
+                        if (precheckNote && newListingId) {
+                            const key = 'listingReviewNotes';
+                            let stored = {};
+                            try {
+                                stored = JSON.parse(localStorage.getItem(key) || '{}');
+                            } catch {
+                                stored = {};
+                            }
+                            stored[String(newListingId)] = {
+                                note: precheckNote,
+                                updatedAt: new Date().toISOString(),
+                            };
+                            localStorage.setItem(key, JSON.stringify(stored));
+                        }
+                        setIsFormDirty(false);
+                        if (blocker.state === "blocked") {
+                            blocker.proceed();
+                        } else {
+                            navigate("/");
+                        }
+                        return;
+                    }
                     // Show intermediate message after draft created
                     hideLoadingMsg();
                     const hidePublishingMsg = message.loading(
