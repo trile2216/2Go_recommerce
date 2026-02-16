@@ -517,7 +517,10 @@ public class SellerListingService : ISellerListingService
             sellerId.ToString());
 
         var precheck = await _aiListingService.PrecheckAsync(precheckRequest, deepChecks: true, cancellationToken);
-        if (!string.Equals(precheck.Quality.Decision, "PASS", StringComparison.OrdinalIgnoreCase))
+        var qualityDecision = precheck.Quality.Decision?.Trim();
+        var isQualityReject = string.Equals(qualityDecision, "REJECT", StringComparison.OrdinalIgnoreCase);
+        var isQualityManual = string.Equals(qualityDecision, "MANUAL_REVIEW", StringComparison.OrdinalIgnoreCase);
+        if (isQualityReject)
         {
             return new BasicResponse(false, "Images did not pass quality checks. Please update your photos.");
         }
@@ -545,9 +548,10 @@ public class SellerListingService : ISellerListingService
             }
         }
 
-        var targetStatus = string.Equals(precheck.Risk.Action, "PENDING_REVIEW", StringComparison.OrdinalIgnoreCase)
-            ? ListingStatuses.PendingReview
-            : ListingStatuses.Active;
+        var targetStatus =
+            isQualityManual || string.Equals(precheck.Risk.Action, "PENDING_REVIEW", StringComparison.OrdinalIgnoreCase)
+                ? ListingStatuses.PendingReview
+                : ListingStatuses.Active;
 
         listing.Status = targetStatus;
         listing.PublishedAt = now;

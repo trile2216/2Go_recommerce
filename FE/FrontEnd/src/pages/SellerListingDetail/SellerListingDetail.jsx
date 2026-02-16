@@ -63,6 +63,20 @@ export default function SellerListingDetail() {
     return raw;
   };
 
+  const getPublishSuccessMessage = (response) => {
+    const raw = response?.message || '';
+    if (typeof raw === 'string') {
+      const lower = raw.toLowerCase();
+      if (lower.includes('review')) {
+        return 'Đăng bài thành công! Đang chờ duyệt.';
+      }
+      if (lower.includes('published')) {
+        return 'Đăng bài thành công! Bài đang bán.';
+      }
+    }
+    return 'Đăng bài thành công!';
+  };
+
   useEffect(() => {
     fetchListingDetail();
   }, [id]);
@@ -84,8 +98,8 @@ export default function SellerListingDetail() {
   const handlePublish = async () => {
     setActionLoading(true);
     try {
-      await publishListing(id);
-      toast.success('Đăng bài thành công! Đang chờ duyệt.');
+      const res = await publishListing(id);
+      toast.success(getPublishSuccessMessage(res));
       try {
         const stored = JSON.parse(localStorage.getItem('listingDraftNotes') || '{}');
         if (stored[String(id)]) {
