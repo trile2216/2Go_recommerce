@@ -72,6 +72,20 @@ export default function SellerListings() {
     return raw;
   };
 
+  const getPublishSuccessMessage = (response) => {
+    const raw = response?.message || '';
+    if (typeof raw === 'string') {
+      const lower = raw.toLowerCase();
+      if (lower.includes('review')) {
+        return 'Đăng bài thành công! Đang chờ duyệt.';
+      }
+      if (lower.includes('published')) {
+        return 'Đăng bài thành công! Bài đang bán.';
+      }
+    }
+    return 'Đăng bài thành công!';
+  };
+
   const fetchListings = useCallback(async (status, currentSkip = 0) => {
     try {
       setLoading(true);
@@ -105,8 +119,8 @@ export default function SellerListings() {
   const handlePublish = async (id) => {
     setActionLoading(id);
     try {
-      await publishListing(id);
-      toast.success('Đăng bài thành công! Đang chờ duyệt.');
+      const res = await publishListing(id);
+      toast.success(getPublishSuccessMessage(res));
       try {
         const stored = JSON.parse(localStorage.getItem('listingDraftNotes') || '{}');
         if (stored[String(id)]) {

@@ -414,6 +414,20 @@ export default function PostListing() {
         return raw;
     };
 
+    const getPublishSuccessMessage = (response) => {
+        const raw = response?.message || '';
+        if (typeof raw === 'string') {
+            const lower = raw.toLowerCase();
+            if (lower.includes('review')) {
+                return 'Đăng bài thành công! Đang chờ duyệt.';
+            }
+            if (lower.includes('published')) {
+                return 'Đăng bài thành công! Bài đang bán.';
+            }
+        }
+        return 'Đăng bài thành công!';
+    };
+
     const upsertDraftNote = (listingId, message) => {
         if (!listingId || !message) return;
         const key = 'listingDraftNotes';
@@ -776,11 +790,11 @@ export default function PostListing() {
                         // - Quota limits check
                         // - If pass -> Active or PendingReview (for manual review)
                         // - If fail or quota exceeded -> Manual review (PendingReview)
-                        await publishListing(newListingId);
+                        const publishRes = await publishListing(newListingId);
                         hidePublishingMsg();
                         
                         message.success({
-                            content: "Tin đã được tạo. Hệ thống sẽ kiểm tra nội dung chi tiết trước khi hiển thị.",
+                            content: getPublishSuccessMessage(publishRes),
                             duration: 3
                         });
                         clearDraftNote(newListingId);
