@@ -397,6 +397,54 @@ export default function PostListing() {
         if (!isFormDirty) setIsFormDirty(true);
     };
 
+    const getPublishErrorMessage = (error) => {
+        const raw =
+            error?.response?.data?.message ||
+            error?.response?.data ||
+            error?.message ||
+            'Đăng bài thất bại';
+        if (typeof raw !== 'string') return 'Đăng bài thất bại';
+
+        if (raw.includes('Images did not pass quality checks')) {
+            return 'Ảnh chưa đạt chất lượng nên chưa thể đăng. Vui lòng cập nhật ảnh rõ nét hơn rồi thử lại.';
+        }
+        if (raw.includes('Price must be greater than 0') || raw.includes('Price must be >= 0')) {
+            return 'Giá bán không hợp lệ. Vui lòng nhập giá >= 0.';
+        }
+        return raw;
+    };
+
+    const upsertDraftNote = (listingId, message) => {
+        if (!listingId || !message) return;
+        const key = 'listingDraftNotes';
+        let stored = {};
+        try {
+            stored = JSON.parse(localStorage.getItem(key) || '{}');
+        } catch {
+            stored = {};
+        }
+        stored[String(listingId)] = {
+            message,
+            updatedAt: new Date().toISOString(),
+        };
+        localStorage.setItem(key, JSON.stringify(stored));
+    };
+
+    const clearDraftNote = (listingId) => {
+        if (!listingId) return;
+        const key = 'listingDraftNotes';
+        let stored = {};
+        try {
+            stored = JSON.parse(localStorage.getItem(key) || '{}');
+        } catch {
+            stored = {};
+        }
+        if (stored[String(listingId)]) {
+            delete stored[String(listingId)];
+            localStorage.setItem(key, JSON.stringify(stored));
+        }
+    };
+
     const handleSaveDraft = () => {
         const values = form.getFieldsValue();
         submitListing(values, 'Draft');
@@ -407,8 +455,22 @@ export default function PostListing() {
     };
 
     const submitListing = async (values, status) => {
+        let submitStatus = status;
+        const draftReasons = [];
+        if (status === 'PendingReview') {
+            if (imageList.length < 2) {
+                draftReasons.push('Cần ít nhất 2 ảnh để gửi duyệt.');
+            }
+            if (!selectedWard) {
+                draftReasons.push('Vui lòng chọn Phường/Xã trước khi gửi duyệt.');
+            }
+            if (draftReasons.length > 0) {
+                submitStatus = 'Draft';
+                message.warning(`Bài đăng sẽ được lưu nháp vì:\n${draftReasons.map(r => `- ${r}`).join('\n')}`);
+            }
+        }
         // Validation for PendingReview and Draft
-        if (status === 'PendingReview' || status === 'Draft') {
+        if (submitStatus === 'PendingReview' || submitStatus === 'Draft') {
             // Validation: at least 1 image required
             if (imageList.length === 0) {
                 message.error("Vui lòng tải lên ít nhất 1 hình ảnh!");
@@ -435,7 +497,7 @@ export default function PostListing() {
             let forcePendingReview = false;
             let precheckNote = null;
             // Start loading with appropriate message
-            if (status === 'Draft') {
+            if (submitStatus === 'Draft') {
                 hideLoadingMsg = message.loading("Đang lưu nháp...", 0);
             } else {
                 // For PendingReview: show initial message about checking
@@ -493,7 +555,7 @@ export default function PostListing() {
 
             // Quick precheck before creating listing (only for PendingReview)
             // Precheck: kiểm tra quick (ảnh hợp lệ, chất lượng cơ bản, spam, link, giá...)
-            if (status === 'PendingReview') {
+            if (submitStatus === 'PendingReview') {
                 // Validate userId exists
                 const userId = user?.userId || user?.id;
                 console.log('=== USER DEBUG ===');
@@ -553,23 +615,36 @@ export default function PostListing() {
                         ? precheckResult.quality.issues
                         : [];
                     const filteredIssues = issues.filter((issue) => !/gemini/i.test(issue));
+                    const hasOnlyOneMedia = issues.some((issue) => /only\s*1\s*media/i.test(issue));
+                    const hasLowResolution = issues.some((issue) => /image resolution too low/i.test(issue));
                     const suggestions = [];
-                    if (issues.some((issue) => /only\s*1\s*media/i.test(issue))) {
+                    if (hasOnlyOneMedia) {
                         suggestions.push('Tải thêm ít nhất 2 ảnh rõ nét');
                     }
-                    if (issues.some((issue) => /image resolution too low/i.test(issue))) {
+                    if (hasLowResolution) {
                         suggestions.push('Chụp lại ảnh có độ phân giải cao');
                     }
 
-                    const warningLines = [
-                        'Bài đăng sẽ chờ kiểm duyệt thủ công.',
-                        'Lý do:',
-                        ...filteredIssues.map((issue) => `- ${issue}`),
-                    ];
-                    if (suggestions.length > 0) {
-                        warningLines.push('Gợi ý:', ...suggestions.map((s) => `- ${s}`));
+                    if (hasOnlyOneMedia || hasLowResolution) {
+                        submitStatus = 'Draft';
+                        forcePendingReview = false;
+                        const reason = hasOnlyOneMedia && hasLowResolution
+                            ? 'ảnh chưa đạt chuẩn và chưa đủ số lượng'
+                            : hasOnlyOneMedia
+                                ? 'chưa đủ số lượng ảnh'
+                                : 'ảnh chưa đạt chuẩn';
+                        message.warning(`Bài đăng sẽ được lưu nháp vì ${reason}. Vui lòng cập nhật ảnh rồi thử lại.`);
+                    } else {
+                        const warningLines = [
+                            'Bài đăng sẽ chờ kiểm duyệt thủ công.',
+                            'Lý do:',
+                            ...filteredIssues.map((issue) => `- ${issue}`),
+                        ];
+                        if (suggestions.length > 0) {
+                            warningLines.push('Gợi ý:', ...suggestions.map((s) => `- ${s}`));
+                        }
+                        message.warning(warningLines.join('\n'));
                     }
-                    message.warning(warningLines.join('\n'));
                 }
 
                 if (precheckResult.note && precheckResult.canPublish) {
@@ -579,7 +654,7 @@ export default function PostListing() {
 
             // For PendingReview: Create as Draft first, then publish
             // For Draft: Just create as Draft directly
-            const creationStatus = status === 'PendingReview'
+            const creationStatus = submitStatus === 'PendingReview'
                 ? (forcePendingReview ? 'PendingReview' : 'Draft')
                 : 'Draft';
 
@@ -617,7 +692,7 @@ export default function PostListing() {
                  await updateListingMedia(editId, mediaData);
                  
                  // If user was updating with PendingReview, publish it
-                if (status === 'PendingReview') {
+                if (submitStatus === 'PendingReview') {
                     if (forcePendingReview) {
                         hideLoadingMsg();
                         message.warning("Cập nhật thành công. Bài đăng đang chờ kiểm duyệt.");
@@ -636,9 +711,17 @@ export default function PostListing() {
                             localStorage.setItem(key, JSON.stringify(stored));
                         }
                     } else {
-                        await publishListing(editId);
-                        hideLoadingMsg();
-                        message.success("Cập nhật và gửi duyệt bài đăng thành công!");
+                        try {
+                            await publishListing(editId);
+                            hideLoadingMsg();
+                            message.success("Cập nhật và gửi duyệt bài đăng thành công!");
+                            clearDraftNote(editId);
+                        } catch (publishError) {
+                            hideLoadingMsg();
+                            const publishErrorMsg = getPublishErrorMessage(publishError);
+                            upsertDraftNote(editId, publishErrorMsg);
+                            message.warning(publishErrorMsg);
+                        }
                     }
                 } else {
                     hideLoadingMsg();
@@ -653,7 +736,7 @@ export default function PostListing() {
                 const newListingId = response.id || response.listingId;
 
                 // Step 2: If user wanted to publish, proceed with publishing
-                if (status === 'PendingReview') {
+                if (submitStatus === 'PendingReview') {
                     if (forcePendingReview) {
                         hideLoadingMsg();
                         message.warning("Bài đăng đã được tạo và đang chờ kiểm duyệt.");
@@ -700,14 +783,15 @@ export default function PostListing() {
                             content: "Tin đã được tạo. Hệ thống sẽ kiểm tra nội dung chi tiết trước khi hiển thị.",
                             duration: 3
                         });
+                        clearDraftNote(newListingId);
                     } catch (publishError) {
                         hidePublishingMsg();
                         console.error("Publish error:", publishError);
                         
                         // Publish might fail due to deep check or quota issues
                         // In those cases, listing is already created as Draft and waiting for manual review
-                        const publishErrorMsg = publishError.response?.data?.message || 
-                            "Bài đăng đã được tạo nhưng chờ kiểm duyệt. Hệ thống sẽ xem xét sớm.";
+                        const publishErrorMsg = getPublishErrorMessage(publishError);
+                        upsertDraftNote(newListingId, publishErrorMsg);
                         message.warning(publishErrorMsg);
                     }
                 } else {
