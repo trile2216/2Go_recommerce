@@ -55,6 +55,23 @@ export default function SellerListings() {
   const [actionLoading, setActionLoading] = useState(null); // listingId đang xử lý
   const take = 20;
 
+  const getPublishErrorMessage = (error) => {
+    const raw =
+      error?.response?.data?.message ||
+      error?.response?.data ||
+      error?.message ||
+      'Đăng bài thất bại';
+    if (typeof raw !== 'string') return 'Đăng bài thất bại';
+
+    if (raw.includes('Images did not pass quality checks')) {
+      return 'Ảnh chưa đạt chất lượng nên chưa thể đăng. Vui lòng cập nhật ảnh rõ nét hơn rồi thử lại.';
+    }
+    if (raw.includes('Price must be greater than 0') || raw.includes('Price must be >= 0')) {
+      return 'Giá bán không hợp lệ. Vui lòng nhập giá >= 0.';
+    }
+    return raw;
+  };
+
   const fetchListings = useCallback(async (status, currentSkip = 0) => {
     try {
       setLoading(true);
@@ -90,10 +107,27 @@ export default function SellerListings() {
     try {
       await publishListing(id);
       toast.success('Đăng bài thành công! Đang chờ duyệt.');
+      try {
+        const stored = JSON.parse(localStorage.getItem('listingDraftNotes') || '{}');
+        if (stored[String(id)]) {
+          delete stored[String(id)];
+          localStorage.setItem('listingDraftNotes', JSON.stringify(stored));
+        }
+      } catch {
+        // ignore
+      }
       fetchListings(activeTab, 0);
       setSkip(0);
     } catch (err) {
-      toast.error(err.response?.data || 'Đăng bài thất bại');
+      const msg = getPublishErrorMessage(err);
+      toast.error(msg);
+      try {
+        const stored = JSON.parse(localStorage.getItem('listingDraftNotes') || '{}');
+        stored[String(id)] = { message: msg, updatedAt: new Date().toISOString() };
+        localStorage.setItem('listingDraftNotes', JSON.stringify(stored));
+      } catch {
+        // ignore
+      }
     } finally {
       setActionLoading(null);
     }
@@ -128,7 +162,23 @@ export default function SellerListings() {
     }
   };
 
+  const getDraftNote = (listingId) => {
+    if (!listingId) return null;
+    try {
+      const stored = JSON.parse(localStorage.getItem('listingDraftNotes') || '{}');
+      return stored[String(listingId)]?.message || null;
+    } catch {
+      return null;
+    }
+  };
+
   const renderBadge = (status, listingId) => {
+    const draftNote = status === 'Draft' ? getDraftNote(listingId) : null;
+    const shortDraftNote = draftNote?.includes('Ảnh chưa đạt chất lượng')
+      ? 'Cần cập nhật ảnh'
+      : draftNote
+        ? 'Cần cập nhật'
+        : null;
     let note = null;
     if (status === 'PendingReview') {
       try {
@@ -139,12 +189,14 @@ export default function SellerListings() {
       }
     }
 
+    const label = STATUS_LABEL[status] || status;
+    const title = draftNote || note || undefined;
     return (
       <span
         className={`sl-badge ${STATUS_CLASS[status] || ''}`}
-        title={note || undefined}
+        title={title}
       >
-        {STATUS_LABEL[status] || status}
+        {shortDraftNote ? `${label} • ${shortDraftNote}` : label}
       </span>
     );
   };

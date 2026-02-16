@@ -46,6 +46,23 @@ export default function SellerListingDetail() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
+  const getPublishErrorMessage = (error) => {
+    const raw =
+      error?.response?.data?.message ||
+      error?.response?.data ||
+      error?.message ||
+      'Đăng bài thất bại';
+    if (typeof raw !== 'string') return 'Đăng bài thất bại';
+
+    if (raw.includes('Images did not pass quality checks')) {
+      return 'Ảnh chưa đạt chất lượng nên chưa thể đăng. Vui lòng cập nhật ảnh rõ nét hơn rồi thử lại.';
+    }
+    if (raw.includes('Price must be greater than 0') || raw.includes('Price must be >= 0')) {
+      return 'Giá bán không hợp lệ. Vui lòng nhập giá >= 0.';
+    }
+    return raw;
+  };
+
   useEffect(() => {
     fetchListingDetail();
   }, [id]);
@@ -69,9 +86,26 @@ export default function SellerListingDetail() {
     try {
       await publishListing(id);
       toast.success('Đăng bài thành công! Đang chờ duyệt.');
+      try {
+        const stored = JSON.parse(localStorage.getItem('listingDraftNotes') || '{}');
+        if (stored[String(id)]) {
+          delete stored[String(id)];
+          localStorage.setItem('listingDraftNotes', JSON.stringify(stored));
+        }
+      } catch {
+        // ignore
+      }
       fetchListingDetail();
     } catch (err) {
-      toast.error(err.response?.data || 'Đăng bài thất bại');
+      const msg = getPublishErrorMessage(err);
+      toast.error(msg);
+      try {
+        const stored = JSON.parse(localStorage.getItem('listingDraftNotes') || '{}');
+        stored[String(id)] = { message: msg, updatedAt: new Date().toISOString() };
+        localStorage.setItem('listingDraftNotes', JSON.stringify(stored));
+      } catch {
+        // ignore
+      }
     } finally {
       setActionLoading(false);
     }
