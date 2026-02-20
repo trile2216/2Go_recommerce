@@ -19,10 +19,11 @@ import * as ImagePicker from "expo-image-picker";
 
 import { fetchAllCategories, fetchSubCategoriesByCategoryId } from "../service/home/api.category";
 import { fetchAllDistricts, fetchAllWards } from "../service/home/api.ward";
-import { createListing } from "../service/home/api.sellerListing";
-import { uploadImageAndGetUrl, uploadVideo } from "../service/upload/api.upload";
+import { createListing, publishListing } from "../service/home/api.sellerListing";
+import { uploadImageAndGetUrl, uploadVideoAndGetUrl } from "../service/upload/api.upload";
 import { listingPrecheck } from "../service/ai/api.analyze";
 import { useAuth } from "../context/AuthContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const CONDITIONS = [
   { value: "new", label: "Mới" },
@@ -71,6 +72,8 @@ const PostListing = ({ navigation }) => {
 
   // Submit State
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMode, setSubmitMode] = useState(null); // 'publish' or 'draft'
+  const [loadingMessage, setLoadingMessage] = useState('');
 
   // Load Categories
   useEffect(() => {
@@ -233,46 +236,162 @@ const PostListing = ({ navigation }) => {
     setVideoUri(null);
   };
 
-  // Form Validation
-  const validateForm = () => {
-    if (!formData.title.trim()) {
-      Alert.alert("Lỗi", "Vui lòng nhập tiêu đề sản phẩm");
-      return false;
+  // --- Helper functions (matching FE logic) ---
+  const getPublishErrorMessage = (error) => {
+    const raw =
+      error?.response?.data?.message ||
+      error?.response?.data ||
+      error?.message ||
+      'Đăng bài thất bại';
+    if (typeof raw !== 'string') return 'Đăng bài thất bại';
+
+    if (raw.includes('Images did not pass quality checks')) {
+      return 'Ảnh chưa đạt chất lượng nên chưa thể đăng. Vui lòng cập nhật ảnh rõ nét hơn rồi thử lại.';
     }
-    if (!formData.description.trim()) {
-      Alert.alert("Lỗi", "Vui lòng nhập mô tả sản phẩm");
-      return false;
+    if (raw.includes('Price must be greater than 0') || raw.includes('Price must be >= 0')) {
+      return 'Giá bán không hợp lệ. Vui lòng nhập giá >= 0.';
     }
-    if (!formData.isFree && !formData.price) {
-      Alert.alert("Lỗi", "Vui lòng nhập giá bán");
-      return false;
+    return raw;
+  };
+
+  const getPublishSuccessMessage = (response) => {
+    const raw = response?.message || '';
+    if (typeof raw === 'string') {
+      const lower = raw.toLowerCase();
+      if (lower.includes('review')) {
+        return 'Đăng bài thành công! Đang chờ duyệt.';
+      }
+      if (lower.includes('published')) {
+        return 'Đăng bài thành công! Bài đang bán.';
+      }
     }
-    if (!selectedSubcategory) {
-      Alert.alert("Lỗi", "Vui lòng chọn danh mục sản phẩm");
-      return false;
+    return 'Đăng bài thành công!';
+  };
+
+  const upsertDraftNote = async (listingId, noteMessage) => {
+    if (!listingId || !noteMessage) return;
+    try {
+      const key = 'listingDraftNotes';
+      const raw = await AsyncStorage.getItem(key);
+      let stored = {};
+      try { stored = JSON.parse(raw || '{}'); } catch { stored = {}; }
+      stored[String(listingId)] = {
+        message: noteMessage,
+        updatedAt: new Date().toISOString(),
+      };
+      await AsyncStorage.setItem(key, JSON.stringify(stored));
+    } catch (e) {
+      console.error('Error saving draft note:', e);
     }
-    if (!formData.condition) {
-      Alert.alert("Lỗi", "Vui lòng chọn tình trạng sản phẩm");
-      return false;
+  };
+
+  const clearDraftNote = async (listingId) => {
+    if (!listingId) return;
+    try {
+      const key = 'listingDraftNotes';
+      const raw = await AsyncStorage.getItem(key);
+      let stored = {};
+      try { stored = JSON.parse(raw || '{}'); } catch { stored = {}; }
+      if (stored[String(listingId)]) {
+        delete stored[String(listingId)];
+        await AsyncStorage.setItem(key, JSON.stringify(stored));
+      }
+    } catch (e) {
+      console.error('Error clearing draft note:', e);
     }
+  };
+
+  // --- Validation ---
+  const validateForm = (status) => {
+    // For both Draft and PendingReview: at least 1 image is required
     if (imageList.length === 0) {
       Alert.alert("Lỗi", "Vui lòng tải lên ít nhất 1 hình ảnh");
       return false;
     }
+
+    // Exactly 1 primary image
+    const primaryCount = imageList.filter((img) => img.isPrimary).length;
+    if (primaryCount !== 1) {
+      Alert.alert("Lỗi", "Phải có đúng 1 ảnh bìa!");
+      return false;
+    }
+
+    if (!selectedSubcategory) {
+      Alert.alert("Lỗi", "Vui lòng chọn danh mục sản phẩm");
+      return false;
+    }
+
+    // For PendingReview: additional validations
+    if (status === 'PendingReview') {
+      if (!formData.title.trim()) {
+        Alert.alert("Lỗi", "Vui lòng nhập tiêu đề sản phẩm");
+        return false;
+      }
+      if (!formData.description.trim()) {
+        Alert.alert("Lỗi", "Vui lòng nhập mô tả sản phẩm");
+        return false;
+      }
+      if (!formData.isFree && !formData.price) {
+        Alert.alert("Lỗi", "Vui lòng nhập giá bán");
+        return false;
+      }
+      if (!formData.condition) {
+        Alert.alert("Lỗi", "Vui lòng chọn tình trạng sản phẩm");
+        return false;
+      }
+    }
+
     return true;
   };
 
-  // Submit Handler
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
+  // --- Save Draft handler ---
+  const handleSaveDraft = () => {
+    submitListing('Draft');
+  };
+
+  // --- Publish handler ---
+  const handleSubmit = () => {
+    submitListing('PendingReview');
+  };
+
+  // --- Main submit logic (matching FE two-step flow) ---
+  const submitListing = async (status) => {
+    let submitStatus = status;
+    const draftReasons = [];
+
+    // Smart downgrade: if conditions not met for PendingReview, save as Draft
+    if (status === 'PendingReview') {
+      if (imageList.length < 2) {
+        draftReasons.push('Cần ít nhất 2 ảnh để gửi duyệt.');
+      }
+      if (!selectedWard) {
+        draftReasons.push('Vui lòng chọn Phường/Xã trước khi gửi duyệt.');
+      }
+      if (draftReasons.length > 0) {
+        submitStatus = 'Draft';
+        Alert.alert(
+          'Lưu nháp',
+          `Bài đăng sẽ được lưu nháp vì:\n${draftReasons.map(r => `- ${r}`).join('\n')}`
+        );
+      }
+    }
+
+    // Run validation
+    if (!validateForm(submitStatus)) return;
 
     setIsSubmitting(true);
+    setSubmitMode(submitStatus === 'Draft' ? 'draft' : 'publish');
+    setLoadingMessage(submitStatus === 'Draft' ? 'Đang lưu nháp...' : 'Đang kiểm tra bài đăng...');
+
+    let forcePendingReview = false;
+    let precheckNote = null;
+
     try {
       // Upload images
       const imageFiles = imageList.map((img) => ({
         uri: img.uri,
         type: "image/jpeg",
-        name: `image_${Date.now()}.jpg`,
+        name: `image_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`,
       }));
 
       const imageUrls = await uploadImageAndGetUrl(imageFiles);
@@ -294,8 +413,7 @@ const PostListing = ({ navigation }) => {
           type: "video/mp4",
           name: `video_${Date.now()}.mp4`,
         };
-        const videoResult = await uploadVideo(videoFile);
-        videoUrl = videoResult.secureUrl || videoResult.url;
+        videoUrl = await uploadVideoAndGetUrl(videoFile);
         mediaData.push({
           url: videoUrl,
           mediaType: "VIDEO",
@@ -308,33 +426,110 @@ const PostListing = ({ navigation }) => {
       const allMediaUrls = [...imageUrlArr];
       if (videoUrl) allMediaUrls.push(videoUrl);
 
-      // Call precheck API before creating listing
-      const precheckData = {
-        title: formData.title,
-        description: formData.description,
-        categoryId: selectedCategory?.id || 0,
-        brand: formData.brand || "",
-        price: formData.isFree ? 0 : parseFloat(formData.price) || 0,
-        mediaUrls: allMediaUrls,
-        userId: user?.userId || user?.id || "",
-      };
+      // --- Precheck (only for PendingReview) ---
+      if (submitStatus === 'PendingReview') {
+        // Validate userId
+        const userId = user?.userId || user?.id;
+        if (!userId) {
+          Alert.alert("Lỗi", "Không tìm thấy ID người dùng. Vui lòng đăng nhập lại.");
+          setIsSubmitting(false);
+          setLoadingMessage('');
+          return;
+        }
 
-      const precheckResult = await listingPrecheck(precheckData);
+        // Validate mediaUrls
+        if (allMediaUrls.length === 0) {
+          Alert.alert("Lỗi", "Không có hình ảnh hoặc video để gửi kiểm tra.");
+          setIsSubmitting(false);
+          setLoadingMessage('');
+          return;
+        }
 
-      if (!precheckResult.canPublish) {
-        setIsSubmitting(false);
-        Alert.alert(
-          "Không thể đăng tin",
-          precheckResult.risk?.message || precheckResult.note || "Bài đăng không đủ điều kiện. Vui lòng kiểm tra lại!"
-        );
-        return;
+        const precheckData = {
+          title: formData.title,
+          description: formData.description,
+          categoryId: selectedCategory?.id || 0,
+          brand: formData.brand || "",
+          price: formData.isFree ? 0 : parseFloat(formData.price) || 0,
+          mediaUrls: allMediaUrls,
+          userId: String(userId),
+        };
+
+        setLoadingMessage('Đang kiểm tra chất lượng bài đăng...');
+        const precheckResult = await listingPrecheck(precheckData);
+
+        if (!precheckResult.canPublish) {
+          const riskAction = precheckResult.risk?.action || precheckResult.risk?.Action;
+          const qualityDecision = precheckResult.quality?.decision || precheckResult.quality?.Decision;
+          const shouldBlock =
+            String(riskAction).toUpperCase() === "REJECTED" ||
+            String(qualityDecision).toUpperCase() === "REJECT";
+
+          if (shouldBlock) {
+            // Hard block - cannot proceed
+            Alert.alert(
+              "Không thể đăng tin",
+              precheckResult.risk?.message ||
+              "Bài đăng không đủ điều kiện. Vui lòng kiểm tra lại!"
+            );
+            setIsSubmitting(false);
+            setLoadingMessage('');
+            return;
+          }
+
+          // Soft issues - check quality details
+          forcePendingReview = true;
+          precheckNote = precheckResult.note || null;
+
+          const issues = Array.isArray(precheckResult.quality?.issues)
+            ? precheckResult.quality.issues
+            : [];
+          const filteredIssues = issues.filter((issue) => !/gemini/i.test(issue));
+          const hasOnlyOneMedia = issues.some((issue) => /only\s*1\s*media/i.test(issue));
+          const hasLowResolution = issues.some((issue) => /image resolution too low/i.test(issue));
+
+          if (hasOnlyOneMedia || hasLowResolution) {
+            // Downgrade to Draft due to quality issues
+            submitStatus = 'Draft';
+            forcePendingReview = false;
+            const reason = hasOnlyOneMedia && hasLowResolution
+              ? 'ảnh chưa đạt chuẩn và chưa đủ số lượng'
+              : hasOnlyOneMedia
+                ? 'chưa đủ số lượng ảnh'
+                : 'ảnh chưa đạt chuẩn';
+            Alert.alert(
+              'Lưu nháp',
+              `Bài đăng sẽ được lưu nháp vì ${reason}. Vui lòng cập nhật ảnh rồi thử lại.`
+            );
+          } else {
+            // Will proceed as PendingReview (manual review)
+            const warningLines = [
+              'Bài đăng sẽ chờ kiểm duyệt thủ công.',
+              'Lý do:',
+              ...filteredIssues.map((issue) => `- ${issue}`),
+            ];
+            Alert.alert('Thông báo', warningLines.join('\n'));
+          }
+        }
+
+        // Show note if precheck passed but has notes
+        if (precheckResult.note && precheckResult.canPublish) {
+          Alert.alert('Lưu ý', precheckResult.note);
+        }
       }
 
-      // Prepare request
+      // --- Determine creation status ---
+      // For PendingReview: Create as Draft first, then publish (unless forcePendingReview)
+      // For Draft: Just create as Draft directly
+      const creationStatus = submitStatus === 'PendingReview'
+        ? (forcePendingReview ? 'PendingReview' : 'Draft')
+        : 'Draft';
+
+      // Prepare request body matching CreateSellerListingRequest DTO
       const requestData = {
         title: formData.title,
         description: formData.description,
-        subCategoryId: selectedSubcategory.id,
+        subCategoryId: selectedSubcategory?.id,
         wardId: selectedWard?.value || null,
         price: formData.isFree ? 0 : parseFloat(formData.price) || 0,
         listingType: "Single",
@@ -351,21 +546,88 @@ const PostListing = ({ navigation }) => {
           { name: "Bảo hành", value: formData.warranty || "" },
           { name: "Xuất xứ", value: formData.origin || "" },
         ].filter((attr) => attr.value),
+        status: creationStatus,
       };
 
-      await createListing(requestData);
+      setLoadingMessage(submitStatus === 'Draft' ? 'Đang lưu nháp...' : 'Đang tạo bài đăng...');
 
-      Alert.alert("Thành công", "Tin của bạn đã được đăng tải thành công!", [
-        { text: "OK", onPress: () => navigation?.goBack() },
-      ]);
+      // Step 1: Create the listing (as Draft or PendingReview)
+      const response = await createListing(requestData);
+      const newListingId = response.id || response.listingId;
+
+      // Step 2: If user wanted to publish (PendingReview), proceed with publishing
+      if (submitStatus === 'PendingReview') {
+        if (forcePendingReview) {
+          // Already created as PendingReview, waiting for manual review
+          if (precheckNote && newListingId) {
+            try {
+              const key = 'listingReviewNotes';
+              const raw = await AsyncStorage.getItem(key);
+              let stored = {};
+              try { stored = JSON.parse(raw || '{}'); } catch { stored = {}; }
+              stored[String(newListingId)] = {
+                note: precheckNote,
+                updatedAt: new Date().toISOString(),
+              };
+              await AsyncStorage.setItem(key, JSON.stringify(stored));
+            } catch (e) {
+              console.error('Error saving review note:', e);
+            }
+          }
+          Alert.alert(
+            'Thông báo',
+            'Bài đăng đã được tạo và đang chờ kiểm duyệt.',
+            [{ text: 'OK', onPress: () => navigation?.goBack() }]
+          );
+        } else {
+          // Created as Draft, now publish
+          setLoadingMessage('Đang gửi duyệt...');
+          try {
+            const publishRes = await publishListing(newListingId);
+            const successMsg = getPublishSuccessMessage(publishRes);
+            await clearDraftNote(newListingId);
+            Alert.alert('Thành công', successMsg, [
+              { text: 'OK', onPress: () => navigation?.goBack() },
+            ]);
+          } catch (publishError) {
+            console.error('Publish error:', publishError);
+            const publishErrorMsg = getPublishErrorMessage(publishError);
+            await upsertDraftNote(newListingId, publishErrorMsg);
+            Alert.alert(
+              'Cảnh báo',
+              publishErrorMsg,
+              [{ text: 'OK', onPress: () => navigation?.goBack() }]
+            );
+          }
+        }
+      } else {
+        // Just saved as Draft
+        Alert.alert('Thành công', 'Đã lưu nháp!', [
+          { text: 'OK', onPress: () => navigation?.goBack() },
+        ]);
+      }
     } catch (error) {
-      console.error("Error creating listing:", error);
-      Alert.alert(
-        "Lỗi",
-        error.response?.data?.message || "Có lỗi xảy ra khi đăng tin. Vui lòng thử lại!"
-      );
+      console.error('Error in listing submission:', error);
+
+      // Extract validation errors from backend
+      const validationErrors = error.response?.data?.errors;
+      let errorMessage = error.response?.data?.message || 'Có lỗi xảy ra. Vui lòng thử lại!';
+
+      if (validationErrors) {
+        const errorList = Object.entries(validationErrors)
+          .map(([field, messages]) => {
+            const msgs = Array.isArray(messages) ? messages[0] : messages;
+            return `${field}: ${msgs}`;
+          })
+          .join('\n');
+        errorMessage = `Lỗi validate:\n${errorList}`;
+      }
+
+      Alert.alert('Lỗi', errorMessage);
     } finally {
       setIsSubmitting(false);
+      setSubmitMode(null);
+      setLoadingMessage('');
     }
   };
 
@@ -616,17 +878,38 @@ const PostListing = ({ navigation }) => {
         </View>
       </ScrollView>
 
+      {/* Loading Overlay */}
+      {isSubmitting && loadingMessage ? (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingBox}>
+            <ActivityIndicator size="large" color="#359EFF" />
+            <Text style={styles.loadingText}>{loadingMessage}</Text>
+          </View>
+        </View>
+      ) : null}
+
       {/* Submit Buttons */}
       <View style={styles.footer}>
-        <Pressable style={styles.cancelButton} onPress={() => navigation?.goBack()}>
+        <Pressable style={styles.cancelButton} onPress={() => navigation?.goBack()} disabled={isSubmitting}>
           <Text style={styles.cancelButtonText}>Hủy</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.draftButton, isSubmitting && styles.submitButtonDisabled]}
+          onPress={handleSaveDraft}
+          disabled={isSubmitting}
+        >
+          {isSubmitting && submitMode === 'draft' ? (
+            <ActivityIndicator color="#359EFF" size="small" />
+          ) : (
+            <Text style={styles.draftButtonText}>Lưu nháp</Text>
+          )}
         </Pressable>
         <Pressable
           style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
           onPress={handleSubmit}
           disabled={isSubmitting}
         >
-          {isSubmitting ? (
+          {isSubmitting && submitMode === 'publish' ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : (
             <Text style={styles.submitButtonText}>Đăng tin</Text>
@@ -1032,7 +1315,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     flexDirection: "row",
-    gap: 12,
+    gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: "#fff",
@@ -1040,7 +1323,7 @@ const styles = StyleSheet.create({
     borderTopColor: "#f0f0f0",
   },
   cancelButton: {
-    flex: 1,
+    flex: 0.8,
     paddingVertical: 14,
     borderRadius: 8,
     borderWidth: 1,
@@ -1049,9 +1332,24 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   cancelButtonText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
     color: "#111",
+  },
+  draftButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#359EFF",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
+  },
+  draftButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#359EFF",
   },
   submitButton: {
     flex: 1,
@@ -1065,9 +1363,33 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   submitButtonText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
     color: "#fff",
+  },
+  loadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 999,
+  },
+  loadingBox: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 24,
+    alignItems: "center",
+    gap: 12,
+    minWidth: 200,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: "#333",
+    fontWeight: "500",
   },
   modalOverlay: {
     flex: 1,

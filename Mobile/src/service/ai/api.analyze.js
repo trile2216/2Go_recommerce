@@ -20,10 +20,39 @@ import api from '../../config/axios';
  */
 export const listingPrecheck = async (data) => {
     try {
+        console.log('=== PRECHECK REQUEST DEBUG ===');
+        console.log('Full data object:', JSON.stringify(data, null, 2));
+        console.log('Data types:', {
+            title: typeof data.title,
+            description: typeof data.description,
+            categoryId: typeof data.categoryId,
+            brand: typeof data.brand,
+            price: typeof data.price,
+            mediaUrls: {
+                type: typeof data.mediaUrls,
+                isArray: Array.isArray(data.mediaUrls),
+                length: data.mediaUrls?.length,
+                values: data.mediaUrls
+            },
+            userId: {
+                type: typeof data.userId,
+                value: data.userId,
+                isEmpty: !data.userId
+            }
+        });
+        console.log('=== END DEBUG ===');
+        
         const response = await api.post('/ai/listings/precheck', data);
         return response.data;
     } catch (error) {
-        console.error('Error performing listing precheck:', error);
+        console.error('=== PRECHECK ERROR DEBUG ===');
+        console.error('Error status:', error.response?.status);
+        const errorData = error.response?.data;
+        if (errorData?.errors) {
+            console.error('Validation errors object:', JSON.stringify(errorData.errors, null, 2));
+        }
+        console.error('Full error data:', JSON.stringify(errorData, null, 2));
+        console.error('=== END ERROR DEBUG ===');
         throw error;
     }
 };
