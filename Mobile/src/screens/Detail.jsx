@@ -12,6 +12,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFavorites } from "../context/FavoritesContext";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 import { useState, useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { fetchProductById } from "../service/home/api.product";
@@ -29,6 +30,7 @@ const Detail = () => {
 
   const { isFavorited, addToFavorites, removeFromFavorites } = useFavorites();
   const { addToCart } = useCart();
+  const { user, isLoggedIn } = useAuth();
   const [addingToCart, setAddingToCart] = useState(false);
 
   // Fetch product details if not passed as param
@@ -75,6 +77,10 @@ const Detail = () => {
   const isFavorite = isFavorited(listingId);
 
   const toggleFavorite = async () => {
+    if (!isLoggedIn) {
+      navigation.navigate("Login");
+      return;
+    }
     if (isFavorite) {
       await removeFromFavorites(listingId);
     } else {
@@ -874,7 +880,13 @@ const Detail = () => {
             justifyContent: "center",
             alignItems: "center",
           }}
-          onPress={() => navigation.navigate("Chat")}
+          onPress={() => {
+            if (!isLoggedIn) {
+              navigation.navigate("Login");
+              return;
+            }
+            navigation.navigate("Chat");
+          }}
         >
           <MaterialCommunityIcons name="chat-outline" size={22} color="#111" />
         </Pressable>
@@ -895,6 +907,10 @@ const Detail = () => {
             opacity: addingToCart ? 0.7 : 1,
           }}
           onPress={async () => {
+            if (!isLoggedIn) {
+              navigation.navigate("Login");
+              return;
+            }
             if (addingToCart) return;
             setAddingToCart(true);
             try {
@@ -945,6 +961,10 @@ const Detail = () => {
             elevation: 5,
           }}
           onPress={() => {
+            if (!isLoggedIn) {
+              navigation.navigate("Login");
+              return;
+            }
             // Navigate to checkout with single item
             navigation.navigate("Checkout", {
               singleItem: {

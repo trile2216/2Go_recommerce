@@ -110,6 +110,10 @@ const Home = () => {
   };
 
   const handleToggleFavorite = async (product) => {
+    if (!user) {
+      navigation.navigate("Login");
+      return;
+    }
     const id = product.listingId || product.id;
     if (isFavorited(id)) {
       await removeFromFavorites(id);
@@ -205,7 +209,13 @@ const Home = () => {
         </View>
 
         <View style={styles.headerRight}>
-          <Pressable style={styles.cartBtn} onPress={() => navigation.navigate("Cart")}>
+          <Pressable style={styles.cartBtn} onPress={() => {
+            if (!user) {
+              navigation.navigate("Login");
+              return;
+            }
+            navigation.navigate("Cart");
+          }}>
             <MaterialCommunityIcons name="cart-outline" size={24} color="#374151" />
             {cartCount > 0 && (
               <View style={styles.cartBadge}>

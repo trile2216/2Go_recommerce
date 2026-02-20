@@ -27,21 +27,6 @@ const Stack = createStackNavigator();
 const Tabs = createBottomTabNavigator();
 const ChatStack = createStackNavigator();
 
-// Auth Stack
-const AuthStack = () => {
-  return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-        animationEnabled: true,
-      }}
-    >
-      <Stack.Screen name="Login" component={Login} />
-      <Stack.Screen name="Register" component={Register} />
-    </Stack.Navigator>
-  );
-};
-
 // Chat Stack
 const ChatStackNavigator = () => {
   return (
@@ -69,7 +54,44 @@ const AddListingStack = () => {
   );
 };
 
-// Main User Stack
+// Guest Bottom Tabs (Home only, with login prompts on other tabs)
+const GuestTabs = () => {
+  return (
+    <Tabs.Navigator
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName;
+          if (route.name === "Home") iconName = "home";
+          else if (route.name === "LoginTab") iconName = "login";
+
+          return (
+            <MaterialCommunityIcons name={iconName} size={size} color={color} />
+          );
+        },
+        tabBarActiveTintColor: "#359EFF",
+        tabBarInactiveTintColor: "#9ca3af",
+        tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
+        tabBarStyle: {
+          backgroundColor: "#fff",
+          borderTopWidth: 1,
+          borderTopColor: "#e5e7eb",
+          height: 64,
+          paddingBottom: 8,
+        },
+        headerShown: false,
+      })}
+    >
+      <Tabs.Screen name="Home" component={Home} options={{ title: "Home" }} />
+      <Tabs.Screen
+        name="LoginTab"
+        component={Login}
+        options={{ title: "Đăng nhập" }}
+      />
+    </Tabs.Navigator>
+  );
+};
+
+// Main User Tabs (logged in)
 const MainStack = () => {
   const { cartCount } = useCart();
 
@@ -178,12 +200,19 @@ const RootNavigation = () => {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!isLoggedIn || !token ? (
-          <Stack.Screen
-            name="Auth"
-            component={AuthStack}
-            options={{ animationEnabled: false }}
-          />
+          // Guest: Home, Detail, Login, Register only
+          <>
+            <Stack.Screen name="GuestMain" component={GuestTabs} />
+            <Stack.Screen
+              name="Detail"
+              component={Detail}
+              options={{ presentation: "modal" }}
+            />
+            <Stack.Screen name="Login" component={Login} />
+            <Stack.Screen name="Register" component={Register} />
+          </>
         ) : (
+          // Authenticated: all screens
           <>
             <Stack.Screen name="Main" component={MainStack} />
             <Stack.Screen
