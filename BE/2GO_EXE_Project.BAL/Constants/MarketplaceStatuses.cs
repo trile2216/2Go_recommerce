@@ -107,7 +107,7 @@ public static class PaymentStages
 public static class EscrowRules
 {
     public const decimal DepositRate = 0.10m;
-    public const decimal DepositThresholdAmount = 20_000_000m;
+    public const decimal DepositThresholdAmount = 2_000_000m;
     public const int DepositHoldHours = 72;
 }
 
