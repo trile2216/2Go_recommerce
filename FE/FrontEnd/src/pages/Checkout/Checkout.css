@@ -217,6 +217,14 @@
   background-color: rgba(255, 107, 53, 0.05);
 }
 
+.payment-option.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+  border-color: #e0e0e0;
+  background-color: #f5f5f5;
+}
+
 .radio-input {
   width: 20px;
   height: 20px;
@@ -715,6 +723,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -739,4 +748,122 @@
 .item-quantity {
   font-size: 0.85rem;
   color: #6b7280;
+}
+
+/* ── Escrow Card ── */
+.escrow-card {
+  border-color: #ff6b35;
+  border-width: 2px;
+}
+
+.escrow-header {
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.08), rgba(255, 87, 34, 0.04));
+}
+
+.escrow-info-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.escrow-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #ff6b35, #ff5722);
+  color: white;
+  padding: 0.4rem 0.85rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.escrow-description {
+  font-size: 0.88rem;
+  color: #555;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.escrow-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: #f9f9f9;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.escrow-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.88rem;
+  color: #444;
+}
+
+.escrow-detail-row.highlight {
+  background: rgba(255, 107, 53, 0.06);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  margin: 0.25rem -0.75rem;
+}
+
+.escrow-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.escrow-value {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.escrow-amount {
+  color: #ff6b35;
+  font-size: 1rem;
+}
+
+.escrow-warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.escrow-warning-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: #666;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  background: rgba(25, 118, 210, 0.06);
+}
+
+.escrow-warning-item svg {
+  flex-shrink: 0;
+  color: #1976d2;
+}
+
+.escrow-warning-item.caution {
+  background: rgba(255, 152, 0, 0.08);
+  color: #e65100;
+}
+
+.escrow-warning-item.caution svg {
+  color: #ff9800;
+}
+
+/* Escrow row in price summary */
+.escrow-row {
+  color: #ff6b35;
+  font-weight: 500;
+}
+
+.escrow-price {
+  color: #ff6b35;
+  font-weight: 600;
 }

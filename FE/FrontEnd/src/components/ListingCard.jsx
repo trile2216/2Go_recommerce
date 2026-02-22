@@ -19,7 +19,7 @@ export default function ListingCard({ listing, badge, meta, actions, onClick }) 
     if (onClick) {
       onClick(listing);
     } else {
-      navigate(`/product/${listing.listingId}`);
+      navigate(`/listings/${listing.listingId}`);
     }
   };
 

@@ -21,7 +21,6 @@ import ScrollToTop from './components/ScrollToTop';
 
 // Admin Pages
 import AdminDashboard from './pages/Admin/AdminDashboard/AdminDashboard';
-import AdminProducts from './pages/Admin/AdminProduct/AdminProducts';
 import AdminCustomers from './pages/Admin/AdminCustomer/AdminCustomers';
 import AdminOrders from './pages/Admin/AdminOrder/AdminOrders';
 import AdminListing from './pages/Admin/AdminListing/AdminListing';
@@ -39,6 +38,9 @@ import MyReviews from './pages/MyReviews/MyReviews';
 import Plan from './pages/Admin/Plan/Plan';
 import RepairShopMap from './pages/RepairShopMap/RepairShopMap';
 import SubscriptionPlans from './pages/Subscription/SubscriptionPlans';
+import AdminReports from './pages/Admin/AdminReport/AdminReports';
+import AdminMarketPrice from './pages/Admin/AdminMarketPrice/AdminMarketPrice';
+import MyReports from './pages/MyReports/MyReports';
 
 const RootLayout = () => {
   return (
@@ -84,6 +86,7 @@ const router = createBrowserRouter([
           { path: "/seller/listings/:id", element: <SellerListingDetail /> },
           { path: "/saved-listings", element: <SavedListings /> },
           { path: "/reviews", element: <MyReviews /> },
+          { path: "/reports", element: <MyReports /> },
           { 
             path: "/post/listing", 
             element: (
@@ -93,7 +96,7 @@ const router = createBrowserRouter([
             )
           },
           { 
-            path: "/chats/:sellerId?", 
+            path: "/chats/:chatId?", 
             element: (
               <UserLayout>
                 <Chat />
@@ -108,12 +111,13 @@ const router = createBrowserRouter([
         element: <ProtectedRoute allowedRoles={['Admin', 'Moderator']} />,
         children: [
           { path: "/admin", element: <AdminDashboard /> },
-          { path: "/admin/products", element: <AdminProducts /> },
+          { path: "/admin/reports", element: <AdminReports /> },
           { path: "/admin/customers", element: <AdminCustomers /> },
           { path: "/admin/orders", element: <AdminOrders /> },
           { path: "/admin/listings", element: <AdminListing /> },
           { path: "/admin/categories", element: <AdminCategory /> },
           { path: "/admin/plans", element: <Plan /> },
+          { path: "/admin/market-prices", element: <AdminMarketPrice /> },
         ]
       }
     ]

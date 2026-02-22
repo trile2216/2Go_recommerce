@@ -127,7 +127,7 @@ export default function CreateShippingModal({ order, user, onClose, onSuccess, t
         width: Number(width),
         height: Number(height),
         serviceTypeId: Number(serviceTypeId),
-        insuranceValue: order?.totalAmount || 0,
+        insuranceValue: order?.totalAmount.toFixed(0) || 0,
       });
       setFee(result);
     } catch (error) {
@@ -170,7 +170,7 @@ export default function CreateShippingModal({ order, user, onClose, onSuccess, t
           {
             name: order.listingTitle || `Order #${order.orderCode}`,
             quantity: 1,
-            price: order.totalAmount || 0,
+            price: order.totalAmount.toFixed(0) || 0,
             weight: Number(weight),
           },
         ],

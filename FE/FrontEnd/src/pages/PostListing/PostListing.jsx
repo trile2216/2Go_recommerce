@@ -11,7 +11,6 @@ import {
     Card,
     Row,
     Col,
-    message,
     Typography,
     Image,
 } from "antd";
@@ -32,6 +31,8 @@ import { fetchAllCategories, fetchSubCategoriesByCategoryId } from "../../servic
 import { fetchAllDistricts, fetchAllWards } from "../../service/home/api.ward";
 import { listingPrecheck } from "../../service/ai/api.analyze";
 import useAuth from "../../hooks/useAuth";
+import { useToast } from "../../context/ToastContext";
+import { getAttributesForCategory, getBrandForCategory } from "../../data/categoryAttributes";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -43,6 +44,7 @@ export default function PostListing() {
     const editId = searchParams.get('edit');
     const [form] = Form.useForm();
     const { user } = useAuth();
+    const toast = useToast();
     const [isFormDirty, setIsFormDirty] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false); // To prevent blocker when submitting
     
@@ -139,7 +141,7 @@ export default function PostListing() {
                 setCategories(categoriesWithSubs);
             } catch (error) {
                 console.error('Error loading categories:', error);
-                message.error('Không thể tải danh mục. Vui lòng thử lại!');
+                toast.error('Không thể tải danh mục. Vui lòng thử lại!');
             } finally {
                 setLoadingCategories(false);
             }
@@ -167,7 +169,7 @@ export default function PostListing() {
                 setDistricts(districtsList);
             } catch (error) {
                 console.error('Error loading districts:', error);
-                message.error('Không thể tải quận/huyện. Vui lòng thử lại!');
+                toast.error('Không thể tải quận/huyện. Vui lòng thử lại!');
             } finally {
                 setLoadingDistricts(false);
             }
@@ -194,7 +196,7 @@ export default function PostListing() {
                     setSelectedWard(null); // Reset selected ward
                 } catch (error) {
                     console.error('Error loading wards:', error);
-                    message.error('Không thể tải phường/xã. Vui lòng thử lại!');
+                    toast.error('Không thể tải phường/xã. Vui lòng thử lại!');
                 } finally {
                     setLoadingWards(false);
                 }
@@ -238,13 +240,21 @@ export default function PostListing() {
                         condition: data.condition,
                         brand: data.brand,
                         isFree: data.price === 0,
-                        // Attributes
-                        color: data.attributes?.find(a => a.name === "Màu sắc")?.value,
-                        capacity: data.attributes?.find(a => a.name === "Dung lượng")?.value,
-                        warranty: data.attributes?.find(a => a.name === "Bảo hành")?.value,
-                        origin: data.attributes?.find(a => a.name === "Xuất xứ")?.value,
-                        address: data.sellerAddress, // Assuming address is roughly map to sellerAddress for now
+                        address: data.sellerAddress,
                     });
+
+                    // Populate dynamic attributes
+                    if (data.attributes && data.categoryId) {
+                        const attrFields = getAttributesForCategory(data.categoryId);
+                        const attrValues = {};
+                        attrFields.forEach(field => {
+                            const found = data.attributes.find(a => a.name === field.name);
+                            if (found) {
+                                attrValues[`attr_${field.name}`] = found.value;
+                            }
+                        });
+                        form.setFieldsValue(attrValues);
+                    }
                     
                     setIsFree(data.price === 0);
 
@@ -300,7 +310,7 @@ export default function PostListing() {
 
                 } catch (error) {
                     console.error("Error fetching listing for edit:", error);
-                    message.error("Không thể tải thông tin bài đăng");
+                    toast.error("Không thể tải thông tin bài đăng");
                     navigate("/seller/listings");
                 }
             };
@@ -316,7 +326,7 @@ export default function PostListing() {
 
         const remainingSlots = 6 - imageList.length;
         if (remainingSlots <= 0) {
-            message.warning('Tối đa 6 ảnh!');
+            toast.warning('Tối đa 6 ảnh!');
             return;
         }
 
@@ -368,13 +378,13 @@ export default function PostListing() {
 
         const remainingSlots = 1 - videoList.length;
         if (remainingSlots <= 0) {
-            message.warning('Tối đa 1 video!');
+            toast.warning('Tối đa 1 video!');
             return;
         }
 
         const file = files[0];
         if (file.size > 50 * 1024 * 1024) {
-            message.error('Video không được vượt quá 50MB!');
+            toast.error('Video không được vượt quá 50MB!');
             return;
         }
 
@@ -480,42 +490,39 @@ export default function PostListing() {
             }
             if (draftReasons.length > 0) {
                 submitStatus = 'Draft';
-                message.warning(`Bài đăng sẽ được lưu nháp vì:\n${draftReasons.map(r => `- ${r}`).join('\n')}`);
+                toast.warning(`Bài đăng sẽ được lưu nháp vì: ${draftReasons.join(' ')}`);
             }
         }
         // Validation for PendingReview and Draft
         if (submitStatus === 'PendingReview' || submitStatus === 'Draft') {
             // Validation: at least 1 image required
             if (imageList.length === 0) {
-                message.error("Vui lòng tải lên ít nhất 1 hình ảnh!");
+                toast.error("Vui lòng tải lên ít nhất 1 hình ảnh!");
                 return;
             }
 
             // Validation: exactly 1 primary image
             const primaryCount = imageList.filter((img) => img.isPrimary).length;
             if (primaryCount !== 1) {
-                message.error("Phải có đúng 1 ảnh bìa!");
+                toast.error("Phải có đúng 1 ảnh bìa!");
                 return;
             }
 
             if (!selectedSubcategory) {
-                message.error("Vui lòng chọn danh mục sản phẩm!");
+                toast.error("Vui lòng chọn danh mục sản phẩm!");
                 return;
             }
         }
 
-        // Show loading message based on status
-        let hideLoadingMsg;
-        
         try {
             let forcePendingReview = false;
             let precheckNote = null;
             // Start loading with appropriate message
             if (submitStatus === 'Draft') {
-                hideLoadingMsg = message.loading("Đang lưu nháp...", 0);
+                toast.info("Đang lưu nháp...");
             } else {
                 // For PendingReview: show initial message about checking
-                hideLoadingMsg = message.loading("Đang kiểm tra bài đăng...", 0);
+                toast.info("Đang kiểm tra bài đăng...");
             }
 
             // Upload images
@@ -572,24 +579,16 @@ export default function PostListing() {
             if (submitStatus === 'PendingReview') {
                 // Validate userId exists
                 const userId = user?.userId || user?.id;
-                console.log('=== USER DEBUG ===');
-                console.log('user object:', user);
-                console.log('user?.userId:', user?.userId);
-                console.log('user?.id:', user?.id);
-                console.log('Final userId:', userId);
-                console.log('=== END USER DEBUG ===');
                 
                 if (!userId) {
-                    hideLoadingMsg();
-                    message.error("Lỗi: Không tìm thấy ID người dùng. Vui lòng đăng nhập lại.");
+                    toast.error("Lỗi: Không tìm thấy ID người dùng. Vui lòng đăng nhập lại.");
                     setIsSubmitting(false);
                     return;
                 }
 
                 // Validate mediaUrls
                 if (allMediaUrls.length === 0) {
-                    hideLoadingMsg();
-                    message.error("Lỗi: Không có hình ảnh hoặc video để gửi kiểm tra.");
+                    toast.error("Lỗi: Không có hình ảnh hoặc video để gửi kiểm tra.");
                     setIsSubmitting(false);
                     return;
                 }
@@ -601,10 +600,9 @@ export default function PostListing() {
                     brand: values.brand || "",
                     price: values.isFree ? 0 : parseFloat(values.price) || 0,
                     mediaUrls: allMediaUrls,
-                    userId: String(userId), // Convert to string - backend expects string UUID
+                    userId: String(userId),
                 };
 
-                console.log('Submitting precheck with data:', precheckData);
                 const precheckResult = await listingPrecheck(precheckData);
 
                 if (!precheckResult.canPublish) {
@@ -614,8 +612,7 @@ export default function PostListing() {
                         String(riskAction).toUpperCase() === "REJECTED" ||
                         String(qualityDecision).toUpperCase() === "REJECT";
                     if (shouldBlock) {
-                        hideLoadingMsg();
-                        message.error(
+                        toast.error(
                             precheckResult.risk?.message ||
                             "Bài đăng không đủ điều kiện. Vui lòng kiểm tra lại!"
                         );
@@ -647,7 +644,7 @@ export default function PostListing() {
                             : hasOnlyOneMedia
                                 ? 'chưa đủ số lượng ảnh'
                                 : 'ảnh chưa đạt chuẩn';
-                        message.warning(`Bài đăng sẽ được lưu nháp vì ${reason}. Vui lòng cập nhật ảnh rồi thử lại.`);
+                        toast.warning(`Bài đăng sẽ được lưu nháp vì ${reason}. Vui lòng cập nhật ảnh rồi thử lại.`);
                     } else {
                         const warningLines = [
                             'Bài đăng sẽ chờ kiểm duyệt thủ công.',
@@ -657,12 +654,12 @@ export default function PostListing() {
                         if (suggestions.length > 0) {
                             warningLines.push('Gợi ý:', ...suggestions.map((s) => `- ${s}`));
                         }
-                        message.warning(warningLines.join('\n'));
+                        toast.warning(warningLines.join(' '));
                     }
                 }
 
                 if (precheckResult.note && precheckResult.canPublish) {
-                    message.warning(precheckResult.note);
+                    toast.warning(precheckResult.note);
                 }
             }
 
@@ -687,12 +684,12 @@ export default function PostListing() {
                 dimensions: null,
                 weight: null,
                 media: mediaData,
-                attributes: [
-                    { name: "Màu sắc", value: values.color || "" },
-                    { name: "Dung lượng", value: values.capacity || "" },
-                    { name: "Bảo hành", value: values.warranty || "" },
-                    { name: "Xuất xứ", value: values.origin || "" }
-                ].filter(attr => attr.value),
+                attributes: getAttributesForCategory(selectedCategory?.id)
+                    .map(field => ({
+                        name: field.name,
+                        value: values[`attr_${field.name}`] || ""
+                    }))
+                    .filter(attr => attr.value),
                 status: creationStatus
             };
             
@@ -708,8 +705,7 @@ export default function PostListing() {
                  // If user was updating with PendingReview, publish it
                 if (submitStatus === 'PendingReview') {
                     if (forcePendingReview) {
-                        hideLoadingMsg();
-                        message.warning("Cập nhật thành công. Bài đăng đang chờ kiểm duyệt.");
+                        toast.warning("Cập nhật thành công. Bài đăng đang chờ kiểm duyệt.");
                         if (precheckNote) {
                             const key = 'listingReviewNotes';
                             let stored = {};
@@ -727,19 +723,16 @@ export default function PostListing() {
                     } else {
                         try {
                             await publishListing(editId);
-                            hideLoadingMsg();
-                            message.success("Cập nhật và gửi duyệt bài đăng thành công!");
+                            toast.success("Cập nhật và gửi duyệt bài đăng thành công!");
                             clearDraftNote(editId);
                         } catch (publishError) {
-                            hideLoadingMsg();
                             const publishErrorMsg = getPublishErrorMessage(publishError);
                             upsertDraftNote(editId, publishErrorMsg);
-                            message.warning(publishErrorMsg);
+                            toast.warning(publishErrorMsg);
                         }
                     }
                 } else {
-                    hideLoadingMsg();
-                    message.success("Cập nhật bài đăng thành công!");
+                    toast.success("Cập nhật bài đăng thành công!");
                 }
                 navigate(`/seller/listings/${editId}`);
             } else {
@@ -752,8 +745,7 @@ export default function PostListing() {
                 // Step 2: If user wanted to publish, proceed with publishing
                 if (submitStatus === 'PendingReview') {
                     if (forcePendingReview) {
-                        hideLoadingMsg();
-                        message.warning("Bài đăng đã được tạo và đang chờ kiểm duyệt.");
+                        toast.warning("Bài đăng đã được tạo và đang chờ kiểm duyệt.");
                         if (precheckNote && newListingId) {
                             const key = 'listingReviewNotes';
                             let stored = {};
@@ -777,11 +769,7 @@ export default function PostListing() {
                         return;
                     }
                     // Show intermediate message after draft created
-                    hideLoadingMsg();
-                    const hidePublishingMsg = message.loading(
-                        "Tin đã được tạo. Đang gửi duyệt...", 
-                        0
-                    );
+                    toast.info("Tin đã được tạo. Đang gửi duyệt...");
 
                     try {
                         // Deep check happens on BE during publish:
@@ -791,30 +779,22 @@ export default function PostListing() {
                         // - If pass -> Active or PendingReview (for manual review)
                         // - If fail or quota exceeded -> Manual review (PendingReview)
                         const publishRes = await publishListing(newListingId);
-                        hidePublishingMsg();
                         
-                        message.success({
-                            content: getPublishSuccessMessage(publishRes),
-                            duration: 3
-                        });
+                        toast.success(getPublishSuccessMessage(publishRes));
                         clearDraftNote(newListingId);
                     } catch (publishError) {
-                        hidePublishingMsg();
                         console.error("Publish error:", publishError);
                         
                         // Publish might fail due to deep check or quota issues
                         // In those cases, listing is already created as Draft and waiting for manual review
                         const publishErrorMsg = getPublishErrorMessage(publishError);
                         upsertDraftNote(newListingId, publishErrorMsg);
-                        message.warning(publishErrorMsg);
+                        toast.warning(publishErrorMsg);
                     }
                 } else {
                     // Just save draft - no publishing
-                    hideLoadingMsg();
-                    message.success("Đã lưu nháp!");
+                    toast.success("Đã lưu nháp!");
                 }
-
-                console.log("Listing created:", response);
 
                 // Handle blocker/navigation
                 setIsFormDirty(false); // Mark form as clean before leaving
@@ -826,11 +806,6 @@ export default function PostListing() {
             }
 
         } catch (error) {
-            // If we had a loading message, hide it first
-            if (typeof hideLoadingMsg === 'function') {
-                hideLoadingMsg();
-            }
-            
             setIsSubmitting(false); // Allow user to retry or save as draft
             console.error("Error in listing submission:", error);
             
@@ -841,15 +816,15 @@ export default function PostListing() {
             if (validationErrors) {
                 console.error("Validation errors:", validationErrors);
                 const errorList = Object.entries(validationErrors)
-                    .map(([field, messages]) => {
-                        const msgs = Array.isArray(messages) ? messages[0] : messages;
-                        return `${field}: ${msgs}`;
+                    .map(([field, msgs]) => {
+                        const msg = Array.isArray(msgs) ? msgs[0] : msgs;
+                        return `${field}: ${msg}`;
                     })
-                    .join('\n');
-                errorMessage = `Lỗi validate:\n${errorList}`;
+                    .join(', ');
+                errorMessage = `Lỗi validate: ${errorList}`;
             }
             
-            message.error(errorMessage);
+            toast.error(errorMessage);
         }
     };
 
@@ -994,30 +969,22 @@ export default function PostListing() {
 
                         <Form.Item
                             name="brand"
-                            label="Hãng"
-                            rules={[{ required: true, message: 'Vui lòng nhập hãng' }]}
+                            label={getBrandForCategory(selectedCategory?.id).label}
+                            rules={[{ required: true, message: `Vui lòng nhập ${getBrandForCategory(selectedCategory?.id).label.toLowerCase()}` }]}
                         >
-                            <Input placeholder="VD: Apple, Samsung, Xiaomi..." />
+                            <Input placeholder={getBrandForCategory(selectedCategory?.id).placeholder} />
                         </Form.Item>
 
-                        <Form.Item name="color" label="Màu sắc">
-                            <Input placeholder="VD: Đen, Trắng, Xanh..." />
-                        </Form.Item>
-
-                        <Form.Item name="capacity" label="Dung lượng">
-                            <Input placeholder="VD: 128GB, 256GB..." />
-                        </Form.Item>
-
-                        <Form.Item name="warranty" label="Chính sách bảo hành">
-                            <Input placeholder="VD: 12 tháng, Hết bảo hành..." />
-                        </Form.Item>
-
-                        <Form.Item
-                            name="origin"
-                            label="Xuất xứ"
-                        >
-                            <Input placeholder="VD: Việt Nam, Trung Quốc..." />
-                        </Form.Item>
+                        {/* Dynamic attributes based on category */}
+                        {selectedCategory && getAttributesForCategory(selectedCategory.id).map(field => (
+                            <Form.Item
+                                key={field.name}
+                                name={`attr_${field.name}`}
+                                label={field.label}
+                            >
+                                <Input placeholder={field.placeholder} />
+                            </Form.Item>
+                        ))}
 
                         <Form.Item name="isFree" valuePropName="checked">
                             <Checkbox onChange={(e) => setIsFree(e.target.checked)}>

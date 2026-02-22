@@ -1,8 +1,8 @@
 import api from '../../config/axios';
 
-export const fetchCustomers = async () => {
+export const fetchCustomers = async (params = {}) => {
     try {
-        const response = await api.get('/admin/users?skip=0&take=20');
+        const response = await api.get('/admin/users', { params });
         return response.data;
     } catch (error) {
         console.error('Error fetching customers:', error);
@@ -20,7 +20,7 @@ export const fetchCustomerById = async (id) => {
 };
 export const deleteCustomerById = async (id) => {
     try {
-        const response = await api.delete(`/admin/users/${id}`);  
+        const response = await api.delete(`/admin/users/${id}`);
         return response.data;
     } catch (error) {
         console.error(`Error deleting customer with id ${id}:`, error);

@@ -1,0 +1,112 @@
+.admin-market-price-page {
+    padding: 0;
+}
+
+.admin-header-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.admin-btn-outline {
+    background: transparent;
+    border: 1.5px solid var(--admin-primary, #3b82f6);
+    color: var(--admin-primary, #3b82f6);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.admin-btn-outline:hover:not(:disabled) {
+    background: rgba(59, 130, 246, 0.08);
+}
+
+.admin-btn-outline:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.mp-product-key {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    color: var(--admin-text, #334155);
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mp-samples {
+    text-align: center;
+    font-weight: 600;
+}
+
+/* Backfill Modal Form */
+.backfill-form {
+    margin-top: 0.5rem;
+}
+
+.backfill-form p {
+    color: #64748b;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.backfill-field {
+    margin-bottom: 1rem;
+}
+
+.backfill-field label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 0.35rem;
+    color: #334155;
+    font-size: 0.875rem;
+}
+
+.backfill-field input[type="number"] {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    transition: border-color 0.2s;
+}
+
+.backfill-field input[type="number"]:focus {
+    outline: none;
+    border-color: var(--admin-primary, #3b82f6);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.backfill-checkbox {
+    display: flex !important;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+.backfill-checkbox input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--admin-primary, #3b82f6);
+    cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    .admin-header-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .admin-header-actions .admin-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}

@@ -30,7 +30,7 @@ import {
   Shield,
   EyeOff,
 } from 'lucide-react';
-import { fetchMyChats, fetchMessages, sendMessage, createOrGetChat } from '../../service/home/api.chat';
+import { fetchMyChats, fetchMessages, sendMessage } from '../../service/home/api.chat';
 import useAuth from '../../context/UseAuth';
 import { formatTimeAgo, formatMessageTime, formatDateLabel } from '../../utils/utils';
 import './Chat.css';
@@ -46,7 +46,7 @@ const QUICK_REPLIES = [
 ];
 
 export default function Chat() {
-  const { sellerId } = useParams();
+  const { chatId: chatIdParam } = useParams();
   const { user } = useAuth();
   const currentUserId = user?.userId;
 
@@ -111,26 +111,12 @@ export default function Chat() {
     loadChats();
   }, [loadChats]);
 
-  // Auto-open chat when navigating from product page with sellerId
+  // Auto-open chat when chatId is in URL params
   useEffect(() => {
-    if (!sellerId || loadingChats) return;
-    
-    const openChatWithSeller = async () => {
-      try {
-        const chat = await createOrGetChat(Number(sellerId));
-        if (chat?.chatId) {
-          setSelectedChatId(chat.chatId);
-          // Refresh chat list to include the new/existing chat
-          await loadChats();
-        }
-      } catch (error) {
-        console.error('Failed to open chat with seller:', error);
-        antMessage.error('Không thể mở cuộc trò chuyện với người bán');
-      }
-    };
-    
-    openChatWithSeller();
-  }, [sellerId, loadingChats]);
+    if (chatIdParam) {
+      setSelectedChatId(Number(chatIdParam));
+    }
+  }, [chatIdParam]);
 
   // Load messages when a conversation is selected
   useEffect(() => {
@@ -443,7 +429,7 @@ export default function Chat() {
 
                 {/* Input Area */}
                 <div className="chat-input-area">
-                  <Button
+                  {/* <Button
                     type="text"
                     icon={<ImageIcon size={20} />}
                     className="input-icon-btn"
@@ -452,7 +438,7 @@ export default function Chat() {
                     type="text"
                     icon={<MapPin size={20} />}
                     className="input-icon-btn"
-                  />
+                  /> */}
                   <Input
                     placeholder="Nhập tin nhắn"
                     value={messageText}

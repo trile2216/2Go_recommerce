@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import UserLayout from "../../layouts/UserLayout";
 import { useCart } from "../../context/CartContext";
@@ -13,9 +13,15 @@ import {
   ShoppingBag,
   Trash2,
   Loader2,
+  Shield,
+  Clock,
+  AlertTriangle,
 } from "lucide-react";
 import "./Checkout.css";
 import { createPayment } from "../../service/home/api.payment";
+
+const DEPOSIT_THRESHOLD = 2_000_000;
+const DEPOSIT_RATE = 0.1;
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -51,6 +57,18 @@ export default function Checkout() {
   );
   const total = subtotal;
 
+  // Escrow logic
+  const requiresDeposit = total >= DEPOSIT_THRESHOLD;
+  const depositAmount = requiresDeposit ? Math.round(total * DEPOSIT_RATE) : 0;
+  const remainingAmount = requiresDeposit ? total - depositAmount : 0;
+
+  // Auto-switch to PayOS when deposit is required (COD not allowed)
+  useEffect(() => {
+    if (requiresDeposit && paymentMethod === "COD") {
+      setPaymentMethod("PayOS");
+    }
+  }, [requiresDeposit, paymentMethod]);
+
   const handleRemoveItem = async (cartItemId) => {
     if (singleItem) return; // can't remove single-item checkout
     await removeFromCart(cartItemId);
@@ -82,10 +100,17 @@ export default function Checkout() {
       for (const item of displayItems) {
         const listingId = item.listingId || item.id;
         const result = await createOrder(listingId, paymentMethod, deliveryAddress);
-        const paymentRequest = await createPayment(result.orderId, result.paymentMethod);
+
+        // Determine payment stage based on escrow
+        const itemTotal = result.totalAmount || (item.priceSnapshot || item.price || 0);
+        const itemRequiresDeposit = itemTotal >= DEPOSIT_THRESHOLD;
+        const paymentStage = itemRequiresDeposit ? "DEPOSIT" : null;
+
+        const paymentRequest = await createPayment(result.orderId, result.paymentMethod, paymentStage);
         orderResults.push({
           ...result,
           paymentRequest,
+          itemRequiresDeposit,
         });
       }
 
@@ -102,7 +127,11 @@ export default function Checkout() {
 
       // COD flow — orders created, clear cart and go to orders page
       if (!singleItem) await clearCart();
-      toast.success("Đặt hàng thành công!");
+      if (orderResults.some((r) => r.itemRequiresDeposit)) {
+        toast.success("Đặt hàng thành công! Vui lòng thanh toán cọc để xác nhận đơn hàng.");
+      } else {
+        toast.success("Đặt hàng thành công!");
+      }
       navigate("/orders");
     } catch (error) {
       console.error("Checkout error:", error);
@@ -218,8 +247,8 @@ export default function Checkout() {
                   <div
                     className={`payment-option ${
                       paymentMethod === "COD" ? "active" : ""
-                    }`}
-                    onClick={() => setPaymentMethod("COD")}
+                    } ${requiresDeposit ? "disabled" : ""}`}
+                    onClick={() => !requiresDeposit && setPaymentMethod("COD")}
                   >
                     <input
                       type="radio"
@@ -227,7 +256,8 @@ export default function Checkout() {
                       name="payment"
                       value="COD"
                       checked={paymentMethod === "COD"}
-                      onChange={() => setPaymentMethod("COD")}
+                      onChange={() => !requiresDeposit && setPaymentMethod("COD")}
+                      disabled={requiresDeposit}
                       className="radio-input"
                     />
                     <label htmlFor="cash" className="payment-label">
@@ -237,7 +267,9 @@ export default function Checkout() {
                       <div className="payment-text">
                         <p className="payment-method">Thanh toán tiền mặt</p>
                         <p className="payment-desc">
-                          Thanh toán khi nhận hàng (COD)
+                          {requiresDeposit
+                            ? "Không khả dụng cho đơn hàng yêu cầu đặt cọc"
+                            : "Thanh toán khi nhận hàng (COD)"}
                         </p>
                       </div>
                     </label>
@@ -263,7 +295,7 @@ export default function Checkout() {
                         <QrCode size={20} />
                       </div>
                       <div className="payment-text">
-                        <p className="payment-method">Thanh toán online (PayOS)</p>
+                        <p className="payment-method">Thanh toán online </p>
                         <p className="payment-desc">
                           Thanh toán qua QR / ngân hàng trực tuyến
                         </p>
@@ -275,12 +307,65 @@ export default function Checkout() {
                 {paymentMethod === "PayOS" && (
                   <div className="qr-section">
                     <p className="qr-text">
-                      Sau khi đặt hàng, bạn sẽ được chuyển đến trang thanh toán PayOS để hoàn tất.
+                      Sau khi đặt hàng, bạn sẽ được chuyển đến trang thanh toán để hoàn tất.
                     </p>
                   </div>
                 )}
               </div>
             </div>
+
+            {/* Escrow Info Banner */}
+            {requiresDeposit && (
+              <div className="checkout-card escrow-card">
+                <div className="checkout-card-header escrow-header">
+                  <h2 className="checkout-card-title">
+                    <Shield size={20} />
+                    Giao dịch có bảo đảm (Escrow)
+                  </h2>
+                </div>
+                <div className="checkout-card-body">
+                  <div className="escrow-info-banner">
+                    <div className="escrow-badge">
+                      <Shield size={16} />
+                      <span>Đơn hàng giá trị cao – Thanh toán cọc 10%</span>
+                    </div>
+
+                    <p className="escrow-description">
+                      Đơn hàng từ {formatPrice(DEPOSIT_THRESHOLD)} trở lên sẽ được bảo đảm qua hệ thống Escrow. Bạn chỉ cần thanh toán cọc 10% trước, phần còn lại sẽ thanh toán sau khi xác nhận giao dịch.
+                    </p>
+
+                    <div className="escrow-details">
+                      <div className="escrow-detail-row">
+                        <span className="escrow-label">Tổng giá trị đơn hàng</span>
+                        <span className="escrow-value">{formatPrice(total)}</span>
+                      </div>
+                      <div className="escrow-detail-row highlight">
+                        <span className="escrow-label">
+                          <Shield size={14} />
+                          Tiền cọc (10%)
+                        </span>
+                        <span className="escrow-value escrow-amount">{formatPrice(depositAmount)}</span>
+                      </div>
+                      <div className="escrow-detail-row">
+                        <span className="escrow-label">Số tiền còn lại</span>
+                        <span className="escrow-value">{formatPrice(remainingAmount)}</span>
+                      </div>
+                    </div>
+
+                    <div className="escrow-warnings">
+                      <div className="escrow-warning-item">
+                        <Clock size={14} />
+                        <span>Bạn có 72 giờ để hoàn tất giao dịch</span>
+                      </div>
+                      <div className="escrow-warning-item caution">
+                        <AlertTriangle size={14} />
+                        <span>Nếu quá hạn 72 giờ, đơn hàng sẽ bị hủy và tiền cọc sẽ bị tịch thu</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right Column - Order Summary */}
@@ -343,10 +428,27 @@ export default function Checkout() {
                         <span>Tạm tính</span>
                         <span>{formatPrice(subtotal)}</span>
                       </div>
+
+                      {requiresDeposit && (
+                        <>
+                          <div className="price-row escrow-row">
+                            <span>
+                              <Shield size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />
+                              Tiền cọc (10%)
+                            </span>
+                            <span className="escrow-price">{formatPrice(depositAmount)}</span>
+                          </div>
+                          <div className="price-row">
+                            <span>Còn lại</span>
+                            <span>{formatPrice(remainingAmount)}</span>
+                          </div>
+                        </>
+                      )}
+
                       <div className="checkout-separator" />
                       <div className="price-row total">
-                        <span>Tổng cộng</span>
-                        <span>{formatPrice(total)}</span>
+                        <span>{requiresDeposit ? "Thanh toán ngay" : "Tổng cộng"}</span>
+                        <span>{formatPrice(requiresDeposit ? depositAmount : total)}</span>
                       </div>
                     </div>
 
@@ -359,8 +461,10 @@ export default function Checkout() {
                         <>
                           <Loader2 size={18} className="spin" /> Đang xử lý...
                         </>
+                      ) : requiresDeposit ? (
+                        paymentMethod === "PayOS" ? "Thanh toán cọc trực tuyến" : "Đặt hàng & thanh toán cọc"
                       ) : paymentMethod === "PayOS" ? (
-                        "Thanh toán với PayOS"
+                        "Thanh toán trực tuyến"
                       ) : (
                         "Đặt hàng"
                       )}

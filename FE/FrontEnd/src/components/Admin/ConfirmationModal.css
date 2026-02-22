@@ -1,0 +1,19 @@
+.confirmation-modal {
+    max-width: 400px;
+}
+
+.confirmation-modal .admin-modal-body {
+    padding: 20px;
+    font-size: 15px;
+    color: #374151;
+    text-align: center;
+}
+
+.admin-btn-danger {
+    background-color: #ef4444;
+    color: white;
+}
+
+.admin-btn-danger:hover {
+    background-color: #dc2626;
+}

@@ -46,6 +46,15 @@
 .userinfo-header-actions {
   display: flex;
   gap: 1rem;
+  align-items: center;
+  padding: 10px;
+}
+
+.profile-action-btn {
+  font-size: 13px;
+  align-items: center;
+  height: 50px;
+  width: 150px;
 }
 
 /* Alerts */
@@ -179,7 +188,6 @@
 }
 
 .profile-status {
-  margin-bottom: 2rem;
   padding-bottom: 2rem;
   border-bottom: 1px solid #e0e0e0;
 }

@@ -5,7 +5,7 @@ import { useToast } from "../../context/ToastContext";
 import { getMyRatings, getRatingsForUser } from "../../service/home/api.rating";
 import { formatDate } from "../../utils/utils";
 import useAuth from "../../context/UseAuth";
-import { Star, Loader2, ShoppingBag } from "lucide-react";
+import { Star, Loader2, ShoppingBag, User } from "lucide-react";
 import "./MyReviews.css";
 
 const SCORE_LABELS = {
@@ -21,7 +21,7 @@ const PAGE_SIZE = 10;
 export default function MyReviews() {
   const toast = useToast();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("sent"); // "sent" | "received"
+  const [activeTab, setActiveTab] = useState("received"); // "sent" | "received"
 
   // Sent reviews state
   const [sentReviews, setSentReviews] = useState([]);
@@ -169,38 +169,80 @@ export default function MyReviews() {
     );
   };
 
+  const renderAvgStars = (avg) => {
+    const rounded = Math.round(avg);
+    return (
+      <div className="seller-avg-stars">
+        {[1, 2, 3, 4, 5].map((s) => (
+          <Star
+            key={s}
+            size={20}
+            className={`review-star ${s <= rounded ? "filled" : ""}`}
+            fill={s <= rounded ? "#f59e0b" : "none"}
+          />
+        ))}
+      </div>
+    );
+  };
+
   return (
     <UserLayout>
       <div className="reviews-page">
-        <div className="reviews-header">
-          <h1>Đánh giá của tôi</h1>
+        {/* Seller Profile Card */}
+        <div className="seller-profile-card">
+          <div className="seller-avatar">
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt={user.fullName} />
+            ) : (
+              <div className="seller-avatar-fallback">
+                <User size={32} />
+              </div>
+            )}
+          </div>
+          <div className="seller-info">
+            <h2 className="seller-name">{user?.fullName || "Người bán"}</h2>
+            <div className="seller-rating-summary">
+              {receivedLoading ? (
+                <span className="seller-rating-loading">Đang tải...</span>
+              ) : receivedAvg > 0 ? (
+                <>
+                  {renderAvgStars(receivedAvg)}
+                  <span className="seller-avg-score">{receivedAvg.toFixed(1)}</span>
+                  <span className="seller-rating-count">({receivedTotal} đánh giá)</span>
+                </>
+              ) : (
+                <span className="seller-no-rating">Chưa có đánh giá</span>
+              )}
+            </div>
+          </div>
         </div>
 
+        {/* Tabs */}
         <div className="reviews-tabs">
-          <button
-            className={`reviews-tab ${activeTab === "sent" ? "active" : ""}`}
-            onClick={() => setActiveTab("sent")}
-          >
-            Đã gửi ({sentTotal})
-          </button>
           <button
             className={`reviews-tab ${activeTab === "received" ? "active" : ""}`}
             onClick={() => setActiveTab("received")}
           >
-            Nhận được ({receivedTotal}) {receivedAvg > 0 && <span style={{ marginLeft: 4, color: "#f59e0b" }}>★ {receivedAvg.toFixed(1)}</span>}
+            Được đánh giá ({receivedTotal})
+          </button>
+          <button
+            className={`reviews-tab ${activeTab === "sent" ? "active" : ""}`}
+            onClick={() => setActiveTab("sent")}
+          >
+            Đã đánh giá ({sentTotal})
           </button>
         </div>
 
-        {activeTab === "sent"
+        {activeTab === "received"
           ? renderReviewList(
-              sentReviews, sentTotal, sentLoading, sentLoadingMore,
-              () => fetchSent(sentReviews.length, true),
-              "Bạn có thể đánh giá người bán sau khi đơn hàng đã hoàn thành."
-            )
-          : renderReviewList(
               receivedReviews, receivedTotal, receivedLoading, receivedLoadingMore,
               () => fetchReceived(receivedReviews.length, true),
               "Chưa có ai đánh giá bạn."
+            )
+          : renderReviewList(
+              sentReviews, sentTotal, sentLoading, sentLoadingMore,
+              () => fetchSent(sentReviews.length, true),
+              "Bạn có thể đánh giá người bán sau khi đơn hàng đã hoàn thành."
             )
         }
       </div>

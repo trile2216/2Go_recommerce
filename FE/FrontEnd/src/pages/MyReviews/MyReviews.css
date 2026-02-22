@@ -5,24 +5,97 @@
     padding: 32px 16px;
 }
 
-.reviews-header {
-    margin-bottom: 24px;
+/* ─── Seller Profile Card ─── */
+.seller-profile-card {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 28px 32px;
+    margin-bottom: 28px;
+    background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #f0f9ff 100%);
+    border: 1px solid #e0e7ff;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(42, 123, 228, 0.06);
 }
 
-.reviews-header h1 {
-    color: rgba(30, 41, 59, 0.89);
-    font-size: 24px;
+.seller-avatar {
+    flex-shrink: 0;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #fff;
+    border: 3px solid #c7d2fe;
+    box-shadow: 0 2px 8px rgba(42, 123, 228, 0.12);
+}
+
+.seller-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.seller-avatar-fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #6366f1, #2A7BE4);
+    color: #fff;
+}
+
+.seller-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.seller-name {
+    font-size: 20px;
     font-weight: 700;
-    margin: 0 0 4px;
-}
-
-.reviews-header p {
-    color: #6B7280;
-    font-size: 14px;
+    color: #1e293b;
     margin: 0;
+    line-height: 1.3;
 }
 
-/* Tabs */
+.seller-rating-summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.seller-avg-stars {
+    display: flex;
+    gap: 2px;
+}
+
+.seller-avg-score {
+    font-size: 18px;
+    font-weight: 700;
+    color: #f59e0b;
+}
+
+.seller-rating-count {
+    font-size: 14px;
+    color: #6B7280;
+    font-weight: 500;
+}
+
+.seller-no-rating {
+    font-size: 14px;
+    color: #9ca3af;
+    font-style: italic;
+}
+
+.seller-rating-loading {
+    font-size: 14px;
+    color: #9ca3af;
+}
+
+/* ─── Tabs ─── */
 .reviews-tabs {
     display: flex;
     gap: 0;
@@ -52,7 +125,7 @@
     border-bottom-color: #2A7BE4;
 }
 
-/* Reviews List */
+/* ─── Reviews List ─── */
 .reviews-list {
     display: flex;
     flex-direction: column;
@@ -129,7 +202,7 @@
     text-decoration: underline;
 }
 
-/* Empty State */
+/* ─── Empty State ─── */
 .reviews-empty {
     text-align: center;
     padding: 60px 20px;
@@ -156,7 +229,7 @@
     margin: 0;
 }
 
-/* Loading */
+/* ─── Loading ─── */
 .reviews-loading {
     display: flex;
     justify-content: center;
@@ -179,7 +252,7 @@
     }
 }
 
-/* Load More */
+/* ─── Load More ─── */
 .reviews-load-more {
     display: flex;
     justify-content: center;
@@ -209,10 +282,21 @@
     cursor: not-allowed;
 }
 
-/* Responsive */
+/* ─── Responsive ─── */
 @media (max-width: 768px) {
     .reviews-page {
         padding: 16px;
+    }
+
+    .seller-profile-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 24px 20px;
+        gap: 14px;
+    }
+
+    .seller-rating-summary {
+        justify-content: center;
     }
 
     .review-card {

@@ -3,9 +3,11 @@ import { Plus, Edit2, Trash2, Eye, Search, Filter, X, Check } from 'lucide-react
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../../layouts/AdminLayout';
 import { fetchCustomers, fetchCustomerById, deleteCustomerById, updateCustomerById } from '../../../service/admin/api.customer';
+import { useToast } from '../../../context/ToastContext';
 import './admin-customers.css';
 
 export default function AdminCustomers() {
+  const toast = useToast();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -15,26 +17,36 @@ export default function AdminCustomers() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editFormData, setEditFormData] = useState({});
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 10;
 
-  // Fetch customers on component mount
+  // Fetch customers on component mount and page change
   useEffect(() => {
     loadCustomers();
-  }, []);
+  }, [currentPage]);
 
   const loadCustomers = async () => {
     try {
       setLoading(true);
-      const data = await fetchCustomers();
+      const skip = (currentPage - 1) * pageSize;
+      const data = await fetchCustomers({ skip, take: pageSize });
       setCustomers(data.items || []);
-      setError('');
+      const total = data.totalCount || data.total || (data.items || []).length;
+      setTotalCount(total);
+      setTotalPages(Math.ceil(total / pageSize) || 1);
     } catch (err) {
-      setError('Failed to load customers');
+      toast.error('Failed to load customers');
       console.error(err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const formatDate = (dateString) => {
@@ -87,7 +99,7 @@ export default function AdminCustomers() {
       setSelectedCustomer(detailedCustomer);
       setShowDetailModal(true);
     } catch (error) {
-      setError('Failed to load customer details');
+      toast.error('Failed to load customer details');
       console.error(error);
     }
   };
@@ -124,7 +136,7 @@ export default function AdminCustomers() {
     try {
       // Validate required fields
       if (!editFormData.email || !editFormData.phone) {
-        setError('Email and Phone are required fields');
+        toast.error('Email and Phone are required fields');
         return;
       }
 
@@ -147,15 +159,13 @@ export default function AdminCustomers() {
       console.log('Sending update data:', updateData);
       
       await updateCustomerById(editFormData.userId, updateData);
-      setSuccess('Customer updated successfully');
+      toast.success('Customer updated successfully');
       setShowEditModal(false);
-      setError('');
       await loadCustomers();
-      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       // Extract backend error message if available
       const errorMessage = err.response?.data?.message || err.response?.data?.error || 'Failed to update customer';
-      setError(errorMessage);
+      toast.error(errorMessage);
       console.error('Error details:', err.response?.data);
     }
   };
@@ -164,11 +174,10 @@ export default function AdminCustomers() {
     if (window.confirm('Are you sure you want to delete this customer?')) {
       try {
         await deleteCustomerById(id);
-        setSuccess('Customer deleted successfully');
+        toast.success('Customer deleted successfully');
         await loadCustomers();
-        setTimeout(() => setSuccess(''), 3000);
       } catch (err) {
-        setError('Failed to delete customer');
+        toast.error('Failed to delete customer');
         console.error(err);
       }
     }
@@ -178,8 +187,6 @@ export default function AdminCustomers() {
     <AdminLayout>
       <div className="admin-customers-page">
         {/* Alerts */}
-        {error && <div className="admin-alert alert-error">{error}</div>}
-        {success && <div className="admin-alert alert-success">{success}</div>}
 
         {/* Page Header */}
         <div className="admin-page-header">
@@ -233,9 +240,9 @@ export default function AdminCustomers() {
         {/* Customers Table */}
         <div className="admin-card">
           <div className="admin-card-header">
-            <h4>All Customers ({filteredCustomers.length})</h4>
+            <h4>All Customers ({totalCount})</h4>
             <span className="admin-results-count">
-              Showing {filteredCustomers.length} of {customers.length}
+              Showing {filteredCustomers.length} of {totalCount}
             </span>
           </div>
 
@@ -314,6 +321,25 @@ export default function AdminCustomers() {
                 <p>No customers found</p>
               </div>
             )}
+          </div>
+
+          {/* Pagination */}
+          <div className="admin-pagination">
+            <button 
+                className="admin-pagination-btn" 
+                disabled={currentPage <= 1}
+                onClick={() => handlePageChange(currentPage - 1)}
+            >
+                Previous
+            </button>
+            <span className="admin-pagination-info">Page {currentPage} of {totalPages}</span>
+            <button 
+                className="admin-pagination-btn"
+                disabled={customers.length < pageSize} 
+                onClick={() => handlePageChange(currentPage + 1)}
+            >
+                Next
+            </button>
           </div>
         </div>
 

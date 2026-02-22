@@ -324,6 +324,11 @@
   max-width: 600px;
 }
 
+.admin-modal-xl {
+  max-width: 900px !important;
+  width: 95%;
+}
+
 .admin-modal-header {
   display: flex;
   justify-content: space-between;
@@ -363,6 +368,11 @@
   gap: 2rem;
 }
 
+.admin-modal-xl .admin-modal-grid {
+  grid-template-columns: 350px 1fr;
+  gap: 2rem;
+}
+
 .admin-modal-image {
   text-align: center;
 }
@@ -371,6 +381,17 @@
   max-width: 100%;
   border-radius: 6px;
   object-fit: cover;
+  width: 100%;
+  height: auto;
+  max-height: 500px;
+}
+
+.admin-modal-xl .admin-modal-image img {
+  height: 100%;
+  max-height: 600px;
+  object-fit: contain;
+  background: #f3f4f6;
+  padding: 1rem;
 }
 
 .admin-modal-info {
@@ -383,7 +404,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem;
+  padding: 1rem;
   background-color: var(--admin-bg, #f9fafb);
   border-radius: 4px;
 }
@@ -397,6 +418,15 @@
 .admin-modal-value {
   text-align: right;
   color: var(--admin-text-light, #9ca3af);
+}
+
+.description-text {
+  text-align: justify;
+  color: #4b5563;
+  white-space: pre-wrap;
+  max-height: 200px;
+  overflow-y: auto;
+  width: 100%;
 }
 
 /* Form Styles */
@@ -497,7 +527,53 @@
   font-size: 0.95rem;
 }
 
+/* Pagination */
+.admin-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1.5rem;
+  gap: 1rem;
+  border-top: 1px solid var(--admin-border, #e5e7eb);
+}
+
+.admin-pagination-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--admin-border, #e5e7eb);
+  background-color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--admin-text, #1f2937);
+  transition: all 0.2s;
+}
+
+.admin-pagination-btn:hover:not(:disabled) {
+  background-color: var(--admin-bg, #f9fafb);
+  border-color: var(--admin-primary, #3b82f6);
+  color: var(--admin-primary, #3b82f6);
+}
+
+.admin-pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #f3f4f6;
+}
+
+.admin-pagination-info {
+  font-size: 0.9rem;
+  color: var(--admin-text-light, #6b7280);
+  font-weight: 500;
+}
+
+
 /* Responsive */
+@media (max-width: 900px) {
+  .admin-modal-xl .admin-modal-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 768px) {
   .admin-filters-section {
     flex-direction: column;

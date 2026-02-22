@@ -130,6 +130,7 @@ export default function ProductDetail() {
           <ProductDescription 
             description={descriptionText}
             specifications={specifications}
+            listingId={product.listingId}
           />
         </div>
          {relatedProducts.length > 0 &&  

@@ -3,12 +3,19 @@ import { Plus, Edit2, Trash2, Search, Filter, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../../layouts/AdminLayout';
 import {
-  fetchCategories,
+  getAllCategories,
   createCategory,
-  updateCategoryById,
-  deleteCategoryById,
-  fetchSubCategoriesByCategoryId,
-} from '../../../service/admin/api.category';
+  updateCategory,
+  deleteCategory,
+  getSubCategoriesByCategoryId,
+  createSubCategory,
+} from '../../../service/admin/api.admin.category';
+import {
+  updateSubCategory,
+  deleteSubCategory
+} from '../../../service/admin/api.admin.subcategory';
+import { useToast } from '../../../context/ToastContext';
+import ConfirmationModal from '../../../components/Admin/ConfirmationModal';
 import './admin-category.css';
 
 export default function AdminCategory() {
@@ -22,8 +29,14 @@ export default function AdminCategory() {
   const [expandedCategory, setExpandedCategory] = useState(null);
   const [subcategories, setSubcategories] = useState([]);
   const [loadingSubcategories, setLoadingSubcategories] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  
+  const toast = useToast();
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null
+  });
 
   const [formData, setFormData] = useState({
     name: '',
@@ -36,19 +49,22 @@ export default function AdminCategory() {
     iconUrl: ''
   });
 
-  // Fetch categories on mount
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
+
+  // Fetch categories on mount and page change
   useEffect(() => {
     loadCategories();
-  }, []);
+  }, [pagination.page]);
 
   const loadCategories = async () => {
     try {
       setLoading(true);
-      const response = await fetchCategories();
+      const skip = (pagination.page - 1) * pagination.limit;
+      const response = await getAllCategories(searchTerm, skip, pagination.limit);
       setCategories(response.items || []);
-      setError('');
+      setPagination(prev => ({ ...prev, total: response.total || 0 }));
     } catch (err) {
-      setError('Failed to load categories');
+      toast.error('Failed to load categories');
       console.error('Error:', err);
     } finally {
       setLoading(false);
@@ -58,8 +74,9 @@ export default function AdminCategory() {
   const loadSubcategories = async (categoryId) => {
     try {
       setLoadingSubcategories(true);
-      const response = await fetchSubCategoriesByCategoryId(categoryId);
-      setSubcategories(response.data || []);
+      setLoadingSubcategories(true);
+      const response = await getSubCategoriesByCategoryId(categoryId);
+      setSubcategories(response.items || []);
     } catch (err) {
       console.error('Error loading subcategories:', err);
       setSubcategories([]);
@@ -126,33 +143,91 @@ export default function AdminCategory() {
     e.preventDefault();
     try {
       if (editingCategory) {
-        await updateCategoryById(editingCategory.categoryId, formData);
-        setSuccess('Category updated successfully!');
+        await updateCategory(editingCategory.categoryId, formData);
+        toast.success('Category updated successfully!');
       } else {
         await createCategory(formData);
-        setSuccess('Category created successfully!');
+        toast.success('Category created successfully!');
       }
       setIsModalOpen(false);
       loadCategories();
-      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError(editingCategory ? 'Failed to update category' : 'Failed to create category');
+      toast.error(editingCategory ? 'Failed to update category' : 'Failed to create category');
       console.error('Error:', err);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this category?')) {
-      try {
-        await deleteCategoryById(id);
-        setSuccess('Category deleted successfully!');
-        loadCategories();
-        setTimeout(() => setSuccess(''), 3000);
-      } catch (err) {
-        setError('Failed to delete category');
+  const handleSubcategorySubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedCategory && !editingCategory) return; 
+
+    try {
+        if (editingCategory && editingCategory.isSubcategory) { 
+            await updateSubCategory(editingCategory.subCategoryId, subcategoryFormData);
+            toast.success('Subcategory updated successfully!');
+             if (expandedCategory) loadSubcategories(expandedCategory); 
+        } else { 
+            await createSubCategory(selectedCategory.categoryId, subcategoryFormData);
+            toast.success('Subcategory created successfully!');
+            loadSubcategories(selectedCategory.categoryId);
+        }
+        setIsSubcategoryModalOpen(false);
+    } catch (err) {
+        toast.error('Failed to save subcategory');
         console.error('Error:', err);
-      }
     }
+  };
+
+  const handleDelete = (id) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Category',
+      message: 'Are you sure you want to delete this category? This action cannot be undone.',
+      onConfirm: async () => {
+        try {
+          await deleteCategory(id);
+          toast.success('Category deleted successfully!');
+          loadCategories();
+        } catch (err) {
+          toast.error('Failed to delete category');
+          console.error('Error:', err);
+        } finally {
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        }
+      }
+    });
+  };
+
+  const handleDeleteSubcategory = (subId, parentId) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Subcategory',
+      message: 'Are you sure you want to delete this subcategory? This action cannot be undone.',
+      onConfirm: async () => {
+        try {
+            await deleteSubCategory(subId);
+            toast.success('Subcategory deleted successfully!');
+            loadSubcategories(parentId);
+        } catch (err) {
+             toast.error('Failed to delete subcategory');
+             console.error('Error:', err);
+        } finally {
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        }
+      }
+    });
+  };
+
+  const handleOpenEditSubcategory = (subcategory, parentId) => {
+      // Reuse subcategory modal/form but need to distinguish edit vs create
+      // For simplicity, let's use the same isSubcategoryModalOpen but with editingCategory set
+      setEditingCategory({ ...subcategory, isSubcategory: true, parentId }); 
+      setSelectedCategory(null); // Clear selectedCategory to denote edit mode or handle logic
+      setSubcategoryFormData({
+          name: subcategory.name || '',
+          iconUrl: subcategory.iconUrl || ''
+      });
+      setIsSubcategoryModalOpen(true);
   };
 
   const filteredCategories = categories.filter(category =>
@@ -178,18 +253,7 @@ export default function AdminCategory() {
         </div>
 
         {/* Alerts */}
-        {error && (
-          <div className="admin-alert admin-alert-error">
-            {error}
-            <button onClick={() => setError('')} className="admin-alert-close">&times;</button>
-          </div>
-        )}
-        {success && (
-          <div className="admin-alert admin-alert-success">
-            {success}
-            <button onClick={() => setSuccess('')} className="admin-alert-close">&times;</button>
-          </div>
-        )}
+
 
         {/* Filters & Search */}
         <div className="admin-filters-section">
@@ -222,7 +286,6 @@ export default function AdminCategory() {
                     <th>Category Name</th>
                     <th>Icon</th>
                     <th>Status</th>
-                    <th>Subcategories</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -256,14 +319,6 @@ export default function AdminCategory() {
                           <span className={`admin-badge ${category.isActive ? 'badge-success' : 'badge-warning'}`}>
                             {category.isActive ? 'Active' : 'Inactive'}
                           </span>
-                        </td>
-                        <td className="admin-subcategory-count">
-                          <button
-                            onClick={() => handleExpandCategory(category.categoryId)}
-                            className="subcategory-link"
-                          >
-                            View ({subcategories.length})
-                          </button>
                         </td>
                         <td className="admin-actions">
                           <button
@@ -303,15 +358,23 @@ export default function AdminCategory() {
                               ) : subcategories.length > 0 ? (
                                 <div className="subcategories-list">
                                   {subcategories.map((subcat) => (
-                                    <div key={subcat.categoryId} className="subcategory-item">
+                                    <div key={subcat.subCategoryId} className="subcategory-item">
                                       <div className="subcategory-info">
                                         <h6>{subcat.name}</h6>
                                       </div>
                                       <div className="subcategory-actions">
-                                        <button className="admin-action-icon edit" title="Edit">
+                                        <button 
+                                            className="admin-action-icon edit" 
+                                            title="Edit"
+                                            onClick={() => handleOpenEditSubcategory(subcat, category.categoryId)}
+                                        >
                                           <Edit2 size={16} />
                                         </button>
-                                        <button className="admin-action-icon delete" title="Delete">
+                                        <button 
+                                            className="admin-action-icon delete" 
+                                            title="Delete"
+                                            onClick={() => handleDeleteSubcategory(subcat.subCategoryId, category.categoryId)}
+                                        >
                                           <Trash2 size={16} />
                                         </button>
                                       </div>
@@ -336,6 +399,25 @@ export default function AdminCategory() {
                 <p>No categories found</p>
               </div>
             )}
+          </div>
+
+          {/* Pagination */}
+          <div className="admin-pagination">
+            <button 
+                className="admin-pagination-btn" 
+                disabled={pagination.page <= 1}
+                onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+            >
+                Previous
+            </button>
+            <span className="admin-pagination-info">Page {pagination.page} of {Math.ceil(pagination.total / pagination.limit) || 1}</span>
+            <button 
+                className="admin-pagination-btn"
+                disabled={categories.length < pagination.limit} 
+                onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+            >
+                Next
+            </button>
           </div>
         </div>
       </div>
@@ -412,7 +494,7 @@ export default function AdminCategory() {
         <div className="admin-modal-overlay" onClick={() => setIsSubcategoryModalOpen(false)}>
           <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header">
-              <h3>Add Subcategory to {selectedCategory.name}</h3>
+              <h3>{editingCategory?.isSubcategory ? 'Edit Subcategory' : `Add Subcategory to ${selectedCategory?.name}`}</h3>
               <button
                 className="admin-modal-close"
                 onClick={() => setIsSubcategoryModalOpen(false)}
@@ -421,7 +503,7 @@ export default function AdminCategory() {
               </button>
             </div>
 
-            <form className="admin-modal-form">
+            <form onSubmit={handleSubcategorySubmit} className="admin-modal-form">
               <div className="admin-form-group">
                 <label>Subcategory Name *</label>
                 <input
@@ -454,13 +536,22 @@ export default function AdminCategory() {
                   Cancel
                 </button>
                 <button type="submit" className="admin-btn admin-btn-primary">
-                  Add Subcategory
+                  {editingCategory?.isSubcategory ? 'Update Subcategory' : 'Add Subcategory'}
                 </button>
               </div>
             </form>
           </div>
         </div>
+
       )}
+
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
     </AdminLayout>
   );
 }

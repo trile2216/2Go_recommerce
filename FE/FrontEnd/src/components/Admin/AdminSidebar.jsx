@@ -1,5 +1,5 @@
 
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Package,
@@ -11,11 +11,14 @@ import {
   X,
   List,
   Shapes,
-  HandCoins
+  HandCoins,
+  TrendingUp
 } from 'lucide-react';
 import '../../styles/Admin/admin-sidebar.css';
+import logo from "../../assets/logo.jpg";
 
 export default function AdminSidebar({ isOpen, onToggle }) {
+  const location = useLocation();
 
   const menuItems = [
     {
@@ -25,10 +28,10 @@ export default function AdminSidebar({ isOpen, onToggle }) {
       path: '/admin'
     },
     {
-      id: 'products',
-      label: 'Products',
+      id: 'reports',
+      label: 'Reports',
       icon: <Package size={20} />,
-      path: '/admin/products'
+      path: '/admin/reports'
     },
     {
       id: 'customers',
@@ -59,6 +62,12 @@ export default function AdminSidebar({ isOpen, onToggle }) {
       label: 'Subscription Plans',
       icon: <HandCoins size={20} />,
       path: '/admin/plans'
+    },
+    {
+      id: 'market-prices',
+      label: 'Market Prices',
+      icon: <TrendingUp size={20} />,
+      path: '/admin/market-prices'
     }
   ];
 
@@ -76,11 +85,12 @@ export default function AdminSidebar({ isOpen, onToggle }) {
       <aside className={`admin-sidebar ${isOpen ? 'open' : ''}`}>
         {/* Sidebar Header */}
         <div className="admin-sidebar-header">
-          <Link to="/admin" className="admin-logo">
-            <div className="logo-icon">R</div>
+          {/* Logo */}
+          <Link to="/admin" className="header-logo" >
+            <img src={logo} alt="2GO Logo" className="logo-badge" />
             <div className="logo-text">
-              <h3>ReCommerce</h3>
-              <p>Admin</p>
+              <h1 className="logo-title">2GO</h1>
+              <p className="logo-subtitle">Admin Portal</p>
             </div>
           </Link>
           <button 
@@ -94,18 +104,24 @@ export default function AdminSidebar({ isOpen, onToggle }) {
         {/* Sidebar Nav */}
         <nav className="admin-sidebar-nav">
           <ul className="admin-nav-list">
-            {menuItems.map((item) => (
-              <li key={item.id} className="admin-nav-item">
-                <Link
-                  to={item.path}
-                  className="admin-nav-link"
-                  onClick={onToggle}
-                >
-                  <span className="admin-nav-icon">{item.icon}</span>
-                  <span className="admin-nav-text">{item.label}</span>
-                </Link>
-              </li>
-            ))}
+            {menuItems.map((item) => {
+              const isActive = item.path === '/admin'
+                ? location.pathname === '/admin'
+                : location.pathname.startsWith(item.path);
+              return (
+                <li key={item.id} className="admin-nav-item">
+                  <Link
+                    to={item.path}
+                    className={`admin-nav-link ${isActive ? 'active' : ''}`}
+                    onClick={onToggle}
+                  >
+                    <span className="admin-nav-icon">{item.icon}</span>
+                    <span className="admin-nav-text">{item.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+
           </ul>
         </nav>
 

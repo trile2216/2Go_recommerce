@@ -306,32 +306,15 @@ export default function UserInfo() {
     <UserLayout>
       <div className="userinfo-container">
       {/* Header */}
-      <div className="userinfo-header">
+      {/* <div className="userinfo-header">
         <div className="userinfo-header-content">
           <h1>Hồ sơ cá nhân</h1>
           <p>Quản lý thông tin tài khoản của bạn</p>
         </div>
         <div className="userinfo-header-actions">
-          {!isEditing && !showPasswordForm && (
-            <>
-              <button 
-                onClick={startEditing}
-                className="ui-btn ui-btn-primary"
-              >
-                <User size={18} />
-                Chỉnh sửa
-              </button>
-              <button 
-                onClick={startPasswordChange}
-                className="ui-btn ui-btn-secondary"
-              >
-                <Shield size={18} />
-                Đổi mật khẩu
-              </button>
-            </>
-          )}
+         
         </div>
-      </div>
+      </div> */}
 
       <div className="userinfo-content">
         {/* Sidebar - Profile Card */}
@@ -381,6 +364,27 @@ export default function UserInfo() {
                   {userInfo.phoneVerified ? '✓ Đã xác minh' : 'Chưa xác minh'}
                 </span>
               </div>
+            </div>  
+            <div className="userinfo-header-actions">
+               {!isEditing && !showPasswordForm && (
+                  <>
+                    <button 
+                      onClick={startEditing}
+                      className="ui-btn ui-btn-primary profile-action-btn"
+                      
+                    >
+                      <User size={18} />
+                      Chỉnh sửa
+                    </button>
+                    <button 
+                      onClick={startPasswordChange}
+                      className="ui-btn ui-btn-secondary profile-action-btn"
+                    >
+                      <Shield size={18} />
+                      Đổi mật khẩu
+                    </button>
+                  </>
+                )}
             </div>
 
             <div className="profile-meta">

@@ -2,6 +2,8 @@ import api from '../../config/axios';
 
 /**
  * Kiểm tra nhanh bài đăng trước khi cho user publish
+ * POST /api/ai/listings/precheck
+ * 
  * @param {Object} data
  * @param {string} data.title - Tiêu đề bài đăng
  * @param {string} data.description - Mô tả sản phẩm
@@ -11,54 +13,27 @@ import api from '../../config/axios';
  * @param {string[]} data.mediaUrls - URL ảnh/video đã upload
  * @param {string} data.userId - ID người dùng
  * @returns {Promise<{
- *   canPublish: boolean,
- *   quality: object,
- *   pricing: object,
- *   risk: object,
- *   note: string
+ *   quality: { score: number, issues: string[], decision: string },
+ *   pricing: { detectedProduct: string, marketAvg: number|null, confidence: string, conditionAI: string, suggestedMin: number|null, suggestedMax: number|null },
+ *   risk: { riskScore: number, flags: string[], action: string, riskConfidence: string },
+ *   note: string,
+ *   canPublish: boolean
  * }>}
  */
 export const listingPrecheck = async (data) => {
     try {
-        console.log('=== PRECHECK REQUEST DEBUG ===');
-        console.log('Full data object:', JSON.stringify(data, null, 2));
-        console.log('Data types:', {
-            title: typeof data.title,
-            description: typeof data.description,
-            categoryId: typeof data.categoryId,
-            brand: typeof data.brand,
-            price: typeof data.price,
-            mediaUrls: {
-                type: typeof data.mediaUrls,
-                isArray: Array.isArray(data.mediaUrls),
-                length: data.mediaUrls?.length,
-                values: data.mediaUrls
-            },
-            userId: {
-                type: typeof data.userId,
-                value: data.userId,
-                isEmpty: !data.userId
-            }
-        });
-        console.log('=== END DEBUG ===');
-        
         const response = await api.post('/ai/listings/precheck', data);
         return response.data;
     } catch (error) {
-        console.error('=== PRECHECK ERROR DEBUG ===');
-        console.error('Error status:', error.response?.status);
-        const errorData = error.response?.data;
-        if (errorData?.errors) {
-            console.error('Validation errors object:', JSON.stringify(errorData.errors, null, 2));
-        }
-        console.error('Full error data:', JSON.stringify(errorData, null, 2));
-        console.error('=== END ERROR DEBUG ===');
         throw error;
     }
 };
 
 /**
- * Phân tích chi tiết bài đăng (sau khi đã tạo listing)
+ * Phân tích chi tiết bài đăng (Admin/Manager dùng sau khi listing đã tạo)
+ * POST /api/ai/listings/analyze
+ * Requires: Authorize(Roles = "Admin,Manager")
+ * 
  * @param {Object} data
  * @param {string} data.title - Tiêu đề bài đăng
  * @param {string} data.description - Mô tả sản phẩm
@@ -69,42 +44,22 @@ export const listingPrecheck = async (data) => {
  * @param {string[]} data.mediaUrls - URL ảnh/video đã upload
  * @param {string} data.userId - ID người dùng
  * @param {number} data.listingId - ID bài đăng
- * @returns {Promise<object>}
+ * @returns {Promise<{
+ *   quality: { score: number, issues: string[], decision: string },
+ *   pricing: { detectedProduct: string, marketAvg: number|null, confidence: string, conditionAI: string, suggestedMin: number|null, suggestedMax: number|null },
+ *   risk: { riskScore: number, flags: string[], action: string, riskConfidence: string },
+ *   note: string,
+ *   finalRecommendation: string  // "PUBLISHED" | "PENDING_REVIEW" | "REJECTED_DRAFT"
+ * }>}
  */
 export const listingAnalyze = async (data) => {
     try {
-        const response = await api.post('/ai/analyze/listing', data);
+        const response = await api.post('/ai/listings/analyze', data);
         return response.data;
     } catch (error) {
-        console.error('Error performing listing analysis:', error);
-        throw error;
-    }
-};
-
-/**
- * Kiểm tra rủi ro bài đăng
- * @param {Object} data
- * @param {string} data.title - Tiêu đề bài đăng
- * @param {string} data.description - Mô tả sản phẩm
- * @param {number} data.price - Giá bán
- * @param {number} data.suggestedMin - Giá đề xuất tối thiểu
- * @param {number} data.suggestedMax - Giá đề xuất tối đa
- * @param {number} data.accountAgeDays - Số ngày tài khoản đã tồn tại
- * @param {number} data.recentListingsCount - Số bài đăng gần đây
- * @param {number} data.totalListingsCount - Tổng số bài đăng
- * @param {number} data.completedSalesCount - Số giao dịch hoàn thành
- * @param {number} data.reportsCount - Số lần bị report
- * @param {number} data.deviceCount - Số thiết bị đăng nhập
- * @param {boolean} data.phoneVerified - Đã xác thực SĐT
- * @param {boolean} data.emailVerified - Đã xác thực email
- * @returns {Promise<object>}
- */
-export const listingRiskCheck = async (data) => {
-    try {
-        const response = await api.post('/ai/listings/risk-check', data);
-        return response.data;
-    } catch (error) {
-        console.error('Error performing listing risk check:', error);
+        if (error.response?.status === 429) {
+            throw new Error('Gemini quota exceeded. Vui lòng thử lại sau.');
+        }
         throw error;
     }
 };

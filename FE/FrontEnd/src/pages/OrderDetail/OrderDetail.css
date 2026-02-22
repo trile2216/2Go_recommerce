@@ -500,3 +500,64 @@
   min-height: 1.4em;
   margin-top: 0.25rem;
 }
+
+/* Shipping Status Badges */
+.shipping-status-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.shipping-status-requested {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.shipping-status-intransit {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.shipping-status-delivered {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.shipping-status-failed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Shipping Label Links */
+.od-ship-labels {
+  margin-top: 8px;
+}
+
+.od-label-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.od-label-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  color: #0369a1;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.od-label-link:hover {
+  background: #e0f2fe;
+}

@@ -1,8 +1,8 @@
 import api from '../../config/axios';
 
-export const fetchPlans = async () => {
+export const fetchPlans = async (params = {}) => {
     try {
-        const response = await api.get('/admin/subscription-plans?skip=0&take=50');
+        const response = await api.get('/admin/subscription-plans', { params });
         return response.data;
     }
     catch (error) {

@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Eye, Search, Filter, X, Check } from 'lucide-react';
 import AdminLayout from '../../../layouts/AdminLayout';
 import { fetchPlans, fetchPlanById, deletePlanById, updatePlanById, createPlan } from '../../../service/admin/api.plan';
+import { useToast } from '../../../context/ToastContext';
 import './Plan.css';
 
 export default function Plan() {
+  const toast = useToast();
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -14,22 +16,22 @@ export default function Plan() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editFormData, setEditFormData] = useState({});
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
 
-  // Fetch plans on component mount
+  // Fetch plans on component mount and page change
   useEffect(() => {
     loadPlans();
-  }, []);
+  }, [pagination.page]);
 
   const loadPlans = async () => {
     try {
       setLoading(true);
-      const data = await fetchPlans();
+      const skip = (pagination.page - 1) * pagination.limit;
+      const data = await fetchPlans({ skip, take: pagination.limit });
       setPlans(data.items || []);
-      setError('');
+      setPagination(prev => ({ ...prev, total: data.total || data.totalCount || 0 }));
     } catch (err) {
-      setError('Failed to load plans');
+      toast.error('Failed to load plans');
       console.error(err);
     } finally {
       setLoading(false);
@@ -62,7 +64,7 @@ export default function Plan() {
       setSelectedPlan(detailedPlan);
       setShowDetailModal(true);
     } catch (error) {
-      setError('Failed to load plan details');
+      toast.error('Failed to load plan details');
       console.error(error);
     }
   };
@@ -100,7 +102,7 @@ export default function Plan() {
     try {
       // Validate required fields
       if (!editFormData.name) {
-        setError('Name is a required field');
+        toast.error('Name is a required field');
         return;
       }
 
@@ -115,14 +117,12 @@ export default function Plan() {
       };
 
       await updatePlanById(editFormData.planId, updateData);
-      setSuccess('Plan updated successfully');
+      toast.success('Plan updated successfully');
       setShowEditModal(false);
-      setError('');
       await loadPlans();
-      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.response?.data?.error || 'Failed to update plan';
-      setError(errorMessage);
+      toast.error(errorMessage);
       console.error('Error details:', err.response?.data);
     }
   };
@@ -131,7 +131,7 @@ export default function Plan() {
     try {
       // Validate required fields
       if (!editFormData.code || !editFormData.name) {
-        setError('Code and Name are required fields');
+        toast.error('Code and Name are required fields');
         return;
       }
 
@@ -147,14 +147,12 @@ export default function Plan() {
       };
 
       await createPlan(createData);
-      setSuccess('Plan created successfully');
+      toast.success('Plan created successfully');
       setShowCreateModal(false);
-      setError('');
       await loadPlans();
-      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.response?.data?.error || 'Failed to create plan';
-      setError(errorMessage);
+      toast.error(errorMessage);
       console.error('Error details:', err.response?.data);
     }
   };
@@ -163,11 +161,10 @@ export default function Plan() {
     if (window.confirm('Are you sure you want to delete this plan?')) {
       try {
         await deletePlanById(id);
-        setSuccess('Plan deleted successfully');
+        toast.success('Plan deleted successfully');
         await loadPlans();
-        setTimeout(() => setSuccess(''), 3000);
       } catch (err) {
-        setError('Failed to delete plan');
+        toast.error('Failed to delete plan');
         console.error(err);
       }
     }
@@ -176,9 +173,6 @@ export default function Plan() {
   return (
     <AdminLayout>
       <div className="admin-plans-page">
-        {/* Alerts */}
-        {error && <div className="admin-alert alert-error">{error}</div>}
-        {success && <div className="admin-alert alert-success">{success}</div>}
 
         {/* Page Header */}
         <div className="admin-page-header">
@@ -244,7 +238,6 @@ export default function Plan() {
                     <th>Duration</th>
                     <th>Listing Limit</th>
                     <th>Status</th>
-                    <th>Sort Order</th>
                     <th>Updated</th>
                     <th>Actions</th>
                   </tr>
@@ -265,16 +258,14 @@ export default function Plan() {
                         {plan.durationDays} days
                       </td>
                       <td className="admin-plan-limit">
-                        {plan.monthlyListingLimit} listings
+                        {plan.monthlyListingLimit === null ? 'Unlimited' : plan.monthlyListingLimit + ' listings'}
                       </td>
                       <td>
                         <span className={`admin-badge ${plan.isActive ? 'badge-success' : 'badge-danger'}`}>
                           {plan.isActive ? 'Active' : 'Inactive'}
                         </span>
                       </td>
-                      <td className="admin-plan-sort">
-                        {plan.sortOrder}
-                      </td>
+   
                       <td className="admin-date">{formatDate(plan.updatedAt)}</td>
                       <td className="admin-actions">
                         <button 
@@ -308,6 +299,25 @@ export default function Plan() {
                 <p>No plans found</p>
               </div>
             )}
+          </div>
+
+          {/* Pagination */}
+          <div className="admin-pagination">
+            <button 
+                className="admin-pagination-btn" 
+                disabled={pagination.page <= 1}
+                onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+            >
+                Previous
+            </button>
+            <span className="admin-pagination-info">Page {pagination.page} of {Math.ceil(pagination.total / pagination.limit) || 1}</span>
+            <button 
+                className="admin-pagination-btn"
+                disabled={plans.length < pagination.limit} 
+                onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+            >
+                Next
+            </button>
           </div>
         </div>
 
@@ -352,7 +362,7 @@ export default function Plan() {
                   </div>
                   <div className="admin-modal-row">
                     <span className="admin-modal-label">Monthly Listing Limit:</span>
-                    <span className="admin-modal-value">{selectedPlan.monthlyListingLimit} listings</span>
+                    <span className="admin-modal-value">{selectedPlan.monthlyListingLimit === null ? 'Unlimited' : selectedPlan.monthlyListingLimit + ' listings'}</span>
                   </div>
                   <div className="admin-modal-row">
                     <span className="admin-modal-label">Status:</span>

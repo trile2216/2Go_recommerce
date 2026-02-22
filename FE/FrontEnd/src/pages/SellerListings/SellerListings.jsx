@@ -254,7 +254,7 @@ export default function SellerListings() {
           <button
             className="sl-action-btn sl-btn-view"
             title="Xem chi tiết"
-            onClick={() => navigate(`/product/${item.listingId}`)}
+            onClick={() => navigate(`/seller/listings/${item.listingId}`)}
           >
             <Eye size={15} />
           </button>
@@ -344,7 +344,7 @@ export default function SellerListings() {
                     </>
                   }
                   actions={renderActions(item)}
-                  onClick={() => navigate(`/product/${item.listingId}`)}
+                  onClick={() => navigate(`/seller/listings/${item.listingId}`)}
                 />
               ))}
             </div>

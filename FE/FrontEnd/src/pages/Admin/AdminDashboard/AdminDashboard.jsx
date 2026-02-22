@@ -3,56 +3,98 @@ import { BarChart3, TrendingUp, Users, ShoppingCart, ArrowUp, ArrowDown } from '
 import AdminLayout from '../../../layouts/AdminLayout';
 import './admin-dashboard.css'
 
+import { getDashboardSummary, getDashboardTimeseries } from '../../../service/admin/api.admin.dashboard';
+import { getOrders } from '../../../service/admin/api.admin.order';
+
+// Available metrics for the chart selector
+const CHART_METRICS = [
+  { key: 'ordersTotal', label: 'Orders', color: '#3b82f6' },
+  { key: 'gmvCompleted', label: 'Revenue (GMV)', color: '#10b981', isCurrency: true },
+  { key: 'listingsNew', label: 'New Listings', color: '#f59e0b' },
+  { key: 'usersNew', label: 'New Users', color: '#8b5cf6' },
+  { key: 'ordersCompleted', label: 'Completed Orders', color: '#06b6d4' },
+  { key: 'ordersCancelled', label: 'Cancelled Orders', color: '#ef4444' },
+  { key: 'commissionRevenue', label: 'Commission', color: '#ec4899', isCurrency: true },
+  { key: 'reportsNew', label: 'New Reports', color: '#f97316' },
+];
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
-    totalProducts: 1250,
-    totalCustomers: 450,
-    totalOrders: 890,
-    totalRevenue: 125000,
-    ordersToday: 45,
-    customersThisMonth: 89
+    totalProducts: 0,
+    totalCustomers: 0,
+    totalOrders: 0,
+    totalRevenue: 0,
+    ordersToday: 0,
+    customersThisMonth: 0
   });
+  const [timeseriesPoints, setTimeseriesPoints] = useState([]);
+  const [timeBucket, setTimeBucket] = useState('day');
+  const [chartMetric, setChartMetric] = useState('ordersTotal');
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const [recentOrders, setRecentOrders] = useState([
-    {
-      id: 'ORD-001',
-      customer: 'John Doe',
-      product: 'iPhone 13 Pro',
-      amount: 15500000,
-      status: 'Completed',
-      date: '2024-01-14'
-    },
-    {
-      id: 'ORD-002',
-      customer: 'Jane Smith',
-      product: 'MacBook Pro',
-      amount: 35000000,
-      status: 'Pending',
-      date: '2024-01-13'
-    },
-    {
-      id: 'ORD-003',
-      customer: 'Mike Johnson',
-      product: 'iPad Air',
-      amount: 12000000,
-      status: 'Processing',
-      date: '2024-01-13'
-    },
-    {
-      id: 'ORD-004',
-      customer: 'Sarah Williams',
-      product: 'AirPods Pro',
-      amount: 5000000,
-      status: 'Completed',
-      date: '2024-01-12'
-    }
-  ]);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [summary, timeseries, ordersData] = await Promise.all([
+          getDashboardSummary(),
+          getDashboardTimeseries('', '', timeBucket),
+          getOrders({ skip: 0, take: 5 })
+        ]);
+
+        setStats({
+          totalProducts: summary.summary.listingsActive,
+          totalCustomers: summary.summary.usersNew, 
+          totalOrders: summary.summary.ordersTotal,
+          totalRevenue: summary.summary.gmvCompleted,
+          ordersToday: 0, 
+          customersThisMonth: 0 
+        });
+
+        // Store the full timeseries points
+        setTimeseriesPoints(timeseries.points || []);
+
+        // Set Recent Orders
+        if (ordersData && ordersData.items) {
+            setRecentOrders(ordersData.items);
+        }
+
+      } catch (error) {
+        console.error('Failed to fetch dashboard data', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [timeBucket]);
+
+  // Derive chart values from the selected metric
+  const selectedMetricInfo = CHART_METRICS.find(m => m.key === chartMetric) || CHART_METRICS[0];
+  const chartValues = timeseriesPoints.map(p => p[chartMetric] || 0);
+  const maxChartValue = Math.max(...chartValues, 1);
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
       currency: 'VND'
     }).format(price);
+  };
+
+  const formatChartValue = (value) => {
+    if (selectedMetricInfo.isCurrency) {
+      return formatPrice(value);
+    }
+    return value.toLocaleString('vi-VN');
+  };
+
+  const formatDateLabel = (dateString) => {
+    const date = new Date(dateString);
+    if (timeBucket === 'month') {
+      return date.toLocaleDateString('vi-VN', { month: 'short', year: '2-digit' });
+    }
+    return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
   };
 
   const getStatusColor = (status) => {
@@ -62,7 +104,10 @@ export default function AdminDashboard() {
       case 'Pending':
         return 'badge-warning';
       case 'Processing':
+      case 'Confirmed':
         return 'badge-info';
+      case 'Cancelled':
+        return 'badge-danger'; 
       default:
         return 'badge-secondary';
     }
@@ -134,68 +179,84 @@ export default function AdminDashboard() {
 
         {/* Charts Section */}
         <div className="admin-charts-section">
-          <div className="admin-chart-container">
+          <div className="admin-chart-container" style={{ flex: '1 1 100%' }}>
             <div className="admin-chart-header">
-              <h4>Sales Overview</h4>
-              <select className="admin-chart-filter">
-                <option>This Month</option>
-                <option>Last Month</option>
-                <option>This Year</option>
-              </select>
+              <h4>{selectedMetricInfo.label} Overview</h4>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <select 
+                  className="admin-chart-filter"
+                  value={chartMetric}
+                  onChange={(e) => setChartMetric(e.target.value)}
+                >
+                  {CHART_METRICS.map(m => (
+                    <option key={m.key} value={m.key}>{m.label}</option>
+                  ))}
+                </select>
+                <select 
+                  className="admin-chart-filter"
+                  value={timeBucket}
+                  onChange={(e) => setTimeBucket(e.target.value)}
+                >
+                  <option value="day">Daily</option>
+                  <option value="week">Weekly</option>
+                  <option value="month">Monthly</option>
+                </select>
+              </div>
             </div>
             <div className="admin-chart-body">
+              {/* Y-axis max label */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 20px', fontSize: '0.75rem', color: '#94a3b8' }}>
+                <span>{formatChartValue(maxChartValue)}</span>
+                <span>Total: {formatChartValue(chartValues.reduce((a, b) => a + b, 0))}</span>
+              </div>
               <div style={{
                 display: 'flex',
                 alignItems: 'flex-end',
-                justifyContent: 'space-around',
-                height: '250px',
-                padding: '20px'
+                height: '220px',
+                padding: '10px 20px 0',
+                gap: '2px',
+                borderBottom: '1px solid #e2e8f0'
               }}>
-                {[30, 40, 35, 50, 45, 60, 55, 70, 65, 75, 80, 85].map((value, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      width: '30px',
-                      height: `${(value / 100) * 200}px`,
-                      backgroundColor: '#3b82f6',
-                      borderRadius: '4px 4px 0 0',
-                      opacity: 0.8
-                    }}
-                  />
-                ))}
+                {timeseriesPoints.length > 0 ? timeseriesPoints.map((point, idx) => {
+                  const value = point[chartMetric] || 0;
+                  const barHeight = maxChartValue > 0 ? (value / maxChartValue) * 200 : 0;
+                  return (
+                    <div
+                      key={idx}
+                      title={`${formatDateLabel(point.periodStart)}: ${formatChartValue(value)}`}
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        height: `${Math.max(barHeight, value > 0 ? 4 : 1)}px`,
+                        backgroundColor: value > 0 ? selectedMetricInfo.color : '#e2e8f0',
+                        borderRadius: '3px 3px 0 0',
+                        opacity: value > 0 ? 0.85 : 0.3,
+                        transition: 'height 0.3s ease, opacity 0.3s ease',
+                        cursor: 'pointer'
+                      }}
+                    />
+                  );
+                }) : <p style={{ margin: 'auto', color: '#94a3b8' }}>No data available</p>}
               </div>
-            </div>
-          </div>
-
-          <div className="admin-chart-container">
-            <div className="admin-chart-header">
-              <h4>Top Categories</h4>
-            </div>
-            <div className="admin-chart-body">
-              <div className="admin-category-list">
-                {[
-                  { name: 'Electronics', percentage: 45, value: 50000000 },
-                  { name: 'Fashion', percentage: 25, value: 28000000 },
-                  { name: 'Home & Garden', percentage: 20, value: 22000000 },
-                  { name: 'Others', percentage: 10, value: 11000000 }
-                ].map((cat, idx) => (
-                  <div key={idx} className="admin-category-item">
-                    <div className="admin-category-info">
-                      <span className="admin-category-name">{cat.name}</span>
-                      <span className="admin-category-value">{formatPrice(cat.value)}</span>
-                    </div>
-                    <div className="admin-category-progress">
-                      <div className="admin-progress-bar">
-                        <div
-                          className="admin-progress-fill"
-                          style={{ width: `${cat.percentage}%` }}
-                        ></div>
+              {/* Date labels */}
+              {timeseriesPoints.length > 0 && (
+                <div style={{
+                  display: 'flex',
+                  padding: '6px 20px 10px',
+                  gap: '2px'
+                }}>
+                  {timeseriesPoints.map((point, idx) => {
+                    // Show label every N points to avoid overcrowding
+                    const showEvery = timeseriesPoints.length > 14 ? Math.ceil(timeseriesPoints.length / 7) : 1;
+                    const showLabel = idx % showEvery === 0 || idx === timeseriesPoints.length - 1;
+                    return (
+                      <div key={idx} style={{ flex: 1, minWidth: 0, textAlign: 'center', fontSize: '0.65rem', color: '#94a3b8', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                        {showLabel ? formatDateLabel(point.periodStart) : ''}
                       </div>
-                      <span className="admin-category-percent">{cat.percentage}%</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -210,33 +271,39 @@ export default function AdminDashboard() {
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>Order ID</th>
-                  <th>Customer</th>
+                  <th>Order Code</th>
                   <th>Product</th>
-                  <th>Amount</th>
+                  <th>Total</th>
                   <th>Status</th>
+                  <th>Payment</th>
                   <th>Date</th>
-                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {recentOrders.map((order) => (
-                  <tr key={order.id}>
-                    <td className="admin-order-id">{order.id}</td>
-                    <td>{order.customer}</td>
-                    <td>{order.product}</td>
-                    <td>{formatPrice(order.amount)}</td>
-                    <td>
-                      <span className={`admin-badge ${getStatusColor(order.status)}`}>
-                        {order.status}
-                      </span>
-                    </td>
-                    <td>{order.date}</td>
-                    <td>
-                      <button className="admin-action-btn">View</button>
-                    </td>
-                  </tr>
-                ))}
+                {recentOrders.length > 0 ? (
+                    recentOrders.map((order) => (
+                    <tr key={order.orderId}>
+                        <td className="admin-order-id">#{order.orderCode}</td>
+                        <td>{order.listingTitle || 'N/A'}</td>
+                        <td>{formatPrice(order.totalAmount)}</td>
+                        <td>
+                        <span className={`admin-badge ${getStatusColor(order.status)}`}>
+                            {order.status}
+                        </span>
+                        </td>
+                        <td>
+                             <span className="admin-badge badge-secondary" style={{fontSize: '0.75rem'}}>
+                                {order.paymentMethod}
+                            </span>
+                        </td>
+                        <td>{new Date(order.createdAt).toLocaleDateString('vi-VN')}</td>
+                    </tr>
+                    ))
+                ) : (
+                    <tr>
+                        <td colSpan="6" style={{textAlign: 'center', padding: '20px'}}>No recent orders found</td>
+                    </tr>
+                )}
               </tbody>
             </table>
           </div>

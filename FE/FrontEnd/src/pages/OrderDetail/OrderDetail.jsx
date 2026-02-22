@@ -5,6 +5,7 @@ import { useToast } from "../../context/ToastContext";
 import { getOrderById, cancelOrder, confirmOrder, completeOrder } from "../../service/home/api.order";
 import { createReport } from "../../service/home/api.report";
 import { createRating } from "../../service/home/api.rating";
+import { getShippingByOrder, getGhnPrintToken } from "../../service/home/api.shipping";
 import { uploadImageAndGetUrl, uploadVideoAndGetUrl } from "../../service/upload/api.upload";
 import CreateShippingModal from "../../components/CreateShippingModal";
 import OrderStatusStepper, { getStatusLabel } from "../../components/OrderStatusStepper";
@@ -29,7 +30,8 @@ import {
   X,
   ImagePlus,
   Trash2,
-  Star
+  Star,
+  Printer
 } from "lucide-react";
 import "./OrderDetail.css";
 import PageEmptyState from "../../components/PageEmptyState";
@@ -54,6 +56,8 @@ export default function OrderDetail() {
   const [ratingScore, setRatingScore] = useState(0);
   const [ratingComment, setRatingComment] = useState("");
   const [ratingHover, setRatingHover] = useState(0);
+  const [shippingInfo, setShippingInfo] = useState(null);
+  const [printLoading, setPrintLoading] = useState(false);
 
   const fetchOrder = useCallback(async () => {
     try {
@@ -68,9 +72,21 @@ export default function OrderDetail() {
     }
   }, [orderId, toast]);
 
+  const fetchShipping = useCallback(async () => {
+    try {
+      const data = await getShippingByOrder(orderId);
+      setShippingInfo(data);
+    } catch {
+      setShippingInfo(null);
+    }
+  }, [orderId]);
+
   useEffect(() => {
-    if (orderId) fetchOrder();
-  }, [orderId, fetchOrder]);
+    if (orderId) {
+      fetchOrder();
+      fetchShipping();
+    }
+  }, [orderId, fetchOrder, fetchShipping]);
 
   const handleCancel = async () => {
     if (!window.confirm("Bạn có chắc chắn muốn hủy đơn hàng này?")) return;
@@ -207,6 +223,25 @@ export default function OrderDetail() {
     }
   };
 
+  const handlePrintLabel = async () => {
+    if (!shippingInfo?.trackingCode) {
+      toast.error("Không tìm thấy mã vận đơn");
+      return;
+    }
+    try {
+      setPrintLoading(true);
+      const result = await getGhnPrintToken({ orderCodes: [shippingInfo.trackingCode] });
+      if (result.printA5Url) {
+        window.open(result.printA5Url, "_blank");
+      } else {
+        toast.error("Không thể lấy link in nhãn");
+      }
+    } catch (error) {
+      toast.error("Lấy nhãn vận chuyển thất bại");
+    } finally {
+      setPrintLoading(false);
+    }
+  };
 
 
   if (loading) {
@@ -245,7 +280,7 @@ export default function OrderDetail() {
   const buyerCanComplete = isBuyer && (order.status === "Confirmed" || order.status === "Shipping");
 
   const hasCheckoutUrl = isBuyer && order.status === "Pending" && order.checkoutUrl;
-  const sellerCanCreateShipping = isSeller && order.status === "Confirmed" && order.paymentMethod === "PAYOS";
+  const sellerCanCreateShipping = isSeller && order.status === "Confirmed" && !shippingInfo;
 
   return (
     <UserLayout>
@@ -360,6 +395,85 @@ export default function OrderDetail() {
                  </div>
                </div>
             </div>
+
+               {/* Shipping Info */}
+               {shippingInfo && (
+                 <div className="order-card">
+                   <div className="od-card-header">
+                     <h3 className="od-card-subtitle"><Truck size={18} /> Thông tin vận chuyển</h3>
+                   </div>
+                   <div className="od-card-body">
+                     <div className="party-details">
+                       <div className="party-item">
+                         <Package size={18} className="party-icon" />
+                         <div className="party-info-text">
+                           <p className="party-label">Đơn vị vận chuyển</p>
+                           <p className="party-value">{shippingInfo.provider || "GHN"}</p>
+                         </div>
+                       </div>
+                       {shippingInfo.trackingCode && (
+                         <div className="party-item">
+                           <Truck size={18} className="party-icon" />
+                           <div className="party-info-text">
+                             <p className="party-label">Mã vận đơn</p>
+                             <p className="party-value" style={{ fontFamily: "monospace", fontWeight: 600 }}>{shippingInfo.trackingCode}</p>
+                           </div>
+                         </div>
+                       )}
+                       <div className="party-item">
+                         <Info size={18} className="party-icon" />
+                         <div className="party-info-text">
+                           <p className="party-label">Trạng thái vận chuyển</p>
+                           <p className="party-value">
+                             <span className={`shipping-status-badge shipping-status-${(shippingInfo.status || "").toLowerCase()}`}>
+                               {shippingInfo.status === "Requested" && "Đã yêu cầu"}
+                               {shippingInfo.status === "InTransit" && "Đang giao"}
+                               {shippingInfo.status === "Delivered" && "Đã giao"}
+                               {shippingInfo.status === "Failed" && "Thất bại"}
+                               {!["Requested", "InTransit", "Delivered", "Failed"].includes(shippingInfo.status) && (shippingInfo.status || "N/A")}
+                             </span>
+                           </p>
+                         </div>
+                       </div>
+                       {shippingInfo.pickupAddress && (
+                         <div className="party-item">
+                           <MapPin size={18} className="party-icon" />
+                           <div className="party-info-text">
+                             <p className="party-label">Địa chỉ lấy hàng</p>
+                             <p className="party-value">{shippingInfo.pickupAddress}</p>
+                           </div>
+                         </div>
+                       )}
+                       {shippingInfo.deliveryAddress && (
+                         <div className="party-item">
+                           <MapPin size={18} className="party-icon" />
+                           <div className="party-info-text">
+                             <p className="party-label">Địa chỉ giao hàng</p>
+                             <p className="party-value">{shippingInfo.deliveryAddress}</p>
+                           </div>
+                         </div>
+                       )}
+                     </div>
+
+                     {/* Print labels - Seller only */}
+                     {isSeller && shippingInfo.trackingCode && (
+                       <div className="od-ship-labels">
+                         <button className="od-action-button primary-button" onClick={handlePrintLabel} disabled={printLoading} style={{ marginTop: 12 }}>
+                           <Printer size={16} />
+                           {printLoading ? "Đang tải..." : "In nhãn vận chuyển (A5)"}
+                         </button>
+                         {shippingInfo.labelA5Url && (
+                           <div className="od-label-links">
+                             <a href={shippingInfo.labelA5Url} target="_blank" rel="noopener noreferrer" className="od-label-link">📄 Nhãn A5</a>
+                             {shippingInfo.label80x80Url && <a href={shippingInfo.label80x80Url} target="_blank" rel="noopener noreferrer" className="od-label-link">📄 Nhãn 80x80</a>}
+                             {shippingInfo.label52x70Url && <a href={shippingInfo.label52x70Url} target="_blank" rel="noopener noreferrer" className="od-label-link">📄 Nhãn 52x70</a>}
+                           </div>
+                         )}
+                       </div>
+                     )}
+                   </div>
+                 </div>
+               )}
 
             {/* Right Column: Status & Actions */}
             <div className="order-right-col">
@@ -497,7 +611,7 @@ export default function OrderDetail() {
           user={user}
           toast={toast}
           onClose={() => setShowShippingModal(false)}
-          onSuccess={fetchOrder}
+          onSuccess={() => { fetchOrder(); fetchShipping(); }}
         />
       )}
 
