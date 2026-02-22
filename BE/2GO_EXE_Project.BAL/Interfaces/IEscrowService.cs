@@ -9,6 +9,8 @@ public interface IEscrowService
     Task<EscrowContract?> ReleaseForOrderAsync(long orderId, CancellationToken cancellationToken = default);
     Task<EscrowContract?> RefundForOrderAsync(long orderId, CancellationToken cancellationToken = default);
     Task<EscrowContract?> ForfeitDepositForOrderAsync(long orderId, string? reason = null, CancellationToken cancellationToken = default);
+    Task<bool> PayoutDepositForCompletedOrderAsync(long orderId, CancellationToken cancellationToken = default);
+    Task<bool> PayoutRemainingForCompletedOrderAsync(long orderId, CancellationToken cancellationToken = default);
     Task RetryFailedForfeitPayoutsAsync(CancellationToken cancellationToken = default);
     Task<bool> RetryForfeitPayoutAsync(long escrowId, CancellationToken cancellationToken = default);
 }

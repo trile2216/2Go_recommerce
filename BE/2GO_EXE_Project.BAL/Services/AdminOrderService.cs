@@ -329,6 +329,8 @@ public class AdminOrderService : IAdminOrderService
         _uow.Orders.Update(order);
         await _uow.SaveChangesAsync(cancellationToken);
         await _escrowService.ReleaseForOrderAsync(order.OrderId, cancellationToken);
+        await _escrowService.PayoutDepositForCompletedOrderAsync(order.OrderId, cancellationToken);
+        await _escrowService.PayoutRemainingForCompletedOrderAsync(order.OrderId, cancellationToken);
         await MarkListingSoldAsync(order, cancellationToken);
 
         var completeText = OrderNotificationText.ForStatus(OrderStatuses.Completed, order.OrderId);
