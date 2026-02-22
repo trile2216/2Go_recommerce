@@ -64,7 +64,7 @@ public class OrderService : IOrderService
 
         var hasActiveOrder = await _uow.Orders.Query()
             .AnyAsync(o => o.ListingId == listing.ListingId &&
-                           (o.Status == OrderStatuses.Pending || o.Status == OrderStatuses.Confirmed || o.Status == OrderStatuses.Completed || o.Status == OrderStatuses.Disputed),
+                           (o.Status == OrderStatuses.Pending || o.Status == OrderStatuses.Confirmed || o.Status == OrderStatuses.Delivered || o.Status == OrderStatuses.Completed || o.Status == OrderStatuses.Disputed),
                 cancellationToken);
         if (hasActiveOrder)
         {
@@ -153,7 +153,10 @@ public class OrderService : IOrderService
             order.CreatedAt,
             request.DeliveryAddress,
             escrow.DepositAmount,
-            escrow.DepositDeadlineAt);
+            escrow.DepositDeadlineAt,
+            requiresDeposit,
+            false,
+            escrow.Status);
     }
 
     public async Task<OrderListResponse> GetMyOrdersAsync(ClaimsPrincipal userPrincipal, int skip, int take, CancellationToken cancellationToken = default)
@@ -207,6 +210,9 @@ public class OrderService : IOrderService
             return null;
         }
 
+        var depositRequired = (order.TotalAmount ?? 0m) >= EscrowRules.DepositThresholdAmount;
+        var depositPaid = depositRequired && await IsDepositPaidAsync(order.OrderId, cancellationToken);
+
         return new OrderDetailResponse(
             order.OrderId,
             order.ListingId ?? 0,
@@ -230,7 +236,10 @@ public class OrderService : IOrderService
             order.Seller?.Phone,
             order.ShippingRequests.Select(s => s.DeliveryAddress).FirstOrDefault(),
             order.Escrow?.DepositAmount,
-            order.Escrow?.DepositDeadlineAt);
+            order.Escrow?.DepositDeadlineAt,
+            depositRequired,
+            depositPaid,
+            order.Escrow?.Status);
     }
 
     public async Task<BasicResponse> CancelAsync(ClaimsPrincipal userPrincipal, long orderId, CancellationToken cancellationToken = default)
@@ -327,13 +336,13 @@ public class OrderService : IOrderService
         {
             return new BasicResponse(false, "Order is in dispute.");
         }
-        if (!string.Equals(order.Status, OrderStatuses.Confirmed, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(order.Status, OrderStatuses.Delivered, StringComparison.OrdinalIgnoreCase))
         {
             if (string.Equals(order.Status, OrderStatuses.Completed, StringComparison.OrdinalIgnoreCase))
             {
                 return new BasicResponse(true, "Order already completed.");
             }
-            return new BasicResponse(false, "Only confirmed orders can be completed.");
+            return new BasicResponse(false, "Only delivered orders can be completed.");
         }
 
         var totalAmount = order.TotalAmount ?? 0m;
@@ -371,6 +380,14 @@ public class OrderService : IOrderService
         if (string.Equals(method, "COD", StringComparison.OrdinalIgnoreCase)) return "COD";
         if (string.Equals(method, "PAYOS", StringComparison.OrdinalIgnoreCase)) return "PAYOS";
         throw new InvalidOperationException("Payment method not supported.");
+    }
+
+    private async Task<bool> IsDepositPaidAsync(long orderId, CancellationToken cancellationToken)
+    {
+        return await _uow.Payments.Query()
+            .AnyAsync(p => p.OrderId == orderId &&
+                           (p.PaymentStage == PaymentStages.Deposit || p.PaymentStage == null) &&
+                           p.Status == PaymentStatuses.Paid, cancellationToken);
     }
 
     private async Task<bool> IsPaymentPaidAsync(long orderId, string stage, CancellationToken cancellationToken)
@@ -514,6 +531,8 @@ public class OrderService : IOrderService
         {
             return null;
         }
+        var depositRequired = (order.TotalAmount ?? 0m) >= EscrowRules.DepositThresholdAmount;
+        var depositPaid = depositRequired && await IsDepositPaidAsync(order.OrderId, cancellationToken);
         return new OrderDetailResponse(
             order.OrderId,
             order.ListingId ?? 0,
@@ -537,7 +556,10 @@ public class OrderService : IOrderService
             order.Seller?.Phone,
             order.ShippingRequests.Select(s => s.DeliveryAddress).FirstOrDefault(),
             order.Escrow?.DepositAmount,
-            order.Escrow?.DepositDeadlineAt);
+            order.Escrow?.DepositDeadlineAt,
+            depositRequired,
+            depositPaid,
+            order.Escrow?.Status);
     
     }
 

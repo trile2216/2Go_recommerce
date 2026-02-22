@@ -313,6 +313,7 @@ public class CartService : ICartService
                     o.OrderItems.Any(oi => oi.ListingId == item.ListingId) &&
                     (o.Status == OrderStatuses.Pending ||
                      o.Status == OrderStatuses.Confirmed ||
+                     o.Status == OrderStatuses.Delivered ||
                      o.Status == OrderStatuses.Completed ||
                      o.Status == OrderStatuses.Disputed), cancellationToken);
             if (hasActiveOrder)

@@ -157,9 +157,11 @@ public class PaymentService : IPaymentService
         }
         else if (string.Equals(stage, PaymentStages.Remaining, StringComparison.OrdinalIgnoreCase))
         {
-            if (requiresDeposit && !string.Equals(order.Status, OrderStatuses.Confirmed, StringComparison.OrdinalIgnoreCase))
+            if (requiresDeposit &&
+                !string.Equals(order.Status, OrderStatuses.Confirmed, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(order.Status, OrderStatuses.Delivered, StringComparison.OrdinalIgnoreCase))
             {
-                throw new InvalidOperationException("Remaining payment can only be created when order status is Confirmed.");
+                throw new InvalidOperationException("Remaining payment can only be created when order status is Confirmed or Delivered.");
             }
             if (requiresDeposit && !await HasPaidPaymentAsync(order.OrderId, PaymentStages.Deposit, cancellationToken))
             {

@@ -120,6 +120,9 @@ public class AdminOrderService : IAdminOrderService
             .FirstOrDefaultAsync(o => o.OrderId == orderId, cancellationToken);
         if (order == null) return null;
 
+        var depositRequired = (order.TotalAmount ?? 0m) >= EscrowRules.DepositThresholdAmount;
+        var depositPaid = depositRequired && await IsDepositPaidAsync(order.OrderId, cancellationToken);
+
         return new OrderDetailResponse(
             order.OrderId,
             order.ListingId ?? 0,
@@ -143,7 +146,10 @@ public class AdminOrderService : IAdminOrderService
             order.Seller?.Phone,
             order.ShippingRequests.Select(s => s.DeliveryAddress).FirstOrDefault(),
             order.Escrow?.DepositAmount,
-            order.Escrow?.DepositDeadlineAt);
+            order.Escrow?.DepositDeadlineAt,
+            depositRequired,
+            depositPaid,
+            order.Escrow?.Status);
     }
 
     public async Task<BasicResponse> UpdateStatusAsync(ClaimsPrincipal adminPrincipal, long orderId, UpdateOrderStatusRequest request, CancellationToken cancellationToken = default)
@@ -206,6 +212,13 @@ public class AdminOrderService : IAdminOrderService
                    string.Equals(next, OrderStatuses.Disputed, StringComparison.OrdinalIgnoreCase);
         }
         if (string.Equals(current, OrderStatuses.Confirmed, StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Equals(next, OrderStatuses.Delivered, StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(next, OrderStatuses.Completed, StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(next, OrderStatuses.Cancelled, StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(next, OrderStatuses.Disputed, StringComparison.OrdinalIgnoreCase);
+        }
+        if (string.Equals(current, OrderStatuses.Delivered, StringComparison.OrdinalIgnoreCase))
         {
             return string.Equals(next, OrderStatuses.Completed, StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(next, OrderStatuses.Cancelled, StringComparison.OrdinalIgnoreCase) ||
@@ -290,6 +303,10 @@ public class AdminOrderService : IAdminOrderService
 
     private async Task<BasicResponse> CompleteOrderAsync(ClaimsPrincipal adminPrincipal, Order order, string? reason, CancellationToken cancellationToken)
     {
+        if (!string.Equals(order.Status, OrderStatuses.Delivered, StringComparison.OrdinalIgnoreCase))
+        {
+            return new BasicResponse(false, "Only delivered orders can be completed.");
+        }
         var totalAmount = order.TotalAmount ?? 0m;
         var requiresDeposit = totalAmount >= EscrowRules.DepositThresholdAmount;
         var requiredStage = requiresDeposit ? PaymentStages.Remaining : PaymentStages.Remaining;
@@ -349,6 +366,14 @@ public class AdminOrderService : IAdminOrderService
             .AnyAsync(p => p.OrderId == orderId &&
                            (p.PaymentStage == stage ||
                             (p.PaymentStage == null && stage == PaymentStages.Deposit)) &&
+                           p.Status == PaymentStatuses.Paid, cancellationToken);
+    }
+
+    private async Task<bool> IsDepositPaidAsync(long orderId, CancellationToken cancellationToken)
+    {
+        return await _uow.Payments.Query()
+            .AnyAsync(p => p.OrderId == orderId &&
+                           (p.PaymentStage == PaymentStages.Deposit || p.PaymentStage == null) &&
                            p.Status == PaymentStatuses.Paid, cancellationToken);
     }
 
