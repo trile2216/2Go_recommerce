@@ -43,6 +43,7 @@ public class ListingCommentRepository : GenericRepository<ListingComment>, IList
         return await _context.ListingComments
             .Include(c => c.User)
                 .ThenInclude(u => u!.UserProfiles)
+            .Include(c => c.Replies)
             .FirstOrDefaultAsync(c => c.CommentId == commentId, cancellationToken);
     }
 
@@ -58,6 +59,26 @@ public class ListingCommentRepository : GenericRepository<ListingComment>, IList
             .Include(c => c.Replies)
             .Where(c => c.ListingId == listingId && c.ParentId == null)
             .OrderByDescending(c => c.CreatedAt);
+
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query.Skip(skip).Take(take).ToListAsync(cancellationToken);
+
+        return (total, items);
+    }
+
+    public async Task<(int Total, IReadOnlyList<ListingComment> Items)> GetRepliesByParentIdAsync(
+        long listingId,
+        long parentId,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.ListingComments
+            .Include(c => c.User)
+                .ThenInclude(u => u!.UserProfiles)
+            .Include(c => c.Replies)
+            .Where(c => c.ListingId == listingId && c.ParentId == parentId)
+            .OrderBy(c => c.CreatedAt);
 
         var total = await query.CountAsync(cancellationToken);
         var items = await query.Skip(skip).Take(take).ToListAsync(cancellationToken);

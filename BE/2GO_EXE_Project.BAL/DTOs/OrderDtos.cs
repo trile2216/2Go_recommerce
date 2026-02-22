@@ -19,7 +19,10 @@ public record OrderResponse(
     DateTime? CreatedAt,
     string? DeliveryAddress,
     decimal? DepositAmount,
-    DateTime? DepositDeadlineAt);
+    DateTime? DepositDeadlineAt,
+    bool DepositRequired,
+    bool DepositPaid,
+    string? EscrowStatus);
 
 public record OrderListItem(
     long OrderId,
@@ -64,6 +67,9 @@ public record OrderDetailResponse(
     string? SellerPhone,
     string? DeliveryAddress,
     decimal? DepositAmount,
-    DateTime? DepositDeadlineAt);
+    DateTime? DepositDeadlineAt,
+    bool DepositRequired,
+    bool DepositPaid,
+    string? EscrowStatus);
 
 public record UpdateOrderStatusRequest(string Status, string? Reason);

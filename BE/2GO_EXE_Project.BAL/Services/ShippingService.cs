@@ -570,7 +570,7 @@ public class ShippingService : IShippingService
             return;
         }
 
-        order.Status = OrderStatuses.Completed;
+        order.Status = OrderStatuses.Delivered;
         _uow.Orders.Update(order);
     }
 

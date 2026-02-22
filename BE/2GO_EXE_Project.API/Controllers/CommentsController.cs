@@ -68,6 +68,26 @@ public class CommentsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("{commentId:long}/replies")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetReplies(
+        long listingId,
+        long commentId,
+        [FromQuery] int skip = 0,
+        [FromQuery] int take = 20,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await _commentService.GetRepliesAsync(listingId, commentId, skip, take, cancellationToken);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(ex.Message);
+        }
+    }
+
     [HttpPatch("{commentId:long}")]
     public async Task<IActionResult> Update(
         long listingId,

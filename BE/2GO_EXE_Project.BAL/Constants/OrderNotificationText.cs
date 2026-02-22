@@ -9,6 +9,7 @@ public static class OrderNotificationText
         {
             OrderStatuses.Pending => ("Order status", $"Order #{orderId} is pending."),
             OrderStatuses.Confirmed => ("Order status", $"Order #{orderId} was confirmed."),
+            OrderStatuses.Delivered => ("Order status", $"Order #{orderId} was delivered."),
             OrderStatuses.Completed => ("Order status", $"Order #{orderId} was completed."),
             OrderStatuses.Cancelled => ("Order status", $"Order #{orderId} was cancelled."),
             OrderStatuses.Disputed => ("Order status", $"Order #{orderId} is now in dispute."),

@@ -30,6 +30,7 @@ public interface IListingCommentRepository : IGenericRepository<ListingComment>
 {
     Task<ListingComment?> GetByIdWithDetailsAsync(long commentId, CancellationToken cancellationToken = default);
     Task<(int Total, IReadOnlyList<ListingComment> Items)> GetByListingIdAsync(long listingId, int skip, int take, CancellationToken cancellationToken = default);
+    Task<(int Total, IReadOnlyList<ListingComment> Items)> GetRepliesByParentIdAsync(long listingId, long parentId, int skip, int take, CancellationToken cancellationToken = default);
 }
 public interface IManualReviewQueueRepository : IGenericRepository<ManualReviewQueue> { }
 public interface IMarketPriceRepository : IGenericRepository<MarketPrice> { }

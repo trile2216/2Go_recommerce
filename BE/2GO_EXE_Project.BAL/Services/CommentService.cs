@@ -88,6 +88,23 @@ public class CommentService : ICommentService
         return comment == null ? null : MapToDto(comment);
     }
 
+    public async Task<CommentListResponse> GetRepliesAsync(long listingId, long parentId, int skip, int take, CancellationToken cancellationToken = default)
+    {
+        var parent = await _uow.ListingComments.GetByIdAsync(parentId);
+        if (parent == null)
+        {
+            throw new InvalidOperationException(ErrorMessages.PARENT_COMMENT_NOT_FOUND);
+        }
+        if (parent.ListingId != listingId)
+        {
+            throw new InvalidOperationException(ErrorMessages.PARENT_COMMENT_DIFFERENT_LISTING);
+        }
+
+        var (total, items) = await _uow.ListingComments.GetRepliesByParentIdAsync(listingId, parentId, skip, take, cancellationToken);
+        var dtos = items.Select(MapToDto).ToList();
+        return new CommentListResponse(total, dtos);
+    }
+
     public async Task<CommentDto> UpdateAsync(ClaimsPrincipal userPrincipal, long commentId, UpdateCommentRequest request, CancellationToken cancellationToken = default)
     {
         ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateUpdateComment(request));
