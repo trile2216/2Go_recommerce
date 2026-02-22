@@ -366,6 +366,8 @@ public class OrderService : IOrderService
         _uow.Orders.Update(order);
         await _uow.SaveChangesAsync(cancellationToken);
         await _escrowService.ReleaseForOrderAsync(order.OrderId, cancellationToken);
+        await _escrowService.PayoutDepositForCompletedOrderAsync(order.OrderId, cancellationToken);
+        await _escrowService.PayoutRemainingForCompletedOrderAsync(order.OrderId, cancellationToken);
         await MarkListingSoldAsync(order, cancellationToken);
         await LogOrderActionAsync(userId, "OrderCompleted", new { order.OrderId, order.Status }, cancellationToken);
         if (order.SellerId.HasValue)
