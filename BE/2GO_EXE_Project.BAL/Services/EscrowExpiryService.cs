@@ -59,7 +59,7 @@ public class EscrowExpiryService : BackgroundService
                         o.Escrow.DepositDeadlineAt.Value <= reminderCutoff &&
                         !o.Escrow.DepositReminderSentAt.HasValue &&
                         o.Escrow.Status == EscrowStatuses.Funded &&
-                        (o.Status == OrderStatuses.Pending || o.Status == OrderStatuses.Confirmed))
+                        o.Status == OrderStatuses.Pending)
             .ToListAsync(cancellationToken);
 
         foreach (var order in reminderOrders)
@@ -85,7 +85,7 @@ public class EscrowExpiryService : BackgroundService
                         o.Escrow.DepositDeadlineAt.HasValue &&
                         o.Escrow.DepositDeadlineAt.Value < now &&
                         o.Escrow.Status == EscrowStatuses.Funded &&
-                        (o.Status == OrderStatuses.Pending || o.Status == OrderStatuses.Confirmed))
+                        o.Status == OrderStatuses.Pending)
             .ToListAsync(cancellationToken);
 
         if (expiredOrders.Count == 0)

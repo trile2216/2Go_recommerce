@@ -340,6 +340,7 @@ public class GhnShippingService : IGhnShippingService
 
         using var resp = await _httpClient.SendAsync(req, cancellationToken);
         var raw = await resp.Content.ReadAsStringAsync(cancellationToken);
+        _logger.LogInformation("GHN print token response: {Body}", raw);
         if (!resp.IsSuccessStatusCode)
         {
             _logger.LogError("GHN print token failed: {Status} {Body}", resp.StatusCode, raw);
@@ -364,6 +365,60 @@ public class GhnShippingService : IGhnShippingService
         }
 
         return new GhnPrintTokenResponse(string.Empty, string.Empty, string.Empty, string.Empty);
+    }
+
+    public async Task<GhnOrderInfoResponse> GetOrderInfoAsync(string orderCode, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_settings.Token) || _settings.ShopId <= 0)
+        {
+            throw new InvalidOperationException("GHN settings are not configured.");
+        }
+
+        var url = $"{_settings.BaseUrl.TrimEnd('/')}/v2/shipping-order/detail";
+        var payload = new Dictionary<string, object?>
+        {
+            ["order_code"] = orderCode
+        };
+
+        using var req = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = JsonContent.Create(payload)
+        };
+        req.Headers.Add("Token", _settings.Token);
+        req.Headers.Add("ShopId", _settings.ShopId.ToString());
+
+        using var resp = await _httpClient.SendAsync(req, cancellationToken);
+        var raw = await resp.Content.ReadAsStringAsync(cancellationToken);
+        if (!resp.IsSuccessStatusCode)
+        {
+            _logger.LogError("GHN order detail failed: {Status} {Body}", resp.StatusCode, raw);
+            throw new InvalidOperationException("GHN order detail request failed.");
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(raw);
+            if (doc.RootElement.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object)
+            {
+                string? GetString(string name) =>
+                    data.TryGetProperty(name, out var prop) && prop.ValueKind == JsonValueKind.String
+                        ? prop.GetString()
+                        : null;
+
+                var code = GetString("order_code") ?? orderCode;
+                var status = GetString("status");
+                var statusName = GetString("status_name");
+                var updatedDate = GetString("updated_date");
+
+                return new GhnOrderInfoResponse(code, status, statusName, updatedDate, raw);
+            }
+        }
+        catch (JsonException)
+        {
+            // ignore parse errors and fall through
+        }
+
+        return new GhnOrderInfoResponse(orderCode, null, null, null, raw);
     }
 
     private static GhnCancelResult ParseCancelResult(JsonElement item)

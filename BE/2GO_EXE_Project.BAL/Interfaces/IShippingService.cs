@@ -14,6 +14,7 @@ public interface IShippingService
     Task<GhnFeeResponse> GetGhnFeeAsync(GhnFeeRequest request, CancellationToken cancellationToken = default);
     Task<GhnCancelResponse> CancelGhnAsync(ClaimsPrincipal userPrincipal, GhnCancelRequest request, CancellationToken cancellationToken = default);
     Task<GhnPrintTokenResponse> GetGhnPrintTokenAsync(ClaimsPrincipal userPrincipal, GhnPrintTokenRequest request, CancellationToken cancellationToken = default);
+    Task<GhnOrderInfoResponse> GetGhnOrderInfoAsync(ClaimsPrincipal userPrincipal, string orderCode, CancellationToken cancellationToken = default);
     Task<BasicResponse> HandleGhnWebhookAsync(GhnWebhookPayload payload, string? webhookToken, CancellationToken cancellationToken = default);
     Task<ShippingResponse?> GetByOrderAsync(ClaimsPrincipal userPrincipal, long orderId, CancellationToken cancellationToken = default);
     Task<BasicResponse> UpdateStatusAsync(ClaimsPrincipal userPrincipal, long shipId, UpdateShippingStatusRequest request, CancellationToken cancellationToken = default);

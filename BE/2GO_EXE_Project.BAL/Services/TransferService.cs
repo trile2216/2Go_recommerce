@@ -68,6 +68,16 @@ public class TransferService : ITransferService
     public async Task<TransferResponse> CreateTransferAsync(ClaimsPrincipal userPrincipal, CreateTransferRequest request, CancellationToken cancellationToken = default)
     {
         var userId = GetUserId(userPrincipal);
+        return await CreateTransferCoreAsync(userId, request, cancellationToken);
+    }
+
+    public async Task<TransferResponse> CreateSystemTransferAsync(long userId, CreateTransferRequest request, CancellationToken cancellationToken = default)
+    {
+        return await CreateTransferCoreAsync(userId, request, cancellationToken);
+    }
+
+    private async Task<TransferResponse> CreateTransferCoreAsync(long userId, CreateTransferRequest request, CancellationToken cancellationToken)
+    {
 
         var referenceId = Guid.NewGuid().ToString();
         var payoutRequest = new PayoutRequest
@@ -84,11 +94,11 @@ public class TransferService : ITransferService
         {
             var payoutResponse = await _payosClient.Payouts.CreateAsync(payoutRequest);
 
-            var transfer = new Transfer
-            {
-                ReferenceId = referenceId,
-                PayoutId = payoutResponse.Id,
-                UserId = userId,
+                var transfer = new Transfer
+                {
+                    ReferenceId = referenceId,
+                    PayoutId = payoutResponse.Id,
+                    UserId = userId,
                 Category = request.Category != null ? JsonSerializer.Serialize(request.Category) : null,
                 ApprovalState = payoutResponse.ApprovalState.ToString(),
                 CreatedAt = DateTime.UtcNow

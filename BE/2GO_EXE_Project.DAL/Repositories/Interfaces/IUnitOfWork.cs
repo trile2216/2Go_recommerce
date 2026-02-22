@@ -18,6 +18,7 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     IDistrictRepository Districts { get; }
     IEscrowContractRepository EscrowContracts { get; }
     IEscrowTransactionRepository EscrowTransactions { get; }
+    IBankRepository Banks { get; }
     IFixerAssignmentRepository FixerAssignments { get; }
     IFixerRequestRepository FixerRequests { get; }
     IFixerServiceRepository FixerServices { get; }

@@ -711,6 +711,7 @@ public class SellerListingService : ISellerListingService
         if (string.IsNullOrWhiteSpace(user.Phone)) missing.Add("phone");
         if (profile != null && string.IsNullOrWhiteSpace(profile.AddressLine)) missing.Add("address");
         if (profile != null && string.IsNullOrWhiteSpace(profile.BankAccountNumber)) missing.Add("bankAccountNumber");
+        if (profile != null && string.IsNullOrWhiteSpace(profile.BankBin)) missing.Add("bankBin");
         if (profile != null && string.IsNullOrWhiteSpace(profile.BankAccountName)) missing.Add("bankAccountName");
 
         var phoneVerified = verification?.PhoneVerified == true;
@@ -719,7 +720,7 @@ public class SellerListingService : ISellerListingService
 
         if (missing.Count == 0) return null;
 
-        return "Complete your profile (fullName, phone, address, bankAccountNumber, bankAccountName) and verify your account (email or phone) before submitting a listing. " +
+        return "Complete your profile (fullName, phone, address, bankAccountNumber, bankBin, bankAccountName) and verify your account (email or phone) before submitting a listing. " +
                $"Missing: {string.Join(", ", missing.Distinct(StringComparer.OrdinalIgnoreCase))}.";
     }
 

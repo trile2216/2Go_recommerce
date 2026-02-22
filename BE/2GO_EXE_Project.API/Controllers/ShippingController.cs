@@ -117,6 +117,20 @@ public class ShippingController : ControllerBase
         }
     }
 
+    [HttpGet("ghn/order-info")]
+    public async Task<IActionResult> GetGhnOrderInfo([FromQuery] string orderCode, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await _shippingService.GetGhnOrderInfoAsync(User, orderCode, cancellationToken);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
     [AllowAnonymous]
     [HttpPost("ghn/webhook")]
     public async Task<IActionResult> GhnWebhook([FromBody] GhnWebhookPayload payload, CancellationToken cancellationToken = default)

@@ -18,6 +18,7 @@ public interface IDeviceLogRepository : IGenericRepository<DeviceLog> { }
 public interface IDistrictRepository : IGenericRepository<District> { }
 public interface IEscrowContractRepository : IGenericRepository<EscrowContract> { }
 public interface IEscrowTransactionRepository : IGenericRepository<EscrowTransaction> { }
+public interface IBankRepository : IGenericRepository<Bank> { }
 public interface IFixerAssignmentRepository : IGenericRepository<FixerAssignment> { }
 public interface IFixerRequestRepository : IGenericRepository<FixerRequest> { }
 public interface IFixerServiceRepository : IGenericRepository<FixerService> { }

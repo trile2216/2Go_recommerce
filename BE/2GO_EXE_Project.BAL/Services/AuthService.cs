@@ -419,6 +419,7 @@ public class AuthService : IAuthService
                 profile.Bio,
                 profile.AvatarUrl,
                 profile.BankAccountNumber,
+                profile.BankBin,
                 profile.BankAccountName);
 
         return new UserInfoResponse(
@@ -456,6 +457,17 @@ public class AuthService : IAuthService
         }
 
         ValidationGuard.ThrowIfInvalid(UserValidator.ValidateUpdateProfile(request));
+
+        if (!string.IsNullOrWhiteSpace(request.BankBin))
+        {
+            var bankBin = request.BankBin.Trim();
+            var bankActive = await _uow.Banks.Query()
+                .AnyAsync(b => b.Bin == bankBin && b.IsActive, cancellationToken);
+            if (!bankActive)
+            {
+                throw new InvalidOperationException("BankBin is invalid or inactive.");
+            }
+        }
 
         var newPhone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
         if (!string.IsNullOrWhiteSpace(newPhone) &&
@@ -507,6 +519,7 @@ public class AuthService : IAuthService
         profile.Bio = request.Bio ?? profile.Bio;
         profile.AvatarUrl = request.AvatarUrl ?? profile.AvatarUrl;
         profile.BankAccountNumber = request.BankAccountNumber ?? profile.BankAccountNumber;
+        profile.BankBin = request.BankBin ?? profile.BankBin;
         profile.BankAccountName = request.BankAccountName ?? profile.BankAccountName;
 
         if (!isNewProfile)
@@ -528,6 +541,7 @@ public class AuthService : IAuthService
             profile.Bio,
             profile.AvatarUrl,
             profile.BankAccountNumber,
+            profile.BankBin,
             profile.BankAccountName);
 
         return new UserInfoResponse(

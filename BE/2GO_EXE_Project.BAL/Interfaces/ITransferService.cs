@@ -7,6 +7,7 @@ namespace _2GO_EXE_Project.BAL.Interfaces;
 public interface ITransferService
 {
     Task<TransferResponse> CreateTransferAsync(ClaimsPrincipal userPrincipal, CreateTransferRequest request, CancellationToken cancellationToken = default);
+    Task<TransferResponse> CreateSystemTransferAsync(long userId, CreateTransferRequest request, CancellationToken cancellationToken = default);
     Task<TransferResponse> CreateBatchTransferAsync(ClaimsPrincipal userPrincipal, CreateBatchTransferRequest request, CancellationToken cancellationToken = default);
     Task<TransferResponse?> GetTransferByIdAsync(ClaimsPrincipal userPrincipal, long transferId, CancellationToken cancellationToken = default);
     Task<TransferResponse?> GetTransferByReferenceIdAsync(ClaimsPrincipal userPrincipal, string referenceId, CancellationToken cancellationToken = default);

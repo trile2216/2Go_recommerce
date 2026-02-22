@@ -11,6 +11,7 @@ public static class UserValidator
     private const int AvatarUrlMaxLength = 500;
     private const int AddressMaxLength = 255;
     private const int BankAccountNumberMaxLength = 50;
+    private const int BankBinMaxLength = 50;
     private const int BankAccountNameMaxLength = 255;
 
     public static ValidationResult ValidateRegister(RegisterRequest request)
@@ -200,7 +201,7 @@ public static class UserValidator
             result.Add("password", "Password must be at least 8 characters and include at least 1 letter and 1 digit.");
         }
 
-        result.Merge(ValidateProfileFields(request.FullName, request.Birthday, request.Gender, request.Address, request.Bio, request.AvatarUrl, null, null));
+        result.Merge(ValidateProfileFields(request.FullName, request.Birthday, request.Gender, request.Address, request.Bio, request.AvatarUrl, null, null, null));
         return result;
     }
 
@@ -225,13 +226,13 @@ public static class UserValidator
             result.Add("status", "Invalid status. Allowed: Active, Banned, Deleted.");
         }
 
-        result.Merge(ValidateProfileFields(request.FullName, request.Birthday, request.Gender, request.Address, request.Bio, request.AvatarUrl, null, null));
+        result.Merge(ValidateProfileFields(request.FullName, request.Birthday, request.Gender, request.Address, request.Bio, request.AvatarUrl, null, null, null));
         return result;
     }
 
     public static ValidationResult ValidateUpdateProfile(UpdateProfileRequest request)
     {
-        var result = ValidateProfileFields(request.FullName, request.Birthday, request.Gender, request.Address, request.Bio, request.AvatarUrl, request.BankAccountNumber, request.BankAccountName);
+        var result = ValidateProfileFields(request.FullName, request.Birthday, request.Gender, request.Address, request.Bio, request.AvatarUrl, request.BankAccountNumber, request.BankBin, request.BankAccountName);
 
         if (!string.IsNullOrWhiteSpace(request.Phone))
         {
@@ -307,6 +308,7 @@ public static class UserValidator
         string? bio,
         string? avatarUrl,
         string? bankAccountNumber,
+        string? bankBin,
         string? bankAccountName)
     {
         var result = new ValidationResult();
@@ -325,6 +327,12 @@ public static class UserValidator
         if (!string.IsNullOrWhiteSpace(bankAccountNumber))
         {
             result.AddIf(bankAccountNumber.Trim().Length > BankAccountNumberMaxLength, "bankAccountNumber", "BankAccountNumber must be <= 50 chars.");
+        }
+        if (!string.IsNullOrWhiteSpace(bankBin))
+        {
+            var trimmedBin = bankBin.Trim();
+            result.AddIf(trimmedBin.Length > BankBinMaxLength, "bankBin", "BankBin must be <= 50 chars.");
+            result.AddIf(!trimmedBin.All(char.IsDigit), "bankBin", "BankBin must be numeric.");
         }
         if (!string.IsNullOrWhiteSpace(bankAccountName))
         {

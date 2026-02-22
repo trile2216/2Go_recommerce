@@ -37,6 +37,10 @@ public partial class UserProfile
     [Unicode(false)]
     public string? BankAccountNumber { get; set; }
 
+    [StringLength(50)]
+    [Unicode(false)]
+    public string? BankBin { get; set; }
+
     [StringLength(255)]
     [Unicode(false)]
     public string? BankAccountName { get; set; }
