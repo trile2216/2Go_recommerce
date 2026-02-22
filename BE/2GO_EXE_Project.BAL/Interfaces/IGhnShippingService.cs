@@ -11,4 +11,5 @@ public interface IGhnShippingService
     Task<GhnFeeResponse> GetFeeAsync(GhnFeeRequest request, CancellationToken cancellationToken = default);
     Task<GhnCancelResponse> CancelAsync(GhnCancelRequest request, CancellationToken cancellationToken = default);
     Task<GhnPrintTokenResponse> GetPrintTokenAsync(GhnPrintTokenRequest request, CancellationToken cancellationToken = default);
+    Task<GhnOrderInfoResponse> GetOrderInfoAsync(string orderCode, CancellationToken cancellationToken = default);
 }

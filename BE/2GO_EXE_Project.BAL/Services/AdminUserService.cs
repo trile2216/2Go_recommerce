@@ -96,6 +96,7 @@ public class AdminUserService : IAdminUserService
                 profile.Bio,
                 profile.AvatarUrl,
                 profile.BankAccountNumber,
+                profile.BankBin,
                 profile.BankAccountName);
 
         return new AdminUserDetail(
@@ -181,6 +182,7 @@ public class AdminUserService : IAdminUserService
             profile.Bio,
             profile.AvatarUrl,
             profile.BankAccountNumber,
+            profile.BankBin,
             profile.BankAccountName);
 
         return new AdminUserDetail(
@@ -250,6 +252,7 @@ public class AdminUserService : IAdminUserService
             profile.Bio,
             profile.AvatarUrl,
             profile.BankAccountNumber,
+            profile.BankBin,
             profile.BankAccountName);
 
         await LogAdminActionAsync(adminPrincipal, "UpdateUser", new { TargetUserId = userId, request.Email, request.Phone, request.Status }, cancellationToken);

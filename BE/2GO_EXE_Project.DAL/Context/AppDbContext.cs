@@ -29,6 +29,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<AiImageVisionCache> AiImageVisionCaches { get; set; }
 
+    public virtual DbSet<Bank> Banks { get; set; }
+
     public virtual DbSet<Category> Categories { get; set; }
 
     public virtual DbSet<Cart> Carts { get; set; }
@@ -124,6 +126,12 @@ public partial class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Bank>(entity =>
+        {
+            entity.HasKey(e => e.BankId).HasName("PK__Banks__AA08CB13F44A7FD0");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+        });
+
         modelBuilder.Entity<ActivityLog>(entity =>
         {
             entity.HasKey(e => e.LogId).HasName("PK__Activity__5E5486480DB36993");

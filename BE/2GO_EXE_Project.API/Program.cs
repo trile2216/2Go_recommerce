@@ -63,6 +63,7 @@ builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
 builder.Services.AddScoped<IModeratorService, ModeratorService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IBankService, BankService>();
 builder.Services.AddScoped<ISubCategoryService, SubCategoryService>();
 builder.Services.AddScoped<IListingService, ListingService>();
 builder.Services.AddScoped<ISellerListingService, SellerListingService>();
@@ -100,7 +101,9 @@ builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
 builder.Services.AddScoped<ISubscriptionPlanService, SubscriptionPlanService>();
 builder.Services.AddScoped<IAdminSubscriptionPlanService, AdminSubscriptionPlanService>();
 builder.Services.AddScoped<IAdminMarketPriceService, AdminMarketPriceService>();
+builder.Services.AddScoped<IAdminPayoutService, AdminPayoutService>();
 builder.Services.AddHostedService<EscrowExpiryService>();
+builder.Services.AddHostedService<EscrowPayoutRetryService>();
 // Configure PayOS
 builder.Services.AddKeyedSingleton("OrderClient", (serviceProvider, key) =>
 {

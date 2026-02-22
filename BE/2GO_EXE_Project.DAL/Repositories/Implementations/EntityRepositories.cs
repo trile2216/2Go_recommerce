@@ -21,6 +21,7 @@ public class DeviceLogRepository : GenericRepository<DeviceLog>, IDeviceLogRepos
 public class DistrictRepository : GenericRepository<District>, IDistrictRepository { public DistrictRepository(AppDbContext ctx) : base(ctx) { } }
 public class EscrowContractRepository : GenericRepository<EscrowContract>, IEscrowContractRepository { public EscrowContractRepository(AppDbContext ctx) : base(ctx) { } }
 public class EscrowTransactionRepository : GenericRepository<EscrowTransaction>, IEscrowTransactionRepository { public EscrowTransactionRepository(AppDbContext ctx) : base(ctx) { } }
+public class BankRepository : GenericRepository<Bank>, IBankRepository { public BankRepository(AppDbContext ctx) : base(ctx) { } }
 public class FixerAssignmentRepository : GenericRepository<FixerAssignment>, IFixerAssignmentRepository { public FixerAssignmentRepository(AppDbContext ctx) : base(ctx) { } }
 public class FixerRequestRepository : GenericRepository<FixerRequest>, IFixerRequestRepository { public FixerRequestRepository(AppDbContext ctx) : base(ctx) { } }
 public class FixerServiceRepository : GenericRepository<FixerService>, IFixerServiceRepository { public FixerServiceRepository(AppDbContext ctx) : base(ctx) { } }
@@ -120,6 +121,7 @@ public class UnitOfWork : IUnitOfWork
         Districts = new DistrictRepository(_context);
         EscrowContracts = new EscrowContractRepository(_context);
         EscrowTransactions = new EscrowTransactionRepository(_context);
+        Banks = new BankRepository(_context);
         FixerAssignments = new FixerAssignmentRepository(_context);
         FixerRequests = new FixerRequestRepository(_context);
         FixerServices = new FixerServiceRepository(_context);
@@ -176,6 +178,7 @@ public class UnitOfWork : IUnitOfWork
     public IDistrictRepository Districts { get; }
     public IEscrowContractRepository EscrowContracts { get; }
     public IEscrowTransactionRepository EscrowTransactions { get; }
+    public IBankRepository Banks { get; }
     public IFixerAssignmentRepository FixerAssignments { get; }
     public IFixerRequestRepository FixerRequests { get; }
     public IFixerServiceRepository FixerServices { get; }

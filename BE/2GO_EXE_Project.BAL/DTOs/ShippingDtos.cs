@@ -71,6 +71,13 @@ public record GhnPrintTokenRequest(IReadOnlyList<string> OrderCodes);
 
 public record GhnPrintTokenResponse(string Token, string PrintA5Url, string Print80x80Url, string Print52x70Url);
 
+public record GhnOrderInfoResponse(
+    string OrderCode,
+    string? Status,
+    string? StatusName,
+    string? UpdatedDate,
+    string? Raw);
+
 public record GhnWebhookPayload(
     string? OrderCode,
     string? Status,

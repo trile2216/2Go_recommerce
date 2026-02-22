@@ -365,6 +365,30 @@ public class ShippingService : IShippingService
         return tokenResponse;
     }
 
+    public async Task<GhnOrderInfoResponse> GetGhnOrderInfoAsync(ClaimsPrincipal userPrincipal, string orderCode, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(orderCode))
+        {
+            throw new InvalidOperationException("OrderCode is required.");
+        }
+
+        var userId = GetUserId(userPrincipal);
+        var ship = await _uow.ShippingRequests.Query()
+            .FirstOrDefaultAsync(s => s.TrackingCode == orderCode, cancellationToken);
+        if (ship == null)
+        {
+            throw new InvalidOperationException("Shipping not found for provided GHN code.");
+        }
+
+        var order = await _uow.Orders.GetByIdAsync(ship.OrderId ?? 0);
+        if (order == null || order.SellerId != userId)
+        {
+            throw new InvalidOperationException("Not allowed to access this shipping.");
+        }
+
+        return await _ghnShippingService.GetOrderInfoAsync(orderCode, cancellationToken);
+    }
+
     public async Task<BasicResponse> HandleGhnWebhookAsync(GhnWebhookPayload payload, string? webhookToken, CancellationToken cancellationToken = default)
     {
         if (!string.IsNullOrWhiteSpace(_ghnSettings.WebhookToken))
@@ -500,15 +524,29 @@ public class ShippingService : IShippingService
     {
         if (string.IsNullOrWhiteSpace(status)) return null;
         var value = status.Trim().ToLowerInvariant();
-        if (value.Contains("delivered"))
+        return value switch
         {
-            return ShippingStatuses.Delivered;
-        }
-        if (value.Contains("cancel") || value.Contains("return") || value.Contains("fail"))
-        {
-            return ShippingStatuses.Failed;
-        }
-        return ShippingStatuses.InTransit;
+            "ready_to_pick" => ShippingStatuses.Requested,
+            "picking" => ShippingStatuses.InTransit,
+            "picked" => ShippingStatuses.InTransit,
+            "storing" => ShippingStatuses.InTransit,
+            "transporting" => ShippingStatuses.InTransit,
+            "sorting" => ShippingStatuses.InTransit,
+            "delivering" => ShippingStatuses.InTransit,
+            "delivered" => ShippingStatuses.Delivered,
+            "delivery_fail" => ShippingStatuses.Failed,
+            "waiting_to_return" => ShippingStatuses.Failed,
+            "return" => ShippingStatuses.Failed,
+            "return_transporting" => ShippingStatuses.Failed,
+            "return_sorting" => ShippingStatuses.Failed,
+            "returning" => ShippingStatuses.Failed,
+            "returned" => ShippingStatuses.Failed,
+            "cancel" => ShippingStatuses.Failed,
+            "exception" => ShippingStatuses.Failed,
+            "damage" => ShippingStatuses.Failed,
+            "lost" => ShippingStatuses.Failed,
+            _ => ShippingStatuses.InTransit
+        };
     }
 
     private async Task UpdateOrderStatusForShippingAsync(ShippingRequest ship, string status, CancellationToken cancellationToken)
