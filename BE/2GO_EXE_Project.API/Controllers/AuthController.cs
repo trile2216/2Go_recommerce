@@ -230,6 +230,22 @@ public class AuthController : ControllerBase
         }
     }
 
+    [HttpPost("verify-phone-firebase")]
+    [Authorize]
+    public async Task<IActionResult> VerifyPhoneFirebase([FromBody] VerifyPhoneFirebaseRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _authService.VerifyPhoneFirebaseAsync(User, request, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("change-phone-firebase")]
+    [Authorize]
+    public async Task<IActionResult> ChangePhoneFirebase([FromBody] ChangePhoneFirebaseRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _authService.ChangePhoneFirebaseAsync(User, request, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpGet("me")]
     [Authorize]
     public async Task<IActionResult> Me(CancellationToken cancellationToken)

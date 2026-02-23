@@ -7,6 +7,8 @@ public record VerifyEmailRequest(string Email, string Code);
 public record ResendVerifyEmailRequest(string Email);
 public record ForgotPasswordRequest(string Email);
 public record ResetPasswordRequest(string Email, string Code, string NewPassword);
+public record VerifyPhoneFirebaseRequest(string IdToken);
+public record ChangePhoneFirebaseRequest(string IdToken);
 
 public record RegisterResponse(long UserId, string Message);
 public record AuthResponse(long UserId, string? Email, string? Phone, string? Role, string AccessToken, string RefreshToken, DateTime AccessTokenExpiresAt);

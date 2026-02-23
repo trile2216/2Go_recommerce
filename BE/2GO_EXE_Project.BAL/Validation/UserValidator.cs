@@ -165,6 +165,26 @@ public static class UserValidator
         return result;
     }
 
+    public static ValidationResult ValidateVerifyPhoneFirebase(VerifyPhoneFirebaseRequest request)
+    {
+        var result = new ValidationResult();
+        if (string.IsNullOrWhiteSpace(request.IdToken))
+        {
+            result.Add("idToken", "IdToken is required.");
+        }
+        return result;
+    }
+
+    public static ValidationResult ValidateChangePhoneFirebase(ChangePhoneFirebaseRequest request)
+    {
+        var result = new ValidationResult();
+        if (string.IsNullOrWhiteSpace(request.IdToken))
+        {
+            result.Add("idToken", "IdToken is required.");
+        }
+        return result;
+    }
+
     public static ValidationResult ValidateAdminCreate(AdminCreateUserRequest request)
     {
         var result = new ValidationResult();
