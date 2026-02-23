@@ -189,6 +189,9 @@ const PostListing = ({ navigation }) => {
       const newImages = result.assets.map((asset, index) => ({
         uri: asset.uri,
         isPrimary: imageList.length === 0 && index === 0,
+        // Capture file info for upload
+        mimeType: asset.mimeType || 'image/jpeg',
+        fileName: asset.fileName || `image_${Date.now()}_${index}.jpg`,
       }));
 
       setImageList((prev) => {
@@ -228,7 +231,12 @@ const PostListing = ({ navigation }) => {
     });
 
     if (!result.canceled && result.assets?.[0]) {
-      setVideoUri(result.assets[0].uri);
+      const asset = result.assets[0];
+      setVideoUri({
+        uri: asset.uri,
+        mimeType: asset.mimeType || 'video/mp4',
+        fileName: asset.fileName || `video_${Date.now()}.mp4`,
+      });
     }
   };
 
@@ -387,11 +395,11 @@ const PostListing = ({ navigation }) => {
     let precheckNote = null;
 
     try {
-      // Upload images
-      const imageFiles = imageList.map((img) => ({
+      // Upload images - use captured mimeType and fileName
+      const imageFiles = imageList.map((img, index) => ({
         uri: img.uri,
-        type: "image/jpeg",
-        name: `image_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`,
+        type: img.mimeType || 'image/jpeg',
+        name: img.fileName || `image_${Date.now()}_${index}.jpg`,
       }));
 
       const imageUrls = await uploadImageAndGetUrl(imageFiles);
@@ -409,9 +417,9 @@ const PostListing = ({ navigation }) => {
       let videoUrl = null;
       if (videoUri) {
         const videoFile = {
-          uri: videoUri,
-          type: "video/mp4",
-          name: `video_${Date.now()}.mp4`,
+          uri: videoUri.uri,
+          type: videoUri.mimeType || 'video/mp4',
+          name: videoUri.fileName || `video_${Date.now()}.mp4`,
         };
         videoUrl = await uploadVideoAndGetUrl(videoFile);
         mediaData.push({
