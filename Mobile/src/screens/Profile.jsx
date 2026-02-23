@@ -597,8 +597,8 @@ const Profile = () => {
             <View style={styles.menuDivider} />
             <MenuItem
               icon="history"
-              label="Lịch sử giao dịch"
-              onPress={() => Alert.alert("Thông báo", "Chức năng đang phát triển")}
+              label="Gói đăng ký của tôi"
+              onPress={() => navigation.navigate("Subscription")}
             />
           </View>
         )}

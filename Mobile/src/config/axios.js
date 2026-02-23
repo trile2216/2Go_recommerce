@@ -4,9 +4,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const api = axios.create({
     baseURL: process.env.EXPO_PUBLIC_API,
     withCredentials: true,
-    headers: {
-        'Content-Type': 'application/json',
-    },
 });
 
 // Request interceptor to add token
@@ -18,8 +15,22 @@ api.interceptors.request.use(
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
             }
-            console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`, config.data);
-            console.log(`[API Headers] Authorization: ${config.headers.Authorization ? 'Bearer ***' : 'NOT SET'}`);
+            
+            // Check if data is FormData (React Native FormData has _parts property)
+            const isFormData = config.data && config.data._parts !== undefined;
+            
+            if (isFormData) {
+                // For FormData, DON'T set Content-Type - let React Native handle it
+                // This ensures proper boundary is set automatically
+                delete config.headers['Content-Type'];
+            } else {
+                // For JSON data, set Content-Type
+                config.headers['Content-Type'] = 'application/json';
+            }
+            
+            console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`, 
+                isFormData ? '[FormData]' : config.data);
+            console.log(`[API Headers] Authorization: ${config.headers.Authorization ? 'Bearer ***' : 'NOT SET'}, Content-Type: ${config.headers['Content-Type'] || 'auto'}`);
         } catch (error) {
             console.error('Error retrieving token:', error);
         }

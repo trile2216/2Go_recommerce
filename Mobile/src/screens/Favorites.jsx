@@ -441,29 +441,6 @@ const Favorites = () => {
         }
       />
 
-      {/* Floating Action Button */}
-      <Pressable
-        style={{
-          position: "absolute",
-          bottom: 24,
-          right: 24,
-          width: 56,
-          height: 56,
-          borderRadius: 28,
-          backgroundColor: "#359EFF",
-          justifyContent: "center",
-          alignItems: "center",
-          shadowColor: "#359EFF",
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 8,
-          elevation: 5,
-        }}
-        onPress={() => setShowPostingModal(true)}
-      >
-        <MaterialCommunityIcons name="plus" size={32} color="#fff" />
-      </Pressable>
-
       {/* Posting Modal */}
       <Modal
         visible={showPostingModal}

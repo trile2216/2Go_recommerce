@@ -22,6 +22,7 @@ import Cart from "../screens/Cart";
 import Checkout from "../screens/Checkout";
 import Orders from "../screens/Orders";
 import OrderDetail from "../screens/OrderDetail";
+import Subscription from "../screens/Subscription";
 
 const Stack = createStackNavigator();
 const Tabs = createBottomTabNavigator();
@@ -224,6 +225,7 @@ const RootNavigation = () => {
             <Stack.Screen name="Checkout" component={Checkout} />
             <Stack.Screen name="Orders" component={Orders} />
             <Stack.Screen name="OrderDetail" component={OrderDetail} />
+            <Stack.Screen name="Subscription" component={Subscription} />
           </>
         )}
       </Stack.Navigator>
