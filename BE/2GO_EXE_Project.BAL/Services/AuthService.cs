@@ -373,6 +373,179 @@ public class AuthService : IAuthService
         return new AuthResponse(user.UserId, user.Email, user.Phone, user.Role, accessToken, refreshToken, expiresAt);
     }
 
+    public async Task<BasicResponse> VerifyPhoneFirebaseAsync(ClaimsPrincipal userPrincipal, VerifyPhoneFirebaseRequest request, CancellationToken cancellationToken = default)
+    {
+        ValidationGuard.ThrowIfInvalid(UserValidator.ValidateVerifyPhoneFirebase(request));
+
+        var sub = userPrincipal.FindFirst("sub")?.Value
+                  ?? userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                  ?? userPrincipal.FindFirst(ClaimTypes.Name)?.Value;
+
+        if (!long.TryParse(sub, out var userId))
+        {
+            throw new UnauthorizedAccessException("Invalid user id in token.");
+        }
+
+        var user = await _uow.Users.Query()
+            .Include(u => u.UserVerifications)
+            .FirstOrDefaultAsync(u => u.UserId == userId, cancellationToken);
+
+        if (user == null)
+        {
+            throw new UnauthorizedAccessException("User not found.");
+        }
+
+        FirebaseToken decoded;
+        try
+        {
+            decoded = await FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(request.IdToken, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Invalid Firebase ID token");
+            throw new UnauthorizedAccessException("Invalid Firebase token.");
+        }
+
+        decoded.Claims.TryGetValue("phone_number", out var phoneObj);
+        var phone = phoneObj?.ToString();
+
+        if (string.IsNullOrWhiteSpace(phone))
+        {
+            return new BasicResponse(false, "Firebase token missing phone_number.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(user.Phone) &&
+            !string.Equals(user.Phone, phone, StringComparison.Ordinal))
+        {
+            return new BasicResponse(false, "Phone does not match current account. Use change phone flow.");
+        }
+
+        if (string.IsNullOrWhiteSpace(user.Phone))
+        {
+            var phoneInUse = await _uow.Users.Query()
+                .AsNoTracking()
+                .AnyAsync(u => u.UserId != user.UserId && u.Phone == phone, cancellationToken);
+
+            if (phoneInUse)
+            {
+                return new BasicResponse(false, "Phone already in use.");
+            }
+
+            user.Phone = phone;
+            _uow.Users.Update(user);
+        }
+
+        var userVerify = user.UserVerifications
+            .OrderByDescending(v => v.VerifiedAt)
+            .FirstOrDefault();
+
+        if (userVerify == null)
+        {
+            userVerify = new UserVerification
+            {
+                UserId = user.UserId,
+                PhoneVerified = true,
+                VerifiedAt = DateTime.UtcNow
+            };
+            await _uow.UserVerifications.AddAsync(userVerify, cancellationToken);
+        }
+        else
+        {
+            userVerify.PhoneVerified = true;
+            userVerify.VerifiedAt = DateTime.UtcNow;
+            _uow.UserVerifications.Update(userVerify);
+        }
+
+        await _uow.SaveChangesAsync(cancellationToken);
+
+        return new BasicResponse(true, "Phone verified.");
+    }
+
+    public async Task<BasicResponse> ChangePhoneFirebaseAsync(ClaimsPrincipal userPrincipal, ChangePhoneFirebaseRequest request, CancellationToken cancellationToken = default)
+    {
+        ValidationGuard.ThrowIfInvalid(UserValidator.ValidateChangePhoneFirebase(request));
+
+        var sub = userPrincipal.FindFirst("sub")?.Value
+                  ?? userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                  ?? userPrincipal.FindFirst(ClaimTypes.Name)?.Value;
+
+        if (!long.TryParse(sub, out var userId))
+        {
+            throw new UnauthorizedAccessException("Invalid user id in token.");
+        }
+
+        var user = await _uow.Users.Query()
+            .Include(u => u.UserVerifications)
+            .FirstOrDefaultAsync(u => u.UserId == userId, cancellationToken);
+
+        if (user == null)
+        {
+            throw new UnauthorizedAccessException("User not found.");
+        }
+
+        FirebaseToken decoded;
+        try
+        {
+            decoded = await FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(request.IdToken, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Invalid Firebase ID token");
+            throw new UnauthorizedAccessException("Invalid Firebase token.");
+        }
+
+        decoded.Claims.TryGetValue("phone_number", out var phoneObj);
+        var phone = phoneObj?.ToString();
+
+        if (string.IsNullOrWhiteSpace(phone))
+        {
+            return new BasicResponse(false, "Firebase token missing phone_number.");
+        }
+
+        var phoneInUse = await _uow.Users.Query()
+            .AsNoTracking()
+            .AnyAsync(u => u.UserId != user.UserId && u.Phone == phone, cancellationToken);
+
+        if (phoneInUse)
+        {
+            return new BasicResponse(false, "Phone already in use.");
+        }
+
+        var phoneChanged = !string.Equals(user.Phone, phone, StringComparison.Ordinal);
+        if (phoneChanged)
+        {
+            user.Phone = phone;
+            _uow.Users.Update(user);
+        }
+
+        var userVerify = user.UserVerifications
+            .OrderByDescending(v => v.VerifiedAt)
+            .FirstOrDefault();
+
+        if (userVerify == null)
+        {
+            userVerify = new UserVerification
+            {
+                UserId = user.UserId,
+                PhoneVerified = true,
+                VerifiedAt = DateTime.UtcNow
+            };
+            await _uow.UserVerifications.AddAsync(userVerify, cancellationToken);
+        }
+        else
+        {
+            userVerify.PhoneVerified = true;
+            userVerify.VerifiedAt = DateTime.UtcNow;
+            _uow.UserVerifications.Update(userVerify);
+        }
+
+        await _uow.SaveChangesAsync(cancellationToken);
+
+        return phoneChanged
+            ? new BasicResponse(true, "Phone changed and verified.")
+            : new BasicResponse(true, "Phone verified.");
+    }
+
     public async Task<UserInfoResponse> GetCurrentUserAsync(ClaimsPrincipal userPrincipal, CancellationToken cancellationToken = default)
     {
         var sub = userPrincipal.FindFirst("sub")?.Value
