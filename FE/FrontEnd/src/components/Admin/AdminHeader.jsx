@@ -135,7 +135,7 @@ export default function AdminHeader({ onMenuToggle }) {
         <div className="header-actions">
 
           {/* Messages */}
-          <button
+          {/* <button
             className="icon-btn messages-btn"
             onClick={() => {
               navigate("/admin/messages"); // Assuming admin has a messages route or keep it generic
@@ -143,8 +143,7 @@ export default function AdminHeader({ onMenuToggle }) {
             }}
           >
             <MessageSquare size={20} />
-            {/* <span className="icon-badge primary">5</span> */}
-          </button>
+          </button> */}
 
           {/* Notifications */}
           <div className="action-dropdown" ref={notificationsRef}>

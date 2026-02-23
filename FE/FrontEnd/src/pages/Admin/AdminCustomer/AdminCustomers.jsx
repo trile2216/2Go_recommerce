@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Eye, Search, Filter, X, Check } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, Search, Filter, X, Check, Bell } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../../layouts/AdminLayout';
 import { fetchCustomers, fetchCustomerById, deleteCustomerById, updateCustomerById } from '../../../service/admin/api.customer';
 import { useToast } from '../../../context/ToastContext';
+import SendNotificationModal from '../../../components/Admin/SendNotificationModal';
 import './admin-customers.css';
 
 export default function AdminCustomers() {
@@ -18,6 +19,10 @@ export default function AdminCustomers() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editFormData, setEditFormData] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Notification Modal State
+  const [notifyModalOpen, setNotifyModalOpen] = useState(false);
+  const [notifyTarget, setNotifyTarget] = useState({ userId: null, userName: '', defaultTitle: '', defaultMessage: '' });
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const pageSize = 10;
@@ -311,6 +316,21 @@ export default function AdminCustomers() {
                         >
                           <Trash2 size={18} />
                         </button>
+                        <button 
+                          className="admin-btn-icon admin-btn-view"
+                          title="Send Notification"
+                          onClick={() => {
+                            setNotifyTarget({
+                              userId: customer.userId,
+                              userName: customer.fullName || customer.email,
+                              defaultTitle: '',
+                              defaultMessage: ''
+                            });
+                            setNotifyModalOpen(true);
+                          }}
+                        >
+                          <Bell size={18} />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -572,6 +592,17 @@ export default function AdminCustomers() {
             </div>
           </div>
         )}
+
+      {/* Notification Modal */}
+      <SendNotificationModal
+        isOpen={notifyModalOpen}
+        onClose={() => setNotifyModalOpen(false)}
+        userId={notifyTarget.userId}
+        userName={notifyTarget.userName}
+        defaultTitle={notifyTarget.defaultTitle}
+        defaultMessage={notifyTarget.defaultMessage}
+        defaultType="system"
+      />
       </div>
     </AdminLayout>
   );

@@ -4,6 +4,41 @@
   width: 100%;
 }
 
+/* Tab Switcher */
+.admin-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #e2e8f0;
+  margin-bottom: 1.5rem;
+}
+
+.admin-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s;
+}
+
+.admin-tab:hover {
+  color: #334155;
+  background: rgba(59, 130, 246, 0.04);
+}
+
+.admin-tab.active {
+  color: var(--admin-primary, #3b82f6);
+  border-bottom-color: var(--admin-primary, #3b82f6);
+  font-weight: 600;
+}
+
 .admin-quantity {
   text-align: center;
   font-weight: 600;
@@ -12,6 +47,7 @@
 
 /* Responsive */
 @media (max-width: 768px) {
+
   .admin-table th:nth-child(n+7),
   .admin-table td:nth-child(n+7) {
     display: none;

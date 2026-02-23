@@ -42,6 +42,11 @@ import AdminReports from './pages/Admin/AdminReport/AdminReports';
 import AdminMarketPrice from './pages/Admin/AdminMarketPrice/AdminMarketPrice';
 import MyReports from './pages/MyReports/MyReports';
 
+// Moderator Pages
+import ModUsers from './pages/Mod/ModUsers/ModUsers';
+import ModListings from './pages/Mod/ModListings/ModListings';
+import ModReports from './pages/Mod/ModReports/ModReports';
+
 const RootLayout = () => {
   return (
     <>
@@ -118,6 +123,16 @@ const router = createBrowserRouter([
           { path: "/admin/categories", element: <AdminCategory /> },
           { path: "/admin/plans", element: <Plan /> },
           { path: "/admin/market-prices", element: <AdminMarketPrice /> },
+        ]
+      },
+
+      // Moderator Routes - Protected
+      {
+        element: <ProtectedRoute allowedRoles={['Admin', 'Manager']} />,
+        children: [
+          { path: "/mod/users", element: <ModUsers /> },
+          { path: "/mod/listings", element: <ModListings /> },
+          { path: "/mod/reports", element: <ModReports /> },
         ]
       }
     ]

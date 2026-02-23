@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, Search, Filter, CheckCircle, XCircle, AlertTriangle, FileText } from 'lucide-react';
+import { Eye, Search, Filter, CheckCircle, XCircle, AlertTriangle, FileText, Bell } from 'lucide-react';
 import AdminLayout from '../../../layouts/AdminLayout';
 import { getReports, getReportById, resolveReport } from '../../../service/admin/api.admin.report';
 import { useToast } from '../../../context/ToastContext';
+import SendNotificationModal from '../../../components/Admin/SendNotificationModal';
 import './admin-reports.css'; 
 
 
@@ -22,6 +23,10 @@ export default function AdminReports() {
     decision: '',
     note: ''
   });
+
+  // Notification Modal State
+  const [notifyModalOpen, setNotifyModalOpen] = useState(false);
+  const [notifyTarget, setNotifyTarget] = useState({ userId: null, userName: '', defaultTitle: '', defaultMessage: '' });
 
   useEffect(() => {
     fetchReports();
@@ -218,6 +223,21 @@ export default function AdminReports() {
                                 <CheckCircle size={18} />
                               </button>
                           )}
+                          <button 
+                            className="admin-action-icon view"
+                            title="Notify Reporter"
+                            onClick={() => {
+                              setNotifyTarget({
+                                userId: report.reporterId || report.userId,
+                                userName: report.reporterName || `User`,
+                                defaultTitle: `Report #${report.reportId} Update`,
+                                defaultMessage: `Regarding your report #${report.reportId}`
+                              });
+                              setNotifyModalOpen(true);
+                            }}
+                          >
+                            <Bell size={18} />
+                          </button>
                         </td>
                       </tr>
                     ))
@@ -415,6 +435,17 @@ export default function AdminReports() {
         )}
 
       </div>
+
+      {/* Notification Modal */}
+      <SendNotificationModal
+        isOpen={notifyModalOpen}
+        onClose={() => setNotifyModalOpen(false)}
+        userId={notifyTarget.userId}
+        userName={notifyTarget.userName}
+        defaultTitle={notifyTarget.defaultTitle}
+        defaultMessage={notifyTarget.defaultMessage}
+        defaultType="report"
+      />
     </AdminLayout>
   );
 }

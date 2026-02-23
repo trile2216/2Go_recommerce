@@ -3,8 +3,9 @@ import axios from '../../config/axios';
 const BASE_URL = '/admin/notifications';
 
 /**
- * Create a new notification.
- * @param {object} data - { title, content, type, userId, userIds, role }
+ * Send a notification to a specific user.
+ * @param {object} data - { userId: number, title: string, message: string, type?: string, link?: string }
+ * @returns {Promise<{ success: boolean, message: string }>}
  */
 export const createNotification = async (data) => {
     try {

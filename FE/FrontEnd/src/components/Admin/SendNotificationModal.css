@@ -1,0 +1,59 @@
+/* Send Notification Modal Form Styles */
+.notify-form-field {
+    margin-bottom: 1rem;
+}
+
+.notify-form-field label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 0.35rem;
+    color: #334155;
+    font-size: 0.875rem;
+}
+
+.notify-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    transition: border-color 0.2s;
+    background: #fff;
+    color: #334155;
+}
+
+.notify-input:focus {
+    outline: none;
+    border-color: var(--admin-primary, #3b82f6);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.notify-input:disabled {
+    background: #f1f5f9;
+    color: #94a3b8;
+    cursor: not-allowed;
+}
+
+.notify-textarea {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 80px;
+    transition: border-color 0.2s;
+    color: #334155;
+}
+
+.notify-textarea:focus {
+    outline: none;
+    border-color: var(--admin-primary, #3b82f6);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+select.notify-input {
+    cursor: pointer;
+    appearance: auto;
+}

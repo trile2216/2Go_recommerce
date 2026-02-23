@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Eye, Search, Filter, X, Check } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, Search, Filter, X, Check, Bell } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../../layouts/AdminLayout';
 import { fetchListings, fetchListingById, deleteListingById, updateListingStatusById } from '../../../service/admin/api.listing';
 import './AdminListing.css';
 import { useToast } from '../../../context/ToastContext';
 import ConfirmationModal from '../../../components/Admin/ConfirmationModal';
+import SendNotificationModal from '../../../components/Admin/SendNotificationModal';
 
 export default function AdminListing() {
   const toast = useToast();
@@ -18,6 +19,10 @@ export default function AdminListing() {
   const [selectedListing, setSelectedListing] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
+
+  // Notification Modal State
+  const [notifyModalOpen, setNotifyModalOpen] = useState(false);
+  const [notifyTarget, setNotifyTarget] = useState({ userId: null, userName: '', defaultTitle: '', defaultMessage: '' });
   const [statusFormData, setStatusFormData] = useState({});
   const [deleteId, setDeleteId] = useState(null);
 
@@ -248,6 +253,21 @@ export default function AdminListing() {
                         >
                           <Trash2 size={18} />
                         </button>
+                        <button 
+                          className="admin-action-icon view"
+                          title="Notify Seller"
+                          onClick={() => {
+                            setNotifyTarget({
+                              userId: listing.userId,
+                              userName: listing.sellerName || `Seller`,
+                              defaultTitle: `Listing: ${listing.title}`,
+                              defaultMessage: `Regarding your listing "${listing.title}"`
+                            });
+                            setNotifyModalOpen(true);
+                          }}
+                        >
+                          <Bell size={18} />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -404,6 +424,17 @@ export default function AdminListing() {
             message="Are you sure you want to delete this listing? This action cannot be undone."
             onConfirm={handleDeleteListing}
             onCancel={() => setDeleteId(null)}
+        />
+
+        {/* Notification Modal */}
+        <SendNotificationModal
+          isOpen={notifyModalOpen}
+          onClose={() => setNotifyModalOpen(false)}
+          userId={notifyTarget.userId}
+          userName={notifyTarget.userName}
+          defaultTitle={notifyTarget.defaultTitle}
+          defaultMessage={notifyTarget.defaultMessage}
+          defaultType="listing"
         />
       </div>
     </AdminLayout>
