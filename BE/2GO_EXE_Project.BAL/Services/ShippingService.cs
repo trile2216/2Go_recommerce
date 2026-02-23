@@ -570,6 +570,19 @@ public class ShippingService : IShippingService
             return;
         }
 
+        // For non-COD, require remaining payment before marking delivered
+        if (!string.Equals(order.PaymentMethod, PaymentMethods.COD, StringComparison.OrdinalIgnoreCase))
+        {
+            var hasRemainingPaid = await _uow.Payments.Query()
+                .AnyAsync(p => p.OrderId == order.OrderId &&
+                               p.PaymentStage == PaymentStages.Remaining &&
+                               p.Status == PaymentStatuses.Paid, cancellationToken);
+            if (!hasRemainingPaid)
+            {
+                return;
+            }
+        }
+
         order.Status = OrderStatuses.Delivered;
         _uow.Orders.Update(order);
     }

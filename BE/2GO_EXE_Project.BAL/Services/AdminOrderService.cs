@@ -258,11 +258,31 @@ public class AdminOrderService : IAdminOrderService
         if (canForfeit)
         {
             await _escrowService.ForfeitDepositForOrderAsync(order.OrderId, reason ?? "Admin cancelled after deposit deadline", cancellationToken);
+            if (order.SellerId.HasValue && escrow?.DepositAmount != null && escrow.DepositAmount > 0)
+            {
+                await NotifyAsync(
+                    order.SellerId.Value,
+                    "ORDER",
+                    "Cọc bị tịch thu",
+                    $"Đơn hàng #{order.OrderId} bị hủy sau hạn cọc. Cọc {escrow.DepositAmount} sẽ được chuyển cho bạn.",
+                    $"/orders/{order.OrderId}",
+                    cancellationToken);
+            }
         }
         else
         {
             await UpdatePaymentStatusAsync(order.OrderId, PaymentStatuses.Cancelled, PaymentStages.Deposit, cancellationToken);
             await _escrowService.RefundForOrderAsync(order.OrderId, cancellationToken);
+            if (order.SellerId.HasValue && escrow?.DepositAmount != null && escrow.DepositAmount > 0)
+            {
+                await NotifyAsync(
+                    order.SellerId.Value,
+                    "ORDER",
+                    "Cọc được hoàn cho người mua",
+                    $"Đơn hàng #{order.OrderId} bị hủy trước hạn. Cọc {escrow.DepositAmount} đã hoàn cho người mua.",
+                    $"/orders/{order.OrderId}",
+                    cancellationToken);
+            }
         }
         await RestoreListingIfReservedAsync(order, cancellationToken);
 
