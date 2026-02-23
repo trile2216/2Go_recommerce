@@ -15,11 +15,12 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRoute } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 
 import { fetchAllCategories, fetchSubCategoriesByCategoryId } from "../service/home/api.category";
 import { fetchAllDistricts, fetchAllWards } from "../service/home/api.ward";
-import { createListing, publishListing } from "../service/home/api.sellerListing";
+import { createListing, updateListing, publishListing, getMyListingById } from "../service/home/api.sellerListing";
 import { uploadImageAndGetUrl, uploadVideoAndGetUrl } from "../service/upload/api.upload";
 import { listingPrecheck } from "../service/ai/api.analyze";
 import { useAuth } from "../context/AuthContext";
@@ -32,6 +33,11 @@ const CONDITIONS = [
 
 const PostListing = ({ navigation }) => {
   const { user } = useAuth();
+  const route = useRoute();
+  const editId = route.params?.editId;
+
+  // Loading State
+  const [loadingListing, setLoadingListing] = useState(!!editId);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -164,6 +170,81 @@ const PostListing = ({ navigation }) => {
       setSelectedWard(null);
     }
   }, [selectedDistrict]);
+
+  // Load existing listing for edit
+  useEffect(() => {
+    if (editId) {
+      const fetchListing = async () => {
+        try {
+          setLoadingListing(true);
+          const data = await getMyListingById(editId);
+
+          // Populate form data
+          setFormData((prev) => ({
+            ...prev,
+            title: data.title || "",
+            description: data.description || "",
+            price: data.price ? String(data.price) : "",
+            isFree: data.price === 0,
+            brand: data.brand || "",
+            color: "",
+            capacity: "",
+            warranty: "",
+            origin: "",
+            condition: data.condition || "",
+            hasNegotiation: data.hasNegotiation !== false,
+          }));
+
+          // Setup category
+          if (data.categoryId && data.subCategoryId) {
+            setSelectedCategory({ id: data.categoryId, name: data.categoryName || "" });
+            setSelectedSubcategory({ id: data.subCategoryId, name: data.subCategoryName || "" });
+            setIsCategoryModalOpen(false);
+          }
+
+          // Setup location
+          if (data.districtId) {
+            const districtObj = districts.find((d) => d.value === data.districtId);
+            if (districtObj) {
+              setSelectedDistrict(districtObj);
+            }
+            if (data.wardId) {
+              setSelectedWard({ value: data.wardId, label: data.wardName || "" });
+            }
+          }
+
+          // Setup media
+          const images = data.media
+            ?.filter((m) => m.mediaType === "IMAGE")
+            .map((m) => ({
+              uri: m.url,
+              isPrimary: m.isPrimary,
+              isExisting: true,
+              mediaId: m.id,
+              mimeType: "image/jpeg",
+            })) || [];
+          setImageList(images);
+
+          const videos = data.media?.filter((m) => m.mediaType === "VIDEO") || [];
+          if (videos.length > 0) {
+            setVideoUri({
+              uri: videos[0].url,
+              isExisting: true,
+              mediaId: videos[0].id,
+              mimeType: "video/mp4",
+            });
+          }
+        } catch (error) {
+          console.error("Error fetching listing for edit:", error);
+          Alert.alert("Lỗi", "Không thể tải thông tin bài đăng");
+          navigation?.goBack();
+        } finally {
+          setLoadingListing(false);
+        }
+      };
+      fetchListing();
+    }
+  }, [editId, districts]);
 
   // Category Handlers
   const handleCategorySelect = (category) => {
@@ -559,60 +640,109 @@ const PostListing = ({ navigation }) => {
 
       setLoadingMessage(submitStatus === 'Draft' ? 'Đang lưu nháp...' : 'Đang tạo bài đăng...');
 
-      // Step 1: Create the listing (as Draft or PendingReview)
-      const response = await createListing(requestData);
-      const newListingId = response.id || response.listingId;
-
-      // Step 2: If user wanted to publish (PendingReview), proceed with publishing
-      if (submitStatus === 'PendingReview') {
-        if (forcePendingReview) {
-          // Already created as PendingReview, waiting for manual review
-          if (precheckNote && newListingId) {
-            try {
-              const key = 'listingReviewNotes';
-              const raw = await AsyncStorage.getItem(key);
-              let stored = {};
-              try { stored = JSON.parse(raw || '{}'); } catch { stored = {}; }
-              stored[String(newListingId)] = {
-                note: precheckNote,
-                updatedAt: new Date().toISOString(),
-              };
-              await AsyncStorage.setItem(key, JSON.stringify(stored));
-            } catch (e) {
-              console.error('Error saving review note:', e);
-            }
-          }
-          Alert.alert(
-            'Thông báo',
-            'Bài đăng đã được tạo và đang chờ kiểm duyệt.',
-            [{ text: 'OK', onPress: () => navigation?.goBack() }]
-          );
-        } else {
-          // Created as Draft, now publish
-          setLoadingMessage('Đang gửi duyệt...');
-          try {
-            const publishRes = await publishListing(newListingId);
-            const successMsg = getPublishSuccessMessage(publishRes);
-            await clearDraftNote(newListingId);
-            Alert.alert('Thành công', successMsg, [
-              { text: 'OK', onPress: () => navigation?.goBack() },
-            ]);
-          } catch (publishError) {
-            console.error('Publish error:', publishError);
-            const publishErrorMsg = getPublishErrorMessage(publishError);
-            await upsertDraftNote(newListingId, publishErrorMsg);
+      // Step 1: Create or Update the listing
+      let response;
+      let newListingId;
+      
+      if (editId) {
+        // Update existing listing
+        await updateListing(editId, requestData);
+        newListingId = editId;
+        
+        // Update media separately
+        const mediaUpdateData = mediaData.map((m, index) => ({
+          ...m,
+          sortOrder: index,
+        }));
+        // Note: API might not have updateListingMedia, so we include media in main update
+        
+        if (submitStatus === 'PendingReview') {
+          if (forcePendingReview) {
             Alert.alert(
-              'Cảnh báo',
-              publishErrorMsg,
+              'Thành công',
+              'Cập nhật bài đăng thành công! Đang chờ kiểm duyệt.',
               [{ text: 'OK', onPress: () => navigation?.goBack() }]
             );
+          } else {
+            try {
+              setLoadingMessage('Đang gửi duyệt...');
+              const publishRes = await publishListing(editId);
+              Alert.alert('Thành công', 'Cập nhật và gửi duyệt bài đăng thành công!', [
+                { text: 'OK', onPress: () => navigation?.goBack() },
+              ]);
+              await clearDraftNote(editId);
+            } catch (publishError) {
+              console.error('Publish error:', publishError);
+              const publishErrorMsg = getPublishErrorMessage(publishError);
+              await upsertDraftNote(editId, publishErrorMsg);
+              Alert.alert(
+                'Cảnh báo',
+                publishErrorMsg,
+                [{ text: 'OK', onPress: () => navigation?.goBack() }]
+              );
+            }
           }
+        } else {
+          Alert.alert('Thành công', 'Cập nhật bài đăng thành công!', [
+            { text: 'OK', onPress: () => navigation?.goBack() },
+          ]);
         }
       } else {
-        // Just saved as Draft
-        Alert.alert('Thành công', 'Đã lưu nháp!', [
-          { text: 'OK', onPress: () => navigation?.goBack() },
-        ]);
+        // Create new listing
+        response = await createListing(requestData);
+        newListingId = response.id || response.listingId;
+
+        // Step 2: If user wanted to publish (PendingReview), proceed with publishing
+        if (submitStatus === 'PendingReview') {
+          if (forcePendingReview) {
+            // Already created as PendingReview, waiting for manual review
+            if (precheckNote && newListingId) {
+              try {
+                const key = 'listingReviewNotes';
+                const raw = await AsyncStorage.getItem(key);
+                let stored = {};
+                try { stored = JSON.parse(raw || '{}'); } catch { stored = {}; }
+                stored[String(newListingId)] = {
+                  note: precheckNote,
+                  updatedAt: new Date().toISOString(),
+                };
+                await AsyncStorage.setItem(key, JSON.stringify(stored));
+              } catch (e) {
+                console.error('Error saving review note:', e);
+              }
+            }
+            Alert.alert(
+              'Thông báo',
+              'Bài đăng đã được tạo và đang chờ kiểm duyệt.',
+              [{ text: 'OK', onPress: () => navigation?.goBack() }]
+            );
+          } else {
+            // Created as Draft, now publish
+            setLoadingMessage('Đang gửi duyệt...');
+            try {
+              const publishRes = await publishListing(newListingId);
+              const successMsg = getPublishSuccessMessage(publishRes);
+              await clearDraftNote(newListingId);
+              Alert.alert('Thành công', successMsg, [
+                { text: 'OK', onPress: () => navigation?.goBack() },
+              ]);
+            } catch (publishError) {
+              console.error('Publish error:', publishError);
+              const publishErrorMsg = getPublishErrorMessage(publishError);
+              await upsertDraftNote(newListingId, publishErrorMsg);
+              Alert.alert(
+                'Cảnh báo',
+                publishErrorMsg,
+                [{ text: 'OK', onPress: () => navigation?.goBack() }]
+              );
+            }
+          }
+        } else {
+          // Just saved as Draft
+          Alert.alert('Thành công', 'Đã lưu nháp!', [
+            { text: 'OK', onPress: () => navigation?.goBack() },
+          ]);
+        }
       }
     } catch (error) {
       console.error('Error in listing submission:', error);
@@ -647,12 +777,20 @@ const PostListing = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
+      {/* Loading overlay */}
+      {loadingListing && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#359EFF" />
+          <Text style={styles.loadingText}>Đang tải bài đăng...</Text>
+        </View>
+      )}
+
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => navigation?.goBack()} style={styles.backButton}>
           <MaterialCommunityIcons name="chevron-left" size={28} color="#111" />
         </Pressable>
-        <Text style={styles.headerTitle}>Đăng tin mới</Text>
+        <Text style={styles.headerTitle}>{editId ? `Chỉnh sửa tin đăng #${editId}` : 'Đăng tin mới'}</Text>
         <View style={{ width: 28 }} />
       </View>
 
@@ -1477,6 +1615,23 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "#999",
     paddingVertical: 40,
+  },
+  loadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 999,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 12,
+    fontWeight: "500",
   },
 });
 

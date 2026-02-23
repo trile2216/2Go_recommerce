@@ -228,6 +228,7 @@ const RootNavigation = () => {
             <Stack.Screen name="OrderDetail" component={OrderDetail} />
             <Stack.Screen name="Subscription" component={Subscription} />
             <Stack.Screen name="MyPost" component={MyPost} />
+            <Stack.Screen name="PostListing" component={PostListing} />
           </>
         )}
       </Stack.Navigator>
