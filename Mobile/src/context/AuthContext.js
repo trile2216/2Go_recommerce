@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createContext, useContext, useState, useEffect } from "react";
+import { DeviceEventEmitter } from "react-native";
 import { login, register, logout, loginWithOAuth } from "../service/auth/api.auth";
 import { getUserInfo } from "../service/home/api.user";
 
@@ -24,6 +25,25 @@ export const AuthProvider = ({ children }) => {
   // Bootstrap - lấy token từ storage khi app start
   useEffect(() => {
     bootstrapAsync();
+
+    // Listeners for token refresh events from axios interceptor
+    const forceLogoutSub = DeviceEventEmitter.addListener('forceLogout', () => {
+      setUser(null);
+      setToken(null);
+      setRefreshToken(null);
+      setRole(null);
+      setIsLoggedIn(false);
+    });
+
+    const tokenRefreshedSub = DeviceEventEmitter.addListener('tokenRefreshed', ({ accessToken, refreshToken: newRefreshToken }) => {
+      setToken(accessToken);
+      if (newRefreshToken) setRefreshToken(newRefreshToken);
+    });
+
+    return () => {
+      forceLogoutSub.remove();
+      tokenRefreshedSub.remove();
+    };
   }, []);
 
   const bootstrapAsync = async () => {
@@ -63,7 +83,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       const { accessToken, refreshToken: newRefreshToken, userId, email, phone, role: userRole } = response;
-      
+
       console.log("[Auth] Login response - accessToken exists:", !!accessToken, "length:", accessToken?.length);
 
       const userData = {
@@ -77,11 +97,11 @@ export const AuthProvider = ({ children }) => {
       // Save to storage
       await AsyncStorage.setItem("token", accessToken);
       console.log("[Auth] Token saved to AsyncStorage");
-      
+
       // Verify token was saved
       const verifyToken = await AsyncStorage.getItem("token");
       console.log("[Auth] Verify token in storage:", !!verifyToken, "length:", verifyToken?.length);
-      
+
       await AsyncStorage.setItem("user", JSON.stringify(userData));
       if (newRefreshToken) await AsyncStorage.setItem("refreshToken", newRefreshToken);
       await AsyncStorage.setItem("role", userRole);
@@ -163,7 +183,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await loginWithOAuth(oauthData);
       const { accessToken, refreshToken: newRefreshToken, userId, email, phone, role: userRole } = response;
-      
+
       console.log("[Auth OAuth] accessToken exists:", !!accessToken, "length:", accessToken?.length);
 
       const userData = {
@@ -176,11 +196,11 @@ export const AuthProvider = ({ children }) => {
 
       await AsyncStorage.setItem("token", accessToken);
       console.log("[Auth OAuth] Token saved to AsyncStorage");
-      
+
       // Verify token was saved
       const verifyToken = await AsyncStorage.getItem("token");
       console.log("[Auth OAuth] Verify token in storage:", !!verifyToken, "length:", verifyToken?.length);
-      
+
       await AsyncStorage.setItem("user", JSON.stringify(userData));
       if (newRefreshToken) await AsyncStorage.setItem("refreshToken", newRefreshToken);
       await AsyncStorage.setItem("role", userRole);

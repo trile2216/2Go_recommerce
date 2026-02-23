@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Text,
   View,
@@ -10,11 +10,25 @@ import {
   Alert,
   StatusBar,
   RefreshControl,
+  Modal,
+  TextInput,
+  Linking,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation, useRoute } from "@react-navigation/native";
-import { getOrderById, cancelOrder, completeOrder } from "../service/home/api.order";
+import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
+import * as ImagePicker from "expo-image-picker";
+
+import { useAuth } from "../context/AuthContext";
+import { getOrderById, cancelOrder, confirmOrder, completeOrder } from "../service/home/api.order";
+import { createReport } from "../service/home/api.report";
+import { createRating } from "../service/home/api.rating";
+import { getShippingByOrder, getGhnPrintToken } from "../service/home/api.shipping";
+import { uploadImageAndGetUrl, uploadVideoAndGetUrl } from "../service/upload/api.upload";
+import { createPayment } from "../service/home/api.payment";
+
+import OrderStatusStepper, { getStatusLabel } from "../components/OrderStatusStepper";
+import CreateShippingModal from "../components/CreateShippingModal";
 
 const STATUS_MAP = {
   Pending: "Chờ thanh toán",
@@ -38,13 +52,30 @@ const OrderDetail = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { orderId } = route.params || {};
+  const { user } = useAuth();
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [shippingInfo, setShippingInfo] = useState(null);
 
-  const fetchOrder = async () => {
+  // Modals
+  const [showShippingModal, setShowShippingModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [showImagePreview, setShowImagePreview] = useState(null);
+
+  // Report state
+  const [reportReason, setReportReason] = useState("");
+  const [reportFiles, setReportFiles] = useState([]);
+  const [reportUploading, setReportUploading] = useState(false);
+
+  // Rating state
+  const [ratingScore, setRatingScore] = useState(0);
+  const [ratingComment, setRatingComment] = useState("");
+
+  const fetchOrder = useCallback(async () => {
     try {
       const data = await getOrderById(orderId);
       setOrder(data);
@@ -55,17 +86,31 @@ const OrderDetail = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [orderId]);
 
-  useEffect(() => {
-    if (orderId) {
-      fetchOrder();
+  const fetchShipping = useCallback(async () => {
+    try {
+      const data = await getShippingByOrder(orderId);
+      setShippingInfo(data);
+    } catch (error) {
+      setShippingInfo(null);
     }
   }, [orderId]);
 
-  const handleRefresh = () => {
+  useFocusEffect(
+    useCallback(() => {
+      if (orderId) {
+        fetchOrder();
+        fetchShipping();
+      }
+    }, [orderId, fetchOrder, fetchShipping])
+  );
+
+  const handleRefresh = async () => {
     setRefreshing(true);
-    fetchOrder();
+    await fetchOrder();
+    await fetchShipping();
+    setRefreshing(false);
   };
 
   const formatPrice = (price) => {
@@ -89,32 +134,52 @@ const OrderDetail = () => {
   };
 
   const handleCancelOrder = () => {
-    Alert.alert(
-      "Hủy đơn hàng",
-      "Bạn có chắc chắn muốn hủy đơn hàng này?",
-      [
-        { text: "Không", style: "cancel" },
-        {
-          text: "Hủy đơn",
-          style: "destructive",
-          onPress: async () => {
-            setActionLoading(true);
-            try {
-              await cancelOrder(orderId);
-              Alert.alert("Thành công", "Đã hủy đơn hàng");
-              fetchOrder();
-            } catch (error) {
-              Alert.alert(
-                "Lỗi",
-                error.response?.data?.message || "Không thể hủy đơn hàng"
-              );
-            } finally {
-              setActionLoading(false);
-            }
-          },
+    Alert.alert("Hủy đơn hàng", "Bạn có chắc chắn muốn hủy đơn hàng này?", [
+      { text: "Không", style: "cancel" },
+      {
+        text: "Hủy đơn",
+        style: "destructive",
+        onPress: async () => {
+          setActionLoading(true);
+          try {
+            const result = await cancelOrder(orderId);
+            Alert.alert("Thành công", result.message || "Đã hủy đơn hàng");
+            fetchOrder();
+          } catch (error) {
+            Alert.alert(
+              "Lỗi",
+              error.response?.data?.message || "Không thể hủy đơn hàng"
+            );
+          } finally {
+            setActionLoading(false);
+          }
         },
-      ]
-    );
+      },
+    ]);
+  };
+
+  const handleConfirmOrder = () => {
+    Alert.alert("Xác nhận đơn hàng", "Người bán: Bạn muốn xác nhận đơn hàng này?", [
+      { text: "Hủy", style: "cancel" },
+      {
+        text: "Xác nhận",
+        onPress: async () => {
+          setActionLoading(true);
+          try {
+            const result = await confirmOrder(orderId);
+            Alert.alert("Thành công", result.message || "Đã xác nhận đơn hàng");
+            fetchOrder();
+          } catch (error) {
+            Alert.alert(
+              "Lỗi",
+              error.response?.data?.message || "Xác nhận đơn hàng thất bại"
+            );
+          } finally {
+            setActionLoading(false);
+          }
+        },
+      },
+    ]);
   };
 
   const handleCompleteOrder = () => {
@@ -128,8 +193,8 @@ const OrderDetail = () => {
           onPress: async () => {
             setActionLoading(true);
             try {
-              await completeOrder(orderId);
-              Alert.alert("Thành công", "Đơn hàng đã hoàn thành");
+              const result = await completeOrder(orderId);
+              Alert.alert("Thành công", result.message || "Đơn hàng đã hoàn thành");
               fetchOrder();
             } catch (error) {
               Alert.alert(
@@ -143,6 +208,151 @@ const OrderDetail = () => {
         },
       ]
     );
+  };
+
+  const handlePayDeposit = async () => {
+    try {
+      setActionLoading(true);
+      const res = await createPayment(orderId, "PAYOS"); // Backend should handle creating deposit if correctly structured
+      if (res.payUrl) {
+        Linking.openURL(res.payUrl);
+      }
+    } catch (error) {
+      Alert.alert("Lỗi", error.response?.data?.message || "Tạo thanh toán cọc thất bại");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handlePayRemaining = async () => {
+    try {
+      setActionLoading(true);
+      // For now assuming BE manages creating correct payment intents based on status.
+      // If we need another field (since `FE` had "DEPOSIT" | "REMAINING" param not exactly matching api sig, 
+      // but in `api.payment.js` it only takes `(orderId, method)`
+      const res = await createPayment(orderId, "PAYOS"); 
+      if (res.payUrl) {
+        Linking.openURL(res.payUrl);
+      }
+    } catch (error) {
+      Alert.alert("Lỗi", error.response?.data?.message || "Tạo thanh toán phần còn lại thất bại");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handlePickReportFiles = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        allowsMultipleSelection: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets) {
+         // Appending to report files
+         const newFiles = result.assets.map((asset) => ({
+             uri: asset.uri,
+             type: asset.type === "video" ? "video" : "image"
+         }));
+         setReportFiles((prev) => [...prev, ...newFiles]);
+      }
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Lỗi", "Không thể chọn ảnh/video.");
+    }
+  };
+
+  const removeReportFile = (index) => {
+    setReportFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const submitReport = async () => {
+    if (!reportReason.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập lý do báo cáo");
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      let evidenceUrls = [];
+
+      if (reportFiles.length > 0) {
+        setReportUploading(true);
+        const imageFiles = reportFiles.filter(f => f.type === "image").map(f => f.uri);
+        const videoFiles = reportFiles.filter(f => f.type === "video").map(f => f.uri);
+
+        if (imageFiles.length > 0) {
+           const urls = await uploadImageAndGetUrl(imageFiles); // API handles multiple URIs via FormData
+           evidenceUrls.push(...(Array.isArray(urls) ? urls : [urls]));
+        }
+        if (videoFiles.length > 0) {
+           const urls = await uploadVideoAndGetUrl(videoFiles);
+           evidenceUrls.push(...(Array.isArray(urls) ? urls : [urls]));
+        }
+        setReportUploading(false);
+      }
+
+      await createReport({
+        orderId: orderId,
+        targetUserId: order.sellerId, // buyer reports seller usually in this context
+        reason: reportReason,
+        evidenceUrls: evidenceUrls.length > 0 ? evidenceUrls : null,
+      });
+
+      Alert.alert("Thành công", "Đã gửi báo cáo thành công!");
+      setShowReportModal(false);
+      setReportReason("");
+      setReportFiles([]);
+    } catch (error) {
+      Alert.alert("Lỗi", error.response?.data?.message || "Gửi báo cáo thất bại");
+    } finally {
+      setActionLoading(false);
+      setReportUploading(false);
+    }
+  };
+
+  const submitRating = async () => {
+    if (ratingScore < 1 || ratingScore > 5) {
+      Alert.alert("Lỗi", "Vui lòng chọn số sao đánh giá");
+      return;
+    }
+    try {
+      setActionLoading(true);
+      await createRating({
+        orderId: orderId,
+        score: ratingScore,
+        comment: ratingComment || null,
+      });
+      Alert.alert("Thành công", "Đánh giá người bán thành công!");
+      setShowRatingModal(false);
+      setRatingScore(0);
+      setRatingComment("");
+    } catch (error) {
+      Alert.alert("Lỗi", error.response?.data?.message || error.response?.data || "Đánh giá thất bại");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handlePrintLabel = async () => {
+    if (!shippingInfo?.trackingCode) {
+      Alert.alert("Lỗi", "Không tìm thấy mã vận đơn GHN");
+      return;
+    }
+    try {
+      setActionLoading(true);
+      const result = await getGhnPrintToken({ orderCodes: [shippingInfo.trackingCode] });
+      if (result.printA5Url) {
+         Linking.openURL(result.printA5Url);
+      } else {
+         Alert.alert("Lỗi", "Không thể lấy link in nhãn");
+      }
+    } catch (error) {
+      Alert.alert("Lỗi", "Lấy nhãn vận chuyển thất bại");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const getStatusStyle = (status) => {
@@ -177,8 +387,18 @@ const OrderDetail = () => {
   }
 
   const statusStyle = getStatusStyle(order.status);
-  const canCancel = ["Pending"].includes(order.status);
-  const canComplete = ["Shipping"].includes(order.status);
+  
+  const isBuyer = user?.userId === order.buyerId;
+  const isSeller = user?.userId === order.sellerId;
+
+  const buyerCanCancel = isBuyer && (order.status === "Pending" || order.status === "Paid");
+  const sellerCanCancel = isSeller && (order.status === "Pending" || order.status === "Paid");
+  const sellerCanConfirm = isSeller && (order.status === "Pending" || order.status === "Paid");
+  const buyerCanComplete = isBuyer && order.status === "Delivered";
+  const sellerCanCreateShipping = isSeller && order.status === "Confirmed" && !shippingInfo;
+
+  const buyerNeedsToPayDeposit = isBuyer && order.depositRequired && !order.depositPaid && order.status === "Pending";
+  const buyerNeedsToPayRemaining = isBuyer && order.depositRequired && order.depositPaid && order.status === "Confirmed" && order.escrowStatus !== "Funded";
 
   return (
     <SafeAreaView style={styles.container}>
@@ -207,10 +427,25 @@ const OrderDetail = () => {
           </View>
           <View>
             <Text style={[styles.statusTitle, { color: statusStyle.text }]}>
-              {STATUS_MAP[order.status] || order.status}
+              {getStatusLabel(order.status, order.paymentMethod)}
             </Text>
             <Text style={styles.statusDate}>Cập nhật: {formatDate(order.updatedAt || order.createdAt)}</Text>
           </View>
+        </View>
+
+        {/* Status Stepper */}
+        <View style={styles.card}>
+           <Text style={styles.cardTitle}>Trạng thái Giao hàng</Text>
+           <OrderStatusStepper currentStatus={order.status} />
+           
+           {isSeller && order.paymentMethod === "PAYOS" && ["Confirmed", "Shipping", "Completed"].includes(order.status) && (
+             <View style={styles.infoBanner}>
+               <MaterialCommunityIcons name="information" size={16} color="#0369a1" />
+               <Text style={styles.infoBannerText}>
+                 Tiền sẽ được chuyển vào tài khoản của bạn trong 3-5 ngày làm việc sau khi đơn hàng hoàn thành.
+               </Text>
+             </View>
+           )}
         </View>
 
         {/* Order Info */}
@@ -268,15 +503,86 @@ const OrderDetail = () => {
           </Pressable>
         </View>
 
-        {/* Delivery Address */}
-        {order.deliveryAddress && (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <MaterialCommunityIcons name="map-marker" size={20} color="#359EFF" />
-              <Text style={styles.cardTitle}>Địa chỉ giao hàng</Text>
-            </View>
-            <Text style={styles.addressText}>{order.deliveryAddress}</Text>
+        {/* Partner Info */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <MaterialCommunityIcons name={isBuyer ? "store" : "account"} size={20} color="#359EFF" />
+            <Text style={styles.cardTitle}>{isBuyer ? "Thông tin người bán" : "Thông tin người mua"}</Text>
           </View>
+
+          {isBuyer && (
+             <>
+               <View style={styles.infoRow}>
+                 <Text style={styles.infoLabel}>Người bán</Text>
+                 <Text style={styles.infoValue}>{order.sellerEmail || `User #${order.sellerId}`}</Text>
+               </View>
+               {order.sellerPhone && (
+                 <View style={styles.infoRow}>
+                   <Text style={styles.infoLabel}>Liên hệ</Text>
+                   <Text style={styles.infoValue}>{order.sellerPhone}</Text>
+                 </View>
+               )}
+             </>
+          )}
+
+          {isSeller && (
+             <>
+               <View style={styles.infoRow}>
+                 <Text style={styles.infoLabel}>Người mua</Text>
+                 <Text style={styles.infoValue}>{order.buyerEmail || `User #${order.buyerId}`}</Text>
+               </View>
+               <View style={[styles.infoRow, { flexDirection: 'column', alignItems: 'flex-start' }]}>
+                 <Text style={styles.infoLabel}>Địa chỉ giao hàng</Text>
+                 <Text style={[styles.infoValue, { marginTop: 4 }]}>{order.deliveryAddress || "Chưa cung cấp"}</Text>
+               </View>
+               {order.buyerPhone && (
+                 <View style={styles.infoRow}>
+                   <Text style={styles.infoLabel}>Điện thoại</Text>
+                   <Text style={styles.infoValue}>{order.buyerPhone}</Text>
+                 </View>
+               )}
+             </>
+          )}
+        </View>
+
+        {/* Shipping Info Box */}
+        {shippingInfo && (
+           <View style={styles.card}>
+             <View style={styles.cardHeader}>
+                <MaterialCommunityIcons name="truck-fast" size={20} color="#359EFF" />
+                <Text style={styles.cardTitle}>Thông tin vận chuyển</Text>
+             </View>
+             
+             <View style={styles.infoRow}>
+               <Text style={styles.infoLabel}>Đơn vị VC</Text>
+               <Text style={styles.infoValue}>{shippingInfo.provider || "GHN"}</Text>
+             </View>
+             {shippingInfo.trackingCode && (
+               <View style={styles.infoRow}>
+                 <Text style={styles.infoLabel}>Mã vận đơn</Text>
+                 <Text style={styles.infoValue}>{shippingInfo.trackingCode}</Text>
+               </View>
+             )}
+             <View style={styles.infoRow}>
+               <Text style={styles.infoLabel}>Trạng thái VC</Text>
+               <Text style={[styles.infoValue, { color: "#d97706" }]}>
+                   {shippingInfo.status === "Requested" && "Đã yêu cầu"}
+                   {shippingInfo.status === "InTransit" && "Đang giao"}
+                   {shippingInfo.status === "Delivered" && "Đã giao"}
+                   {shippingInfo.status === "Failed" && "Giao thất bại"}
+                   {!["Requested", "InTransit", "Delivered", "Failed"].includes(shippingInfo.status) && (shippingInfo.status || "N/A")}
+               </Text>
+             </View>
+
+             {isSeller && shippingInfo.trackingCode && (
+                <View style={{ marginTop: 12 }}>
+                   <Pressable style={styles.outlineButton} onPress={handlePrintLabel} disabled={actionLoading}>
+                      <MaterialCommunityIcons name="printer" size={20} color="#359EFF" />
+                      <Text style={styles.outlineButtonText}>In nhãn vận chuyển (A5)</Text>
+                   </Pressable>
+                </View>
+             )}
+           </View>
         )}
 
         {/* Payment Summary */}
@@ -301,53 +607,277 @@ const OrderDetail = () => {
           </View>
         </View>
 
-        {/* Action Buttons */}
-        {(canCancel || canComplete) && (
-          <View style={styles.actionContainer}>
-            {canCancel && (
-              <Pressable
-                style={[styles.actionButton, styles.cancelButton, actionLoading && styles.buttonDisabled]}
-                onPress={handleCancelOrder}
-                disabled={actionLoading}
-              >
-                {actionLoading ? (
-                  <ActivityIndicator size="small" color="#ef4444" />
-                ) : (
-                  <>
-                    <MaterialCommunityIcons name="close-circle-outline" size={20} color="#ef4444" />
-                    <Text style={styles.cancelButtonText}>Hủy đơn hàng</Text>
-                  </>
-                )}
-              </Pressable>
-            )}
-            {canComplete && (
-              <Pressable
-                style={[styles.actionButton, styles.completeButton, actionLoading && styles.buttonDisabled]}
-                onPress={handleCompleteOrder}
-                disabled={actionLoading}
-              >
-                {actionLoading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <MaterialCommunityIcons name="check-circle-outline" size={20} color="#fff" />
-                    <Text style={styles.completeButtonText}>Đã nhận hàng</Text>
-                  </>
-                )}
-              </Pressable>
-            )}
-          </View>
-        )}
+        {/* Payment Status Box */}
+        <View style={styles.card}>
+           <View style={styles.cardHeader}>
+             <MaterialCommunityIcons name="credit-card-check" size={20} color="#359EFF" />
+             <Text style={styles.cardTitle}>Tình trạng thanh toán</Text>
+           </View>
+           
+           <View style={styles.paymentStatusContainer}>
+             {order.depositRequired && !order.depositPaid && order.depositDeadlineAt && new Date(order.depositDeadlineAt) < new Date() ? (
+                <View style={[styles.paymentAlert, styles.paymentAlertError]}>
+                   <MaterialCommunityIcons name="close-circle" size={18} color="#ef4444" />
+                   <Text style={[styles.paymentAlertText, { color: "#ef4444" }]}>Quá hạn cọc – có thể bị tịch thu</Text>
+                </View>
+             ) : order.depositPaid && !["Completed", "Cancelled"].includes(order.status) && order.escrowStatus !== "Funded" ? (
+                <View style={[styles.paymentAlert, styles.paymentAlertInfo]}>
+                   <MaterialCommunityIcons name="check-circle" size={18} color="#0284c7" />
+                   <Text style={[styles.paymentAlertText, { color: "#0284c7" }]}>Đã thanh toán cọc {formatPrice((order.totalAmount || 0) * 0.1)}</Text>
+                </View>
+             ) : order.depositPaid && (order.status === "Completed" || order.escrowStatus === "Funded") ? (
+                <View style={[styles.paymentAlert, styles.paymentAlertSuccess]}>
+                   <MaterialCommunityIcons name="check-circle" size={18} color="#16a34a" />
+                   <Text style={[styles.paymentAlertText, { color: "#16a34a" }]}>Đã thanh toán đủ</Text>
+                </View>
+             ) : !order.depositRequired && order.paymentMethod !== "COD" ? (
+                <View style={[styles.paymentAlert, styles.paymentAlertSuccess]}>
+                   <MaterialCommunityIcons name="check-circle" size={18} color="#16a34a" />
+                   <Text style={[styles.paymentAlertText, { color: "#16a34a" }]}>Đã thanh toán online</Text>
+                </View>
+             ) : order.paymentMethod === "COD" ? (
+                <View style={[styles.paymentAlert, styles.paymentAlertPending]}>
+                   <MaterialCommunityIcons name="circle-outline" size={18} color="#d97706" />
+                   <Text style={[styles.paymentAlertText, { color: "#d97706" }]}>Thanh toán khi nhận hàng (COD)</Text>
+                </View>
+             ) : (
+                <View style={[styles.paymentAlert, styles.paymentAlertPending]}>
+                   <MaterialCommunityIcons name="circle-outline" size={18} color="#d97706" />
+                   <Text style={[styles.paymentAlertText, { color: "#d97706" }]}>Chờ thanh toán</Text>
+                </View>
+             )}
+           </View>
+        </View>
 
-        {/* Contact Seller */}
+        {/* Action Buttons */}
+        <View style={styles.actionContainer}>
+           {/* DEPOSIT ACTION BUTTONS for Buyer */}
+           {buyerNeedsToPayDeposit && (
+              <View style={styles.actionGroup}>
+                  <Pressable style={styles.primaryButton} onPress={handlePayDeposit} disabled={actionLoading}>
+                     {actionLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.primaryButtonText}>Thanh toán tiền cọc (10%)</Text>}
+                  </Pressable>
+                  <Text style={styles.actionHint}>Bạn cần đặt cọc trước khi người bán xác nhận đơn hàng.</Text>
+              </View>
+           )}
+
+           {buyerNeedsToPayRemaining && (
+              <View style={styles.actionGroup}>
+                  <Pressable style={styles.primaryButton} onPress={handlePayRemaining} disabled={actionLoading}>
+                     {actionLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.primaryButtonText}>Thanh toán phần còn lại (90%)</Text>}
+                  </Pressable>
+                  <Text style={[styles.actionHint, { color: "#0369a1" }]}>Vui lòng thanh toán phần còn lại để lấy hàng.</Text>
+              </View>
+           )}
+
+           {/* CONFIRM for Seller */}
+           {sellerCanConfirm && (
+              <Pressable style={styles.primaryButton} onPress={handleConfirmOrder} disabled={actionLoading}>
+                  {actionLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.primaryButtonText}>Xác nhận đơn hàng</Text>}
+              </Pressable>
+           )}
+
+           {/* CREATE SHIPPING for Seller */}
+           {sellerCanCreateShipping && (
+              <Pressable style={styles.primaryButton} onPress={() => setShowShippingModal(true)} disabled={actionLoading}>
+                  <Text style={styles.primaryButtonText}>Tạo đơn vận chuyển</Text>
+              </Pressable>
+           )}
+
+           {/* COMPLETE for Buyer */}
+           {buyerCanComplete && (
+              <Pressable style={[styles.primaryButton, { backgroundColor: "#16a34a" }]} onPress={handleCompleteOrder} disabled={actionLoading}>
+                  {actionLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.primaryButtonText}>Đã nhận được hàng</Text>}
+              </Pressable>
+           )}
+
+           {/* CANCEL for Buyer */}
+           {buyerCanCancel && (
+              <Pressable style={styles.dangerButton} onPress={handleCancelOrder} disabled={actionLoading}>
+                  {actionLoading ? <ActivityIndicator size="small" color="#ef4444" /> : <Text style={styles.dangerButtonText}>Hủy đơn hàng</Text>}
+              </Pressable>
+           )}
+
+           {/* CANCEL for Seller */}
+           {sellerCanCancel && (
+              <Pressable style={styles.dangerButton} onPress={handleCancelOrder} disabled={actionLoading}>
+                  {actionLoading ? <ActivityIndicator size="small" color="#ef4444" /> : <Text style={styles.dangerButtonText}>Hủy đơn hàng này</Text>}
+              </Pressable>
+           )}
+
+           {/* RATING for Buyer */}
+           {isBuyer && order.status === "Completed" && (
+              <Pressable style={styles.primaryButton} onPress={() => setShowRatingModal(true)} disabled={actionLoading}>
+                  <Text style={styles.primaryButtonText}>Đánh giá người bán</Text>
+              </Pressable>
+           )}
+
+           {/* REPORT for Buyer */}
+           {isBuyer && order.status === "Completed" && (
+              <Pressable style={[styles.primaryButton, { backgroundColor: "#f59e0b", marginTop: 12 }]} onPress={() => setShowReportModal(true)} disabled={actionLoading}>
+                  <Text style={styles.primaryButtonText}>Báo cáo sản phẩm</Text>
+              </Pressable>
+           )}
+        </View>
+
+        {/* Contact Seller / Buyer */}
         <Pressable
           style={styles.contactButton}
           onPress={() => navigation.navigate("Chat")}
         >
           <MaterialCommunityIcons name="chat-outline" size={20} color="#359EFF" />
-          <Text style={styles.contactButtonText}>Liên hệ người bán</Text>
+          <Text style={styles.contactButtonText}>{isBuyer ? "Liên hệ người bán" : "Liên hệ người mua"}</Text>
         </Pressable>
       </ScrollView>
+
+      {/* Shipping Modal */}
+      {showShippingModal && (
+        <CreateShippingModal
+          visible={showShippingModal}
+          onClose={() => setShowShippingModal(false)}
+          order={order}
+          user={user}
+          onSuccess={() => {
+            fetchOrder();
+            fetchShipping();
+          }}
+        />
+      )}
+
+      {/* Report Modal */}
+      <Modal visible={showReportModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: '80%' }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Báo cáo sản phẩm</Text>
+              <Pressable onPress={() => {
+                 setShowReportModal(false);
+                 setReportFiles([]);
+                 setReportReason("");
+              }}>
+                <MaterialCommunityIcons name="close" size={24} color="#111" />
+              </Pressable>
+            </View>
+            <ScrollView style={styles.modalBody}>
+               <Text style={styles.modalLabel}>Lý do báo cáo</Text>
+               <TextInput
+                 style={styles.textArea}
+                 placeholder="Mô tả lý do..."
+                 value={reportReason}
+                 onChangeText={setReportReason}
+                 multiline
+                 numberOfLines={4}
+                 textAlignVertical="top"
+               />
+
+               <Text style={styles.modalLabel}>Bằng chứng (Ảnh/Video)</Text>
+               <Pressable style={styles.uploadBtn} onPress={handlePickReportFiles}>
+                  <MaterialCommunityIcons name="image-plus" size={24} color="#359EFF" />
+                  <Text style={styles.uploadBtnText}>Chọn ảnh hoặc video</Text>
+               </Pressable>
+
+               <View style={styles.evidenceContainer}>
+                 {reportFiles.map((file, index) => (
+                    <View key={index} style={styles.evidenceItem}>
+                       {file.type === "image" ? (
+                         <Image source={{ uri: file.uri }} style={styles.evidenceImage} />
+                       ) : (
+                         <View style={styles.videoPlaceholder}>
+                           <MaterialCommunityIcons name="play-circle" size={24} color="#fff" />
+                         </View>
+                       )}
+                       <Pressable style={styles.removeEvidenceBtn} onPress={() => removeReportFile(index)}>
+                          <MaterialCommunityIcons name="close-circle" size={20} color="#ef4444" />
+                       </Pressable>
+                    </View>
+                 ))}
+               </View>
+               <View style={{height: 20}} />
+            </ScrollView>
+            <View style={styles.modalFooter}>
+               <Pressable style={styles.cancelBtn} onPress={() => {
+                 setShowReportModal(false);
+                 setReportFiles([]);
+                 setReportReason("");
+               }}>
+                  <Text style={styles.cancelBtnText}>Hủy</Text>
+               </Pressable>
+               <Pressable 
+                  style={[styles.submitBtn, { backgroundColor: '#b45309' }, (!reportReason.trim() || actionLoading || reportUploading) && styles.disabledBtn]} 
+                  onPress={submitReport}
+                  disabled={!reportReason.trim() || actionLoading || reportUploading}
+               >
+                  {actionLoading || reportUploading ? (
+                     <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                     <Text style={styles.submitBtnText}>Gửi báo cáo</Text>
+                  )}
+               </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Rating Modal */}
+      <Modal visible={showRatingModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: '60%' }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Đánh giá người bán</Text>
+              <Pressable onPress={() => {
+                 setShowRatingModal(false);
+                 setRatingScore(0);
+                 setRatingComment("");
+              }}>
+                <MaterialCommunityIcons name="close" size={24} color="#111" />
+              </Pressable>
+            </View>
+            <ScrollView style={styles.modalBody}>
+               <Text style={styles.modalLabel}>Chấm sao</Text>
+               <View style={styles.ratingStars}>
+                  {[1,2,3,4,5].map(star => (
+                     <Pressable key={star} onPress={() => setRatingScore(star)}>
+                        <MaterialCommunityIcons 
+                          name={star <= ratingScore ? "star" : "star-outline"} 
+                          size={40} 
+                          color={star <= ratingScore ? "#f59e0b" : "#ccc"} 
+                        />
+                     </Pressable>
+                  ))}
+               </View>
+
+               <Text style={[styles.modalLabel, { marginTop: 16 }]}>Nhận xét (Tùy chọn)</Text>
+               <TextInput
+                 style={styles.textArea}
+                 placeholder="Chia sẻ trải nghiệm..."
+                 value={ratingComment}
+                 onChangeText={setRatingComment}
+                 multiline
+                 numberOfLines={3}
+                 textAlignVertical="top"
+               />
+               <View style={{height: 20}} />
+            </ScrollView>
+            <View style={styles.modalFooter}>
+               <Pressable style={styles.cancelBtn} onPress={() => {
+                 setShowRatingModal(false);
+                 setRatingScore(0);
+                 setRatingComment("");
+               }}>
+                  <Text style={styles.cancelBtnText}>Hủy</Text>
+               </Pressable>
+               <Pressable 
+                  style={[styles.submitBtn, { backgroundColor: '#f59e0b' }, (ratingScore === 0 || actionLoading) && styles.disabledBtn]} 
+                  onPress={submitRating}
+                  disabled={ratingScore === 0 || actionLoading}
+               >
+                  {actionLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.submitBtnText}>Đánh giá</Text>}
+               </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 };
@@ -537,40 +1067,110 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#359EFF",
   },
-  actionContainer: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 16,
+  // New Styles
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e7f0fd',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 12,
+    gap: 8,
   },
-  actionButton: {
+  infoBannerText: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    fontSize: 12,
+    color: '#0369a1',
+    lineHeight: 18,
+  },
+  outlineButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#359EFF',
+    borderRadius: 8,
+    gap: 8,
+  },
+  outlineButtonText: {
+    color: '#359EFF',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  paymentStatusContainer: {
+    marginTop: 4,
+  },
+  paymentAlert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 8,
+  },
+  paymentAlertError: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#fecaca',
+  },
+  paymentAlertInfo: {
+    backgroundColor: '#f0f9ff',
+    borderColor: '#bae6fd',
+  },
+  paymentAlertSuccess: {
+    backgroundColor: '#f0fdf4',
+    borderColor: '#bbf7d0',
+  },
+  paymentAlertPending: {
+    backgroundColor: '#fffbeb',
+    borderColor: '#fde68a',
+  },
+  paymentAlertText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  actionContainer: {
+    marginBottom: 16,
+    gap: 12,
+  },
+  actionGroup: {
+    flexDirection: 'column',
+    gap: 4,
+  },
+  primaryButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#359EFF',
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,
   },
-  cancelButton: {
-    backgroundColor: "#fee2e2",
+  primaryButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  dangerButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fee2e2',
     borderWidth: 1,
-    borderColor: "#fecaca",
+    borderColor: '#fecaca',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
   },
-  cancelButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#ef4444",
+  dangerButtonText: {
+    color: '#ef4444',
+    fontSize: 15,
+    fontWeight: '600',
   },
-  completeButton: {
-    backgroundColor: "#22c55e",
-  },
-  completeButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#fff",
-  },
-  buttonDisabled: {
-    opacity: 0.6,
+  actionHint: {
+    fontSize: 12,
+    color: '#6b7280',
+    textAlign: 'center',
   },
   contactButton: {
     flexDirection: "row",
@@ -587,6 +1187,140 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#359EFF",
+  },
+  // Modals
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111",
+  },
+  modalBody: {
+    padding: 16,
+  },
+  modalLabel: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#111",
+    marginBottom: 8,
+  },
+  textArea: {
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    color: "#111",
+    marginBottom: 16,
+    backgroundColor: "#f9fafb",
+  },
+  uploadBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: "#359EFF",
+    borderRadius: 8,
+    paddingVertical: 16,
+    marginBottom: 16,
+    gap: 8,
+    backgroundColor: "#eff6ff",
+  },
+  uploadBtnText: {
+    fontSize: 14,
+    color: "#359EFF",
+    fontWeight: "600",
+  },
+  evidenceContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  evidenceItem: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    position: "relative",
+    overflow: "hidden",
+  },
+  evidenceImage: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: "#e5e7eb",
+  },
+  videoPlaceholder: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: "#374151",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  removeEvidenceBtn: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: "rgba(255,255,255,0.8)",
+    borderRadius: 12,
+  },
+  modalFooter: {
+    flexDirection: "row",
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+    gap: 12,
+  },
+  cancelBtn: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    backgroundColor: "#f3f4f6",
+    borderRadius: 10,
+  },
+  cancelBtnText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#4b5563",
+  },
+  submitBtn: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    borderRadius: 10,
+  },
+  submitBtnText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#fff",
+  },
+  disabledBtn: {
+    opacity: 0.6,
+  },
+  ratingStars: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    marginBottom: 8,
   },
 });
 

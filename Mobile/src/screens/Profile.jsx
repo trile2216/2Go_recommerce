@@ -20,6 +20,8 @@ import * as ImagePicker from "expo-image-picker";
 
 import { useAuth } from "../context/AuthContext";
 import { getUserInfo, updateUserProfile, changePassword } from "../service/home/api.user";
+import { getBanks } from "../service/payment/api.bank";
+import { resendVerifyEmail, verifyEmail } from "../service/auth/api.auth";
 import { uploadImageAndGetUrl } from "../service/upload/api.upload";
 
 const GENDERS = [
@@ -43,6 +45,14 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showGenderModal, setShowGenderModal] = useState(false);
+  
+  // Verification states
+  const [showEmailVerifyModal, setShowEmailVerifyModal] = useState(false);
+  const [emailVerifyCode, setEmailVerifyCode] = useState("");
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+
+  // Bank state
+  const [banks, setBanks] = useState([]);
 
   // Profile form
   const [profileForm, setProfileForm] = useState({
@@ -52,6 +62,9 @@ const Profile = () => {
     address: "",
     bio: "",
     avatarUrl: "",
+    bankAccountNumber: "",
+    bankAccountName: "",
+    bankBin: "",
   });
 
   // Password form
@@ -78,6 +91,9 @@ const Profile = () => {
         address: data.profile?.address || "",
         bio: data.profile?.bio || "",
         avatarUrl: data.profile?.avatarUrl || "",
+        bankAccountNumber: data.profile?.bankAccountNumber || "",
+        bankAccountName: data.profile?.bankAccountName || "",
+        bankBin: data.profile?.bankBin || "",
       });
     } catch (err) {
       console.error("Error loading user info:", err);
@@ -92,10 +108,63 @@ const Profile = () => {
     }, [loadUserInfo])
   );
 
+  useEffect(() => {
+    const fetchBanks = async () => {
+      try {
+        const response = await getBanks();
+        if (response && response.data) {
+          setBanks(response.data);
+        }
+      } catch (error) {
+        console.error("Error fetching banks:", error);
+      }
+    };
+    fetchBanks();
+  }, []);
+
   const handleRefresh = async () => {
     setRefreshing(true);
     await loadUserInfo();
     setRefreshing(false);
+  };
+
+  // --- Email Verification Flow ---
+  const startEmailVerification = async () => {
+    if (!userInfo?.email) {
+      Alert.alert("Lỗi", "Không tìm thấy email cần xác minh");
+      return;
+    }
+    setIsSendingEmail(true);
+    try {
+      await resendVerifyEmail({ email: userInfo.email });
+      Alert.alert("Thành công", "Đã gửi mã xác minh. Vui lòng kiểm tra email của bạn.");
+      setShowEmailVerifyModal(true);
+      setEmailVerifyCode("");
+    } catch (err) {
+      console.error("Error sending email code:", err);
+      Alert.alert("Lỗi", err.response?.data?.message || "Không thể gửi mã xác minh");
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
+  const handleVerifyEmailSubmit = async () => {
+    if (!emailVerifyCode.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập mã xác minh");
+      return;
+    }
+    setSaving(true);
+    try {
+      await verifyEmail({ email: userInfo.email, code: emailVerifyCode });
+      Alert.alert("Thành công", "Xác minh email thành công!");
+      setShowEmailVerifyModal(false);
+      loadUserInfo(); // refresh user info
+    } catch (err) {
+      console.error("Error verifying email:", err);
+      Alert.alert("Lỗi", err.response?.data?.message || "Mã xác minh không hợp lệ");
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Format date
@@ -231,6 +300,9 @@ const Profile = () => {
       address: userInfo?.profile?.address || "",
       bio: userInfo?.profile?.bio || "",
       avatarUrl: userInfo?.profile?.avatarUrl || "",
+      bankAccountNumber: userInfo?.profile?.bankAccountNumber || "",
+      bankAccountName: userInfo?.profile?.bankAccountName || "",
+      bankBin: userInfo?.profile?.bankBin || "",
     });
     setIsEditing(true);
   };
@@ -245,6 +317,9 @@ const Profile = () => {
       address: userInfo?.profile?.address || "",
       bio: userInfo?.profile?.bio || "",
       avatarUrl: userInfo?.profile?.avatarUrl || "",
+      bankAccountNumber: userInfo?.profile?.bankAccountNumber || "",
+      bankAccountName: userInfo?.profile?.bankAccountName || "",
+      bankBin: userInfo?.profile?.bankBin || "",
     });
   };
 
@@ -376,6 +451,21 @@ const Profile = () => {
             </View>
           </View>
 
+          {/* Verify Email Button */}
+          {!userInfo?.emailVerified && !isEditing && (
+            <Pressable 
+               style={styles.verifyEmailBtn} 
+               onPress={startEmailVerification}
+               disabled={isSendingEmail}
+            >
+               {isSendingEmail ? (
+                  <ActivityIndicator size="small" color="#359EFF" />
+               ) : (
+                  <Text style={styles.verifyEmailText}>Xác minh ngay</Text>
+               )}
+            </Pressable>
+          )}
+
           {/* Meta Info */}
           <View style={styles.metaRow}>
             <View style={styles.metaItem}>
@@ -492,14 +582,29 @@ const Profile = () => {
               </Text>
             </View>
             <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Thông tin ngân hàng</Text>
+              <Text style={styles.detailValue}>
+                 {userInfo?.profile?.bankAccountName || userInfo?.profile?.bankAccountNumber ? (
+                    (() => {
+                        const bank = banks.find(b => b.bin === userInfo?.profile?.bankBin || b.shortName === userInfo?.profile?.bankAccountName);
+                        return `${bank ? bank.shortName : userInfo?.profile?.bankAccountName} ${userInfo?.profile?.bankAccountNumber ? `- ${userInfo?.profile?.bankAccountNumber}` : ""}`;
+                    })()
+                 ) : "Chưa cập nhật"}
+              </Text>
+            </View>
+            <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Ngày sinh</Text>
               <Text style={styles.detailValue}>
                 {userInfo?.profile?.birthday || "Chưa cập nhật"}
               </Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Vai trò</Text>
-              <Text style={styles.detailValue}>{userInfo?.role}</Text>
+               <Text style={styles.detailLabel}>Email xác minh</Text>
+               <Text style={styles.detailValue}>{userInfo?.emailVerified ? "Đã xác minh" : "Chưa xác minh"}</Text>
+            </View>
+            <View style={styles.detailRow}>
+               <Text style={styles.detailLabel}>SĐT xác minh</Text>
+               <Text style={styles.detailValue}>{userInfo?.phoneVerified ? "Đã xác minh" : "Chưa xác minh"}</Text>
             </View>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Giới thiệu</Text>
@@ -575,6 +680,44 @@ const Profile = () => {
               value={profileForm.bio}
               onChangeText={(text) =>
                 setProfileForm((prev) => ({ ...prev, bio: text }))
+              }
+            />
+
+            <Text style={styles.label}>Ngân hàng</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.bankSelectContainer}>
+               <Pressable 
+                  style={[styles.bankChip, !profileForm.bankBin && styles.bankChipSelected]}
+                  onPress={() => setProfileForm(prev => ({ ...prev, bankBin: "", bankAccountName: "" }))}
+               >
+                  <Text style={[styles.bankChipText, !profileForm.bankBin && styles.bankChipTextSelected]}>Không chọn</Text>
+               </Pressable>
+               {banks.map(bank => {
+                  const isSelected = profileForm.bankBin === bank.bin || profileForm.bankAccountName === bank.shortName;
+                  return (
+                    <Pressable 
+                        key={bank.id}
+                        style={[styles.bankChip, isSelected && styles.bankChipSelected]}
+                        onPress={() => setProfileForm(prev => ({ 
+                           ...prev, 
+                           bankBin: bank.bin, 
+                           bankAccountName: bank.shortName 
+                        }))}
+                    >
+                        {bank.logo && <Image source={{uri: bank.logo}} style={styles.bankLogoSmall} />}
+                        <Text style={[styles.bankChipText, isSelected && styles.bankChipTextSelected]}>{bank.shortName}</Text>
+                    </Pressable>
+                  );
+               })}
+            </ScrollView>
+
+            <Text style={styles.label}>Số tài khoản</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Nhập số tài khoản"
+              placeholderTextColor="#999"
+              value={profileForm.bankAccountNumber}
+              onChangeText={(text) =>
+                setProfileForm((prev) => ({ ...prev, bankAccountNumber: text }))
               }
             />
           </View>
@@ -737,7 +880,57 @@ const Profile = () => {
                 {saving ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={styles.modalSaveText}>Đổi mật khẩu</Text>
+                  <Text style={styles.modalSaveText}>Lưu thay đổi</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Email Verify Modal */}
+      <Modal visible={showEmailVerifyModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: "auto", paddingBottom: 24 }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Xác minh Email</Text>
+              <Pressable onPress={() => setShowEmailVerifyModal(false)}>
+                <MaterialCommunityIcons name="close" size={24} color="#111" />
+              </Pressable>
+            </View>
+
+            <View style={styles.modalBody}>
+               <Text style={styles.verifyEmailDesc}>
+                  Mã xác minh đã được gửi đến: <Text style={{fontWeight: '700'}}>{userInfo?.email}</Text>
+               </Text>
+              <Text style={styles.label}>Mã xác minh (6 chữ số)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Nhập mã xác minh"
+                placeholderTextColor="#999"
+                value={emailVerifyCode}
+                onChangeText={setEmailVerifyCode}
+                keyboardType="numeric"
+                maxLength={6}
+              />
+            </View>
+
+            <View style={styles.modalFooter}>
+              <Pressable
+                style={styles.modalCancelButton}
+                onPress={() => setShowEmailVerifyModal(false)}
+              >
+                <Text style={styles.modalCancelText}>Hủy</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalSaveButton, saving && styles.modalSaveButtonDisabled]}
+                onPress={handleVerifyEmailSubmit}
+                disabled={saving || emailVerifyCode.length < 6}
+              >
+                {saving ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.modalSaveText}>Xác nhận</Text>
                 )}
               </Pressable>
             </View>
@@ -1239,6 +1432,60 @@ const styles = StyleSheet.create({
   genderLabel: {
     fontSize: 15,
     color: "#111",
+  },
+  verifyEmailBtn: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "#359EFF",
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignSelf: "center",
+  },
+  verifyEmailText: {
+    color: "#359EFF",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  verifyEmailDesc: {
+    fontSize: 14,
+    color: "#4b5563",
+    marginBottom: 8,
+  },
+  bankSelectContainer: {
+    flexDirection: "row",
+    paddingVertical: 4,
+    marginBottom: 12,
+  },
+  bankChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    backgroundColor: "#fff",
+    marginRight: 8,
+  },
+  bankChipSelected: {
+    borderColor: "#359EFF",
+    backgroundColor: "#eff6ff",
+  },
+  bankLogoSmall: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    marginRight: 8,
+    resizeMode: "contain",
+  },
+  bankChipText: {
+    fontSize: 14,
+    color: "#4b5563",
+  },
+  bankChipTextSelected: {
+    color: "#359EFF",
+    fontWeight: "600",
   },
 });
 

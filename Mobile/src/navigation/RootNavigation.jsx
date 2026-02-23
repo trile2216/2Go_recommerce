@@ -24,6 +24,7 @@ import Orders from "../screens/Orders";
 import OrderDetail from "../screens/OrderDetail";
 import Subscription from "../screens/Subscription";
 import MyPost from "../screens/MyPost";
+import Notifications from "../screens/Notifications";
 
 const Stack = createStackNavigator();
 const Tabs = createBottomTabNavigator();
@@ -38,7 +39,6 @@ const ChatStackNavigator = () => {
       }}
     >
       <ChatStack.Screen name="ChatList" component={Chat} />
-      <ChatStack.Screen name="Conversation" component={Conversation} />
     </ChatStack.Navigator>
   );
 };
@@ -80,6 +80,7 @@ const GuestTabs = () => {
           height: 64,
           paddingBottom: 8,
         },
+        tabBarHideOnKeyboard: true,
         headerShown: false,
       })}
     >
@@ -107,8 +108,6 @@ const MainStack = () => {
             iconName = "home";
           } else if (route.name === "Favorites") {
             iconName = "heart";
-          } else if (route.name === "AddListing") {
-            iconName = "plus";
           } else if (route.name === "Chat") {
             iconName = "chat";
           } else if (route.name === "Profile") {
@@ -134,6 +133,7 @@ const MainStack = () => {
           height: 64,
           paddingBottom: 8,
         },
+        tabBarHideOnKeyboard: true,
         headerShown: false,
       })}
     >
@@ -142,35 +142,6 @@ const MainStack = () => {
         name="Favorites"
         component={Favorites}
         options={{ title: "Wishlist" }}
-      />
-      <Tabs.Screen
-        name="AddListing"
-        component={AddListingStack}
-        options={{
-          title: "",
-          tabBarLabel: "",
-          tabBarIcon: ({ focused }) => (
-            <View
-              style={{
-                position: "absolute",
-                bottom: 10,
-                width: 60,
-                height: 60,
-                borderRadius: 30,
-                backgroundColor: "#359EFF",
-                justifyContent: "center",
-                alignItems: "center",
-                shadowColor: "#359EFF",
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-                elevation: 8,
-              }}
-            >
-              <MaterialCommunityIcons name="plus" size={32} color="#fff" />
-            </View>
-          ),
-        }}
       />
       <Tabs.Screen
         name="Chat"
@@ -212,6 +183,7 @@ const RootNavigation = () => {
             />
             <Stack.Screen name="Login" component={Login} />
             <Stack.Screen name="Register" component={Register} />
+            <Stack.Screen name="Notifications" component={Notifications} />
           </>
         ) : (
           // Authenticated: all screens
@@ -222,12 +194,15 @@ const RootNavigation = () => {
               component={Detail}
               options={{ presentation: "modal" }}
             />
+            <Stack.Screen name="Conversation" component={Conversation} />
+            <Stack.Screen name="AddListing" component={AddListingStack} />
             <Stack.Screen name="Cart" component={Cart} />
             <Stack.Screen name="Checkout" component={Checkout} />
             <Stack.Screen name="Orders" component={Orders} />
             <Stack.Screen name="OrderDetail" component={OrderDetail} />
             <Stack.Screen name="Subscription" component={Subscription} />
             <Stack.Screen name="MyPost" component={MyPost} />
+            <Stack.Screen name="Notifications" component={Notifications} />
           </>
         )}
       </Stack.Navigator>

@@ -16,6 +16,10 @@ import { useAuth } from "../context/AuthContext";
 import { useState, useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { fetchProductById } from "../service/home/api.product";
+import { getRatingsForUser } from "../service/home/api.rating";
+import { createOrGetChat } from "../service/home/api.chat";
+import ProductComments from "../components/ProductComments";
+import RelatedProducts from "../components/RelatedProducts";
 
 const Detail = () => {
   const route = useRoute();
@@ -32,16 +36,19 @@ const Detail = () => {
   const { addToCart } = useCart();
   const { user, isLoggedIn } = useAuth();
   const [addingToCart, setAddingToCart] = useState(false);
+  const [sellerRating, setSellerRating] = useState({ avg: 0, count: 0 });
 
-  // Fetch product details if not passed as param
+  // Always fetch fresh product details from API
   useEffect(() => {
     const listingId = params?.listingId || params?.id || product?.listingId || product?.id;
-    if (!product && listingId) {
+    
+    if (listingId) {
       const getProductDetail = async () => {
         try {
-          setLoading(true);
+          // If we don't have partial data, show loading
+          if (!productDetail) setLoading(true);
           const data = await fetchProductById(listingId);
-          setProductDetail(data);
+          setProductDetail(data); // Override with full fresh data
         } catch (err) {
           console.error("Error fetching product detail:", err);
         } finally {
@@ -49,11 +56,22 @@ const Detail = () => {
         }
       };
       getProductDetail();
-    } else if (product) {
-      setProductDetail(product);
-      setLoading(false);
     }
-  }, [product, params?.id, params?.listingId]);
+  }, [params?.id, params?.listingId, product?.id, product?.listingId]);
+
+  // Fetch seller rating
+  useEffect(() => {
+    if (!productDetail?.sellerId) return;
+    const fetchSellerRating = async () => {
+      try {
+        const data = await getRatingsForUser(productDetail.sellerId, 0, 1);
+        setSellerRating({ avg: data.avgRating || 0, count: data.total });
+      } catch (error) {
+        console.error("Failed to fetch seller rating:", error);
+      }
+    };
+    fetchSellerRating();
+  }, [productDetail?.sellerId]);
 
   if (loading) {
     return (
@@ -115,9 +133,9 @@ const Detail = () => {
   // Get condition label
   const getConditionLabel = (condition) => {
     const conditions = {
-      NEW: "Mới",
+      new: "Mới",
       LIKE_NEW: "Như mới",
-      USED: "Đã sử dụng",
+      used: "Đã qua sử dụng",
       FAIR: "Tạm ổn",
     };
     return conditions[condition] || condition;
@@ -479,6 +497,15 @@ const Detail = () => {
                     Thành viên xác thực
                   </Text>
                 </View>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
+                  <MaterialCommunityIcons name="star" size={14} color="#FBBF24" />
+                  <Text style={{ fontSize: 12, color: "#666", fontWeight: "600" }}>
+                    {sellerRating.avg > 0 ? sellerRating.avg.toFixed(1) : "N/A"}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: "#999" }}>
+                    ({sellerRating.count} đánh giá)
+                  </Text>
+                </View>
               </View>
             </View>
             <MaterialCommunityIcons
@@ -738,7 +765,7 @@ const Detail = () => {
           )}
 
           {/* Safety Verification */}
-          <View
+          {/* <View
             style={{
               backgroundColor: "rgba(51, 158, 255, 0.1)",
               borderWidth: 1,
@@ -788,7 +815,7 @@ const Detail = () => {
                 Người bán đã xác minh danh tính và sản phẩm đã được kiểm tra.
               </Text>
             </View>
-          </View>
+          </View> */}
 
           {/* Seller Info */}
           <View style={{ marginBottom: 20 }}>
@@ -844,6 +871,13 @@ const Detail = () => {
               )}
             </View>
           </View>
+
+          {/* Comments & Q&A */}
+          <ProductComments listingId={listingId} />
+
+          {/* Related Products */}
+          <RelatedProducts categoryId={productDetail.categoryId || productDetail.subCategoryId} currentListingId={listingId} />
+
         </View>
       </ScrollView>
 
@@ -880,12 +914,34 @@ const Detail = () => {
             justifyContent: "center",
             alignItems: "center",
           }}
-          onPress={() => {
+          onPress={async () => {
             if (!isLoggedIn) {
               navigation.navigate("Login");
               return;
             }
-            navigation.navigate("Chat");
+            if (!productDetail.sellerId) {
+              Alert.alert("Lỗi", "Không tìm thấy thông tin người bán.");
+              return;
+            }
+            try {
+              const chat = await createOrGetChat(productDetail.sellerId);
+              if (chat && chat.chatId) {
+                navigation.navigate("Conversation", { 
+                  chatId: chat.chatId,
+                  otherUser: {
+                    userId: productDetail.sellerId,
+                    email: productDetail.sellerEmail,
+                    fullName: productDetail.sellerName || `Người bán #${productDetail.sellerId}`,
+                    avatarUrl: productDetail.sellerAvatarUrl || null,
+                  }
+                });
+              } else {
+                Alert.alert("Lỗi", "Không thể tạo cuộc trò chuyện với người bán.");
+              }
+            } catch (error) {
+              console.error("Error creating chat:", error);
+              Alert.alert("Lỗi", "Đã xảy ra lỗi khi tạo cuộc trò chuyện.");
+            }
           }}
         >
           <MaterialCommunityIcons name="chat-outline" size={22} color="#111" />

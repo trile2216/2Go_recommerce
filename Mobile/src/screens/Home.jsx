@@ -19,6 +19,7 @@ import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { fetchProducts } from "../service/home/api.product";
 import { fetchAllCategories } from "../service/home/api.category";
+import { fetchNotifications } from "../service/home/api.notification";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const Home = () => {
@@ -35,6 +36,22 @@ const Home = () => {
   const [searchText, setSearchText] = useState("");
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const loadNotifications = useCallback(async () => {
+    if (!user) {
+      setUnreadCount(0);
+      return;
+    }
+    try {
+      // Just fetch first page to get count of unread
+      const data = await fetchNotifications(0, 50);
+      const unread = (data?.items || []).filter(n => !n.isRead).length;
+      setUnreadCount(unread);
+    } catch (error) {
+       console.error("Error loading notifications count:", error);
+    }
+  }, [user]);
 
   const loadProducts = useCallback(async () => {
     try {
@@ -65,13 +82,27 @@ const Home = () => {
     useCallback(() => {
       if (loading) loadProducts();
       fetchCartData();
-    }, [loadProducts, loading, fetchCartData])
+      if (user) {
+        loadNotifications();
+      }
+    }, [loadProducts, loading, fetchCartData, loadNotifications, user])
   );
 
   useEffect(() => {
     loadProducts();
     loadCategories();
-  }, [loadProducts, loadCategories]);
+    
+    let interval;
+    if (user) {
+      loadNotifications();
+      interval = setInterval(() => {
+        loadNotifications();
+      }, 10000); // Poll every 10s for unread count
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [loadProducts, loadCategories, loadNotifications, user]);
 
   useEffect(() => {
     let filtered = products;
@@ -226,18 +257,38 @@ const Home = () => {
             )}
           </Pressable>
 
-          <Pressable style={styles.notificationBtn}>
+          <Pressable 
+            style={styles.notificationBtn}
+            onPress={() => {
+              if (!user) {
+                navigation.navigate("Login");
+                return;
+              }
+              navigation.navigate("Notifications");
+            }}
+          >
             <MaterialCommunityIcons name="bell-outline" size={24} color="#374151" />
-            <View style={styles.notificationDot} />
+            {unreadCount > 0 && (
+               <View style={styles.cartBadge}>
+                 <Text style={styles.cartBadgeText}>
+                   {unreadCount > 9 ? "9+" : unreadCount}
+                 </Text>
+               </View>
+            )}
           </Pressable>
 
-          <View style={styles.avatarContainer}>
-            {user?.avatarUrl ? (
-              <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
-            ) : (
-              <MaterialCommunityIcons name="account-circle" size={40} color="#d1d5db" />
-            )}
-          </View>
+          <Pressable
+            style={styles.addBtn}
+            onPress={() => {
+              if (!user) {
+                navigation.navigate("Login");
+                return;
+              }
+              navigation.navigate("AddListing");
+            }}
+          >
+            <MaterialCommunityIcons name="plus" size={24} color="#fff" />
+          </Pressable>
         </View>
       </View>
 
@@ -461,16 +512,18 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#fff",
   },
-  avatarContainer: {
+  addBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    overflow: "hidden",
-    backgroundColor: "#f3f4f6",
-  },
-  avatar: {
-    width: "100%",
-    height: "100%",
+    backgroundColor: "#359EFF",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#359EFF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
 
   // Search

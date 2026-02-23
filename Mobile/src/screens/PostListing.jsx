@@ -24,6 +24,7 @@ import { uploadImageAndGetUrl, uploadVideoAndGetUrl } from "../service/upload/ap
 import { listingPrecheck } from "../service/ai/api.analyze";
 import { useAuth } from "../context/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getAttributesForCategory, getBrandForCategory } from "../data/categoryAttributes";
 
 const CONDITIONS = [
   { value: "new", label: "Mới" },
@@ -44,7 +45,6 @@ const PostListing = ({ navigation }) => {
     warranty: "",
     origin: "",
     condition: "",
-    isFree: false,
     hasNegotiation: true,
   });
 
@@ -458,7 +458,7 @@ const PostListing = ({ navigation }) => {
           description: formData.description,
           categoryId: selectedCategory?.id || 0,
           brand: formData.brand || "",
-          price: formData.isFree ? 0 : parseFloat(formData.price) || 0,
+          price: parseFloat(formData.price) || 0,
           mediaUrls: allMediaUrls,
           userId: String(userId),
         };
@@ -539,7 +539,7 @@ const PostListing = ({ navigation }) => {
         description: formData.description,
         subCategoryId: selectedSubcategory?.id,
         wardId: selectedWard?.value || null,
-        price: formData.isFree ? 0 : parseFloat(formData.price) || 0,
+        price: parseFloat(formData.price) || 0,
         listingType: "Single",
         availableQuantity: 1,
         hasNegotiation: formData.hasNegotiation,
@@ -548,12 +548,12 @@ const PostListing = ({ navigation }) => {
         dimensions: null,
         weight: null,
         media: mediaData,
-        attributes: [
-          { name: "Màu sắc", value: formData.color || "" },
-          { name: "Dung lượng", value: formData.capacity || "" },
-          { name: "Bảo hành", value: formData.warranty || "" },
-          { name: "Xuất xứ", value: formData.origin || "" },
-        ].filter((attr) => attr.value),
+        attributes: getAttributesForCategory(selectedCategory?.id)
+          .map((field) => ({
+            name: field.name,
+            value: formData[`attr_${field.name}`] || "",
+          }))
+          .filter((attr) => attr.value),
         status: creationStatus,
       };
 
@@ -753,85 +753,80 @@ const PostListing = ({ navigation }) => {
             ))}
           </View>
 
-          {/* Brand */}
-          <Text style={styles.label}>Hãng *</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="VD: Apple, Samsung, Xiaomi..."
-            placeholderTextColor="#999"
-            value={formData.brand}
-            onChangeText={(text) => updateForm("brand", text)}
-          />
+          {/* Dynamic Attributes */}
+          {(() => {
+            const categoryId = selectedCategory?.id;
+            const brandConfig = getBrandForCategory(categoryId);
+            const dynamicAttrs = getAttributesForCategory(categoryId);
 
-          {/* Color */}
-          <Text style={styles.label}>Màu sắc</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="VD: Đen, Trắng, Xanh..."
-            placeholderTextColor="#999"
-            value={formData.color}
-            onChangeText={(text) => updateForm("color", text)}
-          />
+            return (
+              <>
+                <Text style={styles.label}>{brandConfig.label} *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder={brandConfig.placeholder}
+                  placeholderTextColor="#999"
+                  value={formData.brand}
+                  onChangeText={(text) => updateForm("brand", text)}
+                />
 
-          {/* Capacity */}
-          <Text style={styles.label}>Dung lượng</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="VD: 128GB, 256GB..."
-            placeholderTextColor="#999"
-            value={formData.capacity}
-            onChangeText={(text) => updateForm("capacity", text)}
-          />
+                {dynamicAttrs.map((attr) => (
+                  <View key={attr.name}>
+                    <Text style={styles.label}>{attr.label}</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder={attr.placeholder}
+                      placeholderTextColor="#999"
+                      value={formData[`attr_${attr.name}`] || ""}
+                      onChangeText={(text) => updateForm(`attr_${attr.name}`, text)}
+                    />
+                  </View>
+                ))}
+              </>
+            );
+          })()}
 
-          {/* Warranty */}
-          <Text style={styles.label}>Chính sách bảo hành</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="VD: 12 tháng, Hết bảo hành..."
-            placeholderTextColor="#999"
-            value={formData.warranty}
-            onChangeText={(text) => updateForm("warranty", text)}
-          />
-
-          {/* Origin */}
-          <Text style={styles.label}>Xuất xứ</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="VD: Việt Nam, Trung Quốc..."
-            placeholderTextColor="#999"
-            value={formData.origin}
-            onChangeText={(text) => updateForm("origin", text)}
-          />
-
-          {/* Free Checkbox */}
+          {/* Negotiation Checkbox */}
           <Pressable
             style={styles.checkboxRow}
-            onPress={() => updateForm("isFree", !formData.isFree)}
+            onPress={() => updateForm("hasNegotiation", !formData.hasNegotiation)}
           >
-            <View style={[styles.checkbox, formData.isFree && styles.checkboxChecked]}>
-              {formData.isFree && (
+            <View style={[styles.checkbox, formData.hasNegotiation && styles.checkboxChecked]}>
+              {formData.hasNegotiation && (
                 <MaterialCommunityIcons name="check" size={16} color="#fff" />
               )}
             </View>
-            <Text style={styles.checkboxLabel}>Tích miễn phí cho tặng miễn phí</Text>
+            <Text style={styles.checkboxLabel}>Có thể thương lượng</Text>
           </Pressable>
 
           {/* Price */}
-          {!formData.isFree && (
-            <>
-              <Text style={styles.label}>Giá bán *</Text>
-              <View style={styles.priceInputWrapper}>
-                <Text style={styles.pricePrefix}>₫</Text>
-                <TextInput
-                  style={styles.priceInput}
-                  placeholder="VD: 5000000"
-                  placeholderTextColor="#999"
-                  keyboardType="numeric"
-                  value={formData.price}
-                  onChangeText={(text) => updateForm("price", text)}
-                />
-              </View>
-            </>
+          <Text style={styles.label}>Giá bán *</Text>
+          <View style={styles.priceInputWrapper}>
+            <Text style={styles.pricePrefix}>₫</Text>
+            <TextInput
+              style={styles.priceInput}
+              placeholder="VD: 5000000"
+              placeholderTextColor="#999"
+              keyboardType="numeric"
+              value={formData.price}
+              onChangeText={(text) => updateForm("price", text)}
+            />
+          </View>
+          {formData.price && parseFloat(formData.price) > 0 && (
+            <View style={{ marginTop: 8, paddingHorizontal: 4 }}>
+              <Text style={{ fontSize: 12, color: "#666" }}>
+                Phí dịch vụ (7%):{" "}
+                <Text style={{ fontWeight: "bold", color: "#ef4444" }}>
+                  - {new Intl.NumberFormat("vi-VN").format(Math.round(parseFloat(formData.price) * 0.07))}đ
+                </Text>
+              </Text>
+              <Text style={{ fontSize: 13, color: "#111", marginTop: 4 }}>
+                Thực nhận:{" "}
+                <Text style={{ fontWeight: "bold", color: "#22c55e" }}>
+                  {new Intl.NumberFormat("vi-VN").format(Math.round(parseFloat(formData.price) * 0.93))}đ
+                </Text>
+              </Text>
+            </View>
           )}
         </View>
 
@@ -863,7 +858,7 @@ const PostListing = ({ navigation }) => {
 
         {/* Location Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Thông tin người bán</Text>
+          <Text style={styles.sectionTitle}>Địa chỉ</Text>
 
           <Text style={styles.label}>Quận/Huyện</Text>
           <Pressable style={styles.selectInput} onPress={() => setIsDistrictModalOpen(true)}>
