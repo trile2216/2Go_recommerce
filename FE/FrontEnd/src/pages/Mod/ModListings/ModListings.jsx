@@ -4,7 +4,7 @@ import ModLayout from '../../../layouts/ModLayout';
 import { useToast } from '../../../context/ToastContext';
 import { getModListings, getModListingById, approveListing, rejectListing, flagListing } from '../../../service/mod/api.mod.listing';
 import SendNotificationModal from '../../../components/Admin/SendNotificationModal';
-import '../../../styles/Admin/admin-global.css';
+import '../../Admin/AdminListing/AdminListing.css';
 
 export default function ModListings() {
   const toast = useToast();

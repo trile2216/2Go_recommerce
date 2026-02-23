@@ -4,7 +4,7 @@ import ModLayout from '../../../layouts/ModLayout';
 import { useToast } from '../../../context/ToastContext';
 import { getModReports, getModReportById, resolveModReport } from '../../../service/mod/api.mod.report';
 import SendNotificationModal from '../../../components/Admin/SendNotificationModal';
-import '../../../styles/Admin/admin-global.css';
+import '../../Admin/AdminReport/admin-reports.css';
 
 const REPORT_STATUSES = ['Open', 'InReview', 'WaitingOtherParty', 'Resolved', 'Rejected'];
 

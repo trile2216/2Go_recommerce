@@ -5,7 +5,7 @@ import { useToast } from '../../../context/ToastContext';
 import { getModUsers, banUser, unbanUser } from '../../../service/mod/api.mod.user';
 import SendNotificationModal from '../../../components/Admin/SendNotificationModal';
 import ConfirmationModal from '../../../components/Admin/ConfirmationModal';
-import '../../../styles/Admin/admin-global.css';
+import '../../Admin/AdminCustomer/admin-customers.css';
 
 export default function ModUsers() {
   const toast = useToast();
