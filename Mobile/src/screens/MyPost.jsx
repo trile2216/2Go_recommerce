@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   StyleSheet,
   StatusBar,
-  FlatList,
   RefreshControl,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -24,12 +23,9 @@ import {
 } from "../service/home/api.sellerListing";
 
 const STATUS_TABS = [
-  { key: "", label: "Tất cả" },
-  { key: "Draft", label: "Nháp" },
-  { key: "PendingReview", label: "Chờ duyệt" },
   { key: "Active", label: "Đang bán" },
+  { key: "PendingReview", label: "Chờ duyệt" },
   { key: "Archived", label: "Đã ẩn" },
-  { key: "Rejected", label: "Bị từ chối" },
 ];
 
 const STATUS_LABEL = {
@@ -67,7 +63,7 @@ const MyPost = () => {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState("");
+  const [activeTab, setActiveTab] = useState("Active");
   const [skip, setSkip] = useState(0);
   const [actionLoading, setActionLoading] = useState(null);
   const take = 15;
@@ -249,109 +245,114 @@ const MyPost = () => {
 
         {/* Content */}
         <View style={styles.cardBody}>
-          <Text style={styles.title} numberOfLines={2}>
-            {item.title}
-          </Text>
-
-          {item.price !== undefined && item.price !== null && (
-            <Text style={styles.price}>
-              {item.price.toLocaleString("vi-VN", {
-                style: "currency",
-                currency: "VND",
-              })}
+          <View>
+            <Text style={styles.cardTitle} numberOfLines={2}>
+              {item.title}
             </Text>
-          )}
-
-          <View style={styles.metaContainer}>
-            <Text style={styles.meta}>Ngày: {formatDate(item.createdAt)}</Text>
-            {item.updatedAt && (
-              <Text style={styles.meta}>Cập nhật: {formatDate(item.updatedAt)}</Text>
+            {item.price !== undefined && item.price !== null && (
+              <Text style={styles.price}>
+                {item.price.toLocaleString("vi-VN", {
+                  style: "currency",
+                  currency: "VND",
+                })}
+              </Text>
             )}
           </View>
+          <View style={styles.metaContainer}>
+            <MaterialCommunityIcons name="calendar-today" size={14} color="#9ca3af" />
+            <Text style={styles.meta}>Posted {formatDate(item.createdAt)}</Text>
+          </View>
         </View>
+      </View>
+    );
+  };
 
-        {/* Actions */}
-        <View style={styles.actionsContainer}>
-          {(status === "Draft" || status === "Rejected") && (
-            <>
-              <Pressable
-                style={[styles.actionBtn, styles.editBtn, isProcessing && styles.disabled]}
-                onPress={() => navigation.navigate("PostListing", { editId: item.listingId })}
-                disabled={isProcessing}
-              >
-                <MaterialCommunityIcons name="pencil" size={16} color="#2563eb" />
-              </Pressable>
-              <Pressable
-                style={[
-                  styles.actionBtn,
-                  styles.publishBtn,
-                  isProcessing && styles.disabled,
-                ]}
-                onPress={() => handlePublish(item.listingId)}
-                disabled={isProcessing}
-              >
-                {isProcessing && actionLoading === item.listingId ? (
-                  <ActivityIndicator size="small" color="#059669" />
-                ) : (
-                  <MaterialCommunityIcons name="send" size={16} color="#059669" />
-                )}
-              </Pressable>
-            </>
-          )}
+  const renderCardActions = (item) => {
+    const isProcessing = actionLoading === item.listingId;
+    const status = item.status;
 
-          {status === "Active" && (
-            <>
-              <Pressable
-                style={[
-                  styles.actionBtn,
-                  styles.archiveBtn,
-                  isProcessing && styles.disabled,
-                ]}
-                onPress={() => handleArchive(item.listingId)}
-                disabled={isProcessing}
-              >
-                {isProcessing && actionLoading === item.listingId ? (
-                  <ActivityIndicator size="small" color="#d97706" />
-                ) : (
-                  <MaterialCommunityIcons name="archive" size={16} color="#d97706" />
-                )}
-              </Pressable>
-              <Pressable
-                style={[styles.actionBtn, styles.viewBtn]}
-                onPress={() =>
-                  navigation.navigate("Detail", { listingId: item.listingId })
-                }
-              >
-                <MaterialCommunityIcons name="eye" size={16} color="#7c3aed" />
-              </Pressable>
-            </>
-          )}
-
-          {(status === "Draft" || status === "PendingReview") && (
+    return (
+      <View style={styles.cardActions}>
+        {(status === "Draft" || status === "Rejected") && (
+          <>
             <Pressable
-              style={[styles.actionBtn, styles.viewBtn]}
-              onPress={() =>
-                navigation.navigate("Detail", { listingId: item.listingId })
-              }
+              style={[styles.actionButton, isProcessing && styles.actionButtonDisabled]}
+              onPress={() => navigation.navigate("PostListing", { editId: item.listingId })}
+              disabled={isProcessing}
             >
-              <MaterialCommunityIcons name="eye" size={16} color="#7c3aed" />
+              <MaterialCommunityIcons name="pencil" size={18} color="#ff6b35" />
+              <Text style={styles.actionButtonText}>Sửa</Text>
             </Pressable>
-          )}
-
-          {status !== "Deleted" && (
             <Pressable
-              style={[
-                styles.actionBtn,
-                styles.deleteBtn,
-                isProcessing && styles.disabled,
-              ]}
+              style={[styles.actionButton, isProcessing && styles.actionButtonDisabled]}
+              onPress={() => handlePublish(item.listingId)}
+              disabled={isProcessing}
+            >
+              {isProcessing && actionLoading === item.listingId ? (
+                <ActivityIndicator size="small" color="#059669" />
+              ) : (
+                <>
+                  <MaterialCommunityIcons name="send" size={18} color="#059669" />
+                  <Text style={styles.actionButtonText}>Đăng</Text>
+                </>
+              )}
+            </Pressable>
+            <Pressable
+              style={[styles.actionButton, styles.deleteButton, isProcessing && styles.actionButtonDisabled]}
               onPress={() => handleDelete(item.listingId)}
               disabled={isProcessing}
             >
-              <MaterialCommunityIcons name="trash-can" size={16} color="#dc2626" />
+              <MaterialCommunityIcons name="trash-can" size={18} color="#dc2626" />
+              <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Xóa</Text>
             </Pressable>
-          )}
-        </View>
+          </>
+        )}
+
+        {status === "Active" && (
+          <>
+            <Pressable
+              style={[styles.actionButton, isProcessing && styles.actionButtonDisabled]}
+              onPress={() => handleArchive(item.listingId)}
+              disabled={isProcessing}
+            >
+              {isProcessing && actionLoading === item.listingId ? (
+                <ActivityIndicator size="small" color="#d97706" />
+              ) : (
+                <>
+                  <MaterialCommunityIcons name="eye-off" size={18} color="#d97706" />
+                  <Text style={styles.actionButtonText}>Ẩn</Text>
+                </>
+              )}
+            </Pressable>
+            <Pressable
+              style={[styles.actionButton, isProcessing && styles.actionButtonDisabled]}
+              onPress={() => navigation.navigate("PostListing", { editId: item.listingId })}
+              disabled={isProcessing}
+            >
+              <MaterialCommunityIcons name="pencil" size={18} color="#ff6b35" />
+              <Text style={styles.actionButtonText}>Sửa</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.actionButton, styles.deleteButton, isProcessing && styles.actionButtonDisabled]}
+              onPress={() => handleDelete(item.listingId)}
+              disabled={isProcessing}
+            >
+              <MaterialCommunityIcons name="trash-can" size={18} color="#dc2626" />
+              <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Xóa</Text>
+            </Pressable>
+          </>
+        )}
+
+        {status !== "Active" && status !== "Draft" && status !== "Rejected" && (
+          <Pressable
+            style={[styles.actionButton, styles.deleteButton, isProcessing && styles.actionButtonDisabled]}
+            onPress={() => handleDelete(item.listingId)}
+            disabled={isProcessing}
+          >
+            <MaterialCommunityIcons name="trash-can" size={18} color="#dc2626" />
+            <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Xóa</Text>
+          </Pressable>
+        )}
       </View>
     );
   };
@@ -374,44 +375,48 @@ const MyPost = () => {
 
       {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Bài đăng của tôi</Text>
-          <Text style={styles.subtitle}>Quản lý bài đăng bán hàng</Text>
-        </View>
-        <Pressable
-          style={styles.createBtn}
-          onPress={() => navigation.navigate("PostListing")}
-        >
-          <MaterialCommunityIcons name="plus" size={20} color="#fff" />
-          <Text style={styles.createBtnText}>Đăng tin</Text>
+        <Pressable onPress={() => navigation.goBack()} style={styles.headerBackBtn}>
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#1a1a1a" />
         </Pressable>
+        <Text style={styles.headerTitle}>Bài đăng của tôi</Text>
+        <View style={styles.headerActions}>
+          <Pressable style={styles.headerIconBtn}>
+            <MaterialCommunityIcons name="magnify" size={24} color="#6b7280" />
+          </Pressable>
+          <Pressable style={styles.headerIconBtn}>
+            <MaterialCommunityIcons name="dots-vertical" size={24} color="#6b7280" />
+          </Pressable>
+        </View>
       </View>
 
-      {/* Tabs */}
-      <ScrollView
-        style={styles.tabsContainer}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        scrollEventThrottle={16}
-      >
-        {STATUS_TABS.map((tab) => (
-          <Pressable
-            key={tab.key}
-            style={[styles.tab, activeTab === tab.key && styles.tabActive]}
-            onPress={() => {
-              setActiveTab(tab.key);
-              setListings([]);
-              setSkip(0);
-            }}
-          >
-            <Text
-              style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}
+      {/* Segmented Tabs */}
+      <View style={styles.segmentedContainer}>
+        <View style={styles.segmentedControl}>
+          {STATUS_TABS.map((tab) => (
+            <Pressable
+              key={tab.key}
+              style={[
+                styles.segmentedTab,
+                activeTab === tab.key && styles.segmentedTabActive,
+              ]}
+              onPress={() => {
+                setActiveTab(tab.key);
+                setListings([]);
+                setSkip(0);
+              }}
             >
-              {tab.label}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+              <Text
+                style={[
+                  styles.segmentedTabText,
+                  activeTab === tab.key && styles.segmentedTabTextActive,
+                ]}
+              >
+                {tab.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
 
       {/* Content */}
       {listings.length === 0 && !loading ? (
@@ -431,35 +436,43 @@ const MyPost = () => {
           </Pressable>
         </View>
       ) : (
-        <View style={styles.content}>
-          <Text style={styles.countText}>
-            Hiển thị {listings.length} / {total} bài đăng
-          </Text>
-
-          <FlatList
-            data={listings}
-            renderItem={renderListingCard}
-            keyExtractor={(item) => item.listingId.toString()}
-            scrollEnabled={false}
-            contentContainerStyle={styles.listContainer}
-            onEndReached={handleLoadMore}
-            onEndReachedThreshold={0.5}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                colors={["#359EFF"]}
-              />
-            }
-          />
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={["#359EFF"]}
+            />
+          }
+        >
+          <View style={styles.listContainer}>
+            {listings.map((item) => (
+              <View key={item.listingId} style={styles.cardWrapper}>
+                {renderListingCard({ item })}
+                {renderCardActions(item)}
+              </View>
+            ))}
+          </View>
 
           {loading && listings.length > 0 && (
             <View style={styles.loadingMore}>
               <ActivityIndicator size="small" color="#359EFF" />
             </View>
           )}
-        </View>
+
+          {listings.length < total && !loading && (
+            <Pressable
+              style={styles.loadMoreBtn}
+              onPress={handleLoadMore}
+            >
+              <Text style={styles.loadMoreBtnText}>Xem thêm</Text>
+            </Pressable>
+          )}
+        </ScrollView>
       )}
+
     </SafeAreaView>
   );
 };
@@ -467,7 +480,7 @@ const MyPost = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f7f8",
+    backgroundColor: "#f9fafb",
   },
   loadingContainer: {
     flex: 1,
@@ -481,88 +494,108 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: "#e5e7eb",
   },
-  title: {
-    fontSize: 20,
+  headerBackBtn: {
+    padding: 8,
+    marginLeft: -8,
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: 18,
     fontWeight: "700",
     color: "#1a1a1a",
-    marginBottom: 2,
+    marginLeft: 8,
   },
-  subtitle: {
-    fontSize: 13,
+  headerActions: {
+    flexDirection: "row",
+    gap: 4,
+  },
+  headerIconBtn: {
+    padding: 8,
+    borderRadius: 20,
+  },
+  segmentedContainer: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+  },
+  segmentedControl: {
+    flexDirection: "row",
+    backgroundColor: "#f3f4f6",
+    borderRadius: 12,
+    padding: 4,
+    gap: 4,
+  },
+  segmentedTab: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  segmentedTabActive: {
+    backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  segmentedTabText: {
+    fontSize: 12,
+    fontWeight: "500",
     color: "#6b7280",
   },
-  createBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: "#ff6b35",
-    borderRadius: 8,
-  },
-  createBtnText: {
-    fontSize: 13,
+  segmentedTabTextActive: {
+    color: "#1a1a1a",
     fontWeight: "600",
-    color: "#fff",
-  },
-  tabsContainer: {
-    backgroundColor: "#fff",
-    borderBottomWidth: 2,
-    borderBottomColor: "#e5e7eb",
-    paddingHorizontal: 0,
-  },
-  tab: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 3,
-    borderBottomColor: "transparent",
-  },
-  tabActive: {
-    borderBottomColor: "#ff6b35",
-  },
-  tabText: {
-    fontSize: 13,
-    fontWeight: "500",
-    color: "#9ca3af",
-  },
-  tabTextActive: {
-    color: "#ff6b35",
   },
   content: {
     flex: 1,
+    backgroundColor: "#f9fafb",
+  },
+  scrollContent: {
     paddingHorizontal: 12,
     paddingTop: 12,
-  },
-  countText: {
-    fontSize: 12,
-    color: "#6b7280",
-    marginBottom: 8,
+    paddingBottom: 24,
   },
   listContainer: {
-    gap: 10,
-    paddingBottom: 20,
+    gap: 12,
+  },
+  cardWrapper: {
+    marginBottom: 4,
   },
   card: {
     backgroundColor: "#fff",
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
-    overflow: "hidden",
+    borderColor: "#e5e7eb",
     flexDirection: "row",
     gap: 12,
+    padding: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   imageContainer: {
     position: "relative",
     width: 100,
     height: 100,
+    borderRadius: 10,
+    overflow: "hidden",
+    backgroundColor: "#f3f4f6",
   },
   image: {
     width: "100%",
@@ -575,84 +608,96 @@ const styles = StyleSheet.create({
   },
   badgeContainer: {
     position: "absolute",
-    top: 4,
-    left: 4,
+    top: 6,
+    left: 6,
   },
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 12,
+    borderRadius: 8,
   },
   statusBadgeText: {
-    fontSize: 10,
-    fontWeight: "600",
+    fontSize: 8,
+    fontWeight: "700",
+    textTransform: "uppercase",
   },
   cardBody: {
     flex: 1,
-    paddingVertical: 8,
-    paddingLeft: 0,
     justifyContent: "space-between",
   },
   cardTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#1a1a1a",
-    marginBottom: 4,
-  },
-  price: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#d32f2f",
-    marginBottom: 4,
+    color: "#1a1a1a",
+    marginBottom: 6,
+    lineHeight: 18,
+  },
+  price: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#ff6b35",
+    marginBottom: 8,
   },
   metaContainer: {
-    gap: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   meta: {
-    fontSize: 11,
-    color: "#6b7280",
+    fontSize: 10,
+    color: "#9ca3af",
   },
-  actionsContainer: {
-    paddingRight: 8,
+  cardActions: {
+    flexDirection: "row",
+    gap: 8,
+    paddingTop: 10,
+    paddingHorizontal: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#f3f4f6",
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
     justifyContent: "center",
     gap: 6,
+    paddingVertical: 9,
+    backgroundColor: "#f9fafb",
+    borderRadius: 8,
+    borderWidth: 0,
   },
-  actionBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    backgroundColor: "#fff",
-    justifyContent: "center",
-    alignItems: "center",
+  actionButtonDisabled: {
+    opacity: 0.6,
   },
-  editBtn: {
-    borderColor: "#2563eb",
-    backgroundColor: "#eff6ff",
-  },
-  publishBtn: {
-    borderColor: "#059669",
-    backgroundColor: "#ecfdf5",
-  },
-  archiveBtn: {
-    borderColor: "#d97706",
-    backgroundColor: "#fffbeb",
-  },
-  deleteBtn: {
-    borderColor: "#dc2626",
+  deleteButton: {
     backgroundColor: "#fef2f2",
   },
-  viewBtn: {
-    borderColor: "#7c3aed",
-    backgroundColor: "#f5f3ff",
+  actionButtonText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#4b5563",
   },
-  disabled: {
-    opacity: 0.5,
+  deleteButtonText: {
+    color: "#dc2626",
   },
   loadingMore: {
     paddingVertical: 16,
     alignItems: "center",
+  },
+  loadMoreBtn: {
+    marginTop: 12,
+    paddingVertical: 11,
+    paddingHorizontal: 24,
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderRadius: 8,
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  loadMoreBtnText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#4b5563",
   },
   emptyContainer: {
     flex: 1,
@@ -691,6 +736,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#fff",
+  },
+  fab: {
+    position: "absolute",
+    bottom: 24,
+    right: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#ff6b35",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#ff6b35",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
   },
 });
 
