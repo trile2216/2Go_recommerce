@@ -1,13 +1,4 @@
 Mobile/.idea/
-<<<<<<< Updated upstream
-Mobile/package.json
 Mobile/package.json
 Mobile/package-lock.json
-=======
-Mobile/package-lock.json
-Mobile/package.json
->>>>>>> Stashed changes
-Mobile/package-lock.json
-Mobile/package.json
-/Mobile
 *.json
