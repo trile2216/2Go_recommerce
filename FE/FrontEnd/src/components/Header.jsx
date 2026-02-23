@@ -531,7 +531,7 @@ export default function Header() {
           <button
             className="icon-btn messages-btn"
             onClick={() => {
-              navigate("/chats");
+              navigate("/chat");
               closeAllMenus();
             }}
           >
@@ -661,7 +661,7 @@ export default function Header() {
 
                     <div className="menu-section">
                       <div className="menu-section-title">Khác</div>
-                      <button className="menu-item" onClick={() => { navigate('/chats'); closeAllMenus(); }}>Trung tâm tin nhắn</button>
+                      <button className="menu-item" onClick={() => { navigate('/chat'); closeAllMenus(); }}>Trung tâm tin nhắn</button>
                       <button className="menu-item" onClick={() => { navigate('/repair-shops'); closeAllMenus(); }}>Cửa hàng sửa chữa</button>
                     </div>
 

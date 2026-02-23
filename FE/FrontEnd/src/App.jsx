@@ -41,6 +41,8 @@ import SubscriptionPlans from './pages/Subscription/SubscriptionPlans';
 import AdminReports from './pages/Admin/AdminReport/AdminReports';
 import AdminMarketPrice from './pages/Admin/AdminMarketPrice/AdminMarketPrice';
 import MyReports from './pages/MyReports/MyReports';
+import AdminListingDetail from './pages/Admin/AdminListing/AdminListingDetail';
+import AdminCustomerDetail from './pages/Admin/AdminCustomer/AdminCustomerDetail';
 
 // Moderator Pages
 import ModUsers from './pages/Mod/ModUsers/ModUsers';
@@ -101,7 +103,7 @@ const router = createBrowserRouter([
             )
           },
           { 
-            path: "/chats/:chatId?", 
+            path: "/chat/:chatId?", 
             element: (
               <UserLayout>
                 <Chat />
@@ -120,6 +122,8 @@ const router = createBrowserRouter([
           { path: "/admin/customers", element: <AdminCustomers /> },
           { path: "/admin/orders", element: <AdminOrders /> },
           { path: "/admin/listings", element: <AdminListing /> },
+          { path: "/admin/listings/:id", element: <AdminListingDetail /> },
+          { path: "/admin/customers/:id", element: <AdminCustomerDetail /> },
           { path: "/admin/categories", element: <AdminCategory /> },
           { path: "/admin/plans", element: <Plan /> },
           { path: "/admin/market-prices", element: <AdminMarketPrice /> },

@@ -609,6 +609,67 @@
   padding: 8px;
 }
 
+/* Modals */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modal-content h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  color: #333;
+}
+
+.modal-content p {
+  margin: 0 0 1.5rem 0;
+  color: #666;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.ui-btn-text-small {
+  background: none;
+  border: none;
+  color: #0066cc;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin-top: 4px;
+}
+
+.ui-btn-text-small:hover {
+  text-decoration: underline;
+}
+
+.ui-btn-text-small:disabled {
+  color: #999;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+#recaptcha-container {
+  margin-bottom: 1rem;
+}
+
 .bank-select {
   width: 100%;
 }

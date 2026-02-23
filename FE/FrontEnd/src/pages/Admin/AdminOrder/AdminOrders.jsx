@@ -525,7 +525,7 @@ export default function AdminOrders() {
                           <td>
                             <div className="order-product-info">
                               <span className="product-name">{payout.sellerName || 'Unknown'}</span>
-                              {payout.sellerId && <span className="product-id">ID: {payout.sellerId}</span>}
+                              {/* {payout.sellerId && <span className="product-id">ID: {payout.sellerId}</span>} */}
                             </div>
                           </td>
                           <td className="admin-price"><strong>{formatPrice(payout.amount)}</strong></td>

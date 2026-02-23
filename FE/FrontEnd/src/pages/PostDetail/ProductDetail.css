@@ -83,8 +83,8 @@
 }
 
 .thumbnail.active {
-  border-color: #fbbf24;
-  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
 /* Product Info Detail */
@@ -213,14 +213,14 @@
 }
 
 .btn-add-cart {
-  background-color: #fbbf24;
-  color: #1f2937;
+  background-color: #3b82f6;
+  color: white;
 }
 
 .btn-add-cart:hover {
-  background-color: #f59e0b;
+  background-color: #2563eb;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .btn-add-cart.added {
@@ -236,25 +236,26 @@
 }
 
 .btn-compare {
-  background-color: #fbbf24;
-  color: #1f2937;
+  background-color: #3b82f6;
+  color: white;
 }
 
 .btn-compare:hover {
-  background-color: #f59e0b;
+  background-color: #2563eb;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .btn-compare.added {
   background-color: #3b82f6;
   color: white;
+  cursor: default;
 }
 
 .btn-compare.added:hover {
-  background-color: #2563eb;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  background-color: #3b82f6;
+  transform: none;
+  box-shadow: none;
 }
 
 .btn-save-listing {
@@ -369,7 +370,7 @@
   color: #1f2937;
   margin: 0 0 16px 0;
   padding-bottom: 12px;
-  border-bottom: 2px solid #fbbf24;
+  border-bottom: 2px solid #3b82f6;
 }
 
 .description-text {
@@ -408,7 +409,7 @@
   content: '•';
   position: absolute;
   left: 8px;
-  color: #fbbf24;
+  color: #3b82f6;
   font-weight: bold;
 }
 
@@ -451,8 +452,8 @@
 
 .review-input:focus {
   outline: none;
-  border-color: #fbbf24;
-  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.1);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .btn-submit-review {
@@ -726,7 +727,7 @@
   color: #1f2937;
   margin: 0 0 20px 0;
   padding-bottom: 12px;
-  border-bottom: 2px solid #fbbf24;
+  border-bottom: 2px solid #3b82f6;
 }
 
 .related-products-grid {

@@ -19,7 +19,7 @@ export const createOrder = async (listingId, paymentMethod, deliveryAddress) => 
  * @param {number} take
  * @returns {Promise<{ total: number, items: OrderListItem[] }>}
  * OrderListItem includes: orderId, listingId, buyerId, sellerId, orderCode,
- *   paymentLinkId, totalAmount, paymentMethod, status (Pending|Confirmed|Delivered|Completed|Cancelled),
+ *   paymentLinkId, totalAmount, paymentMethod, status (Pending|Confirmed|Shipping|Delivered|Completed|Cancelled),
  *   checkoutUrl, qrCodeUrl, paymentExpiredAt, createdAt, listingTitle, listingPrice, deliveryAddress
  */
 export const getMyOrders = async (skip = 0, take = 20) => {

@@ -93,7 +93,7 @@ export default function PostListing() {
     // Upload State
     const [imageList, setImageList] = useState([]); // [{ uid, file, preview, isPrimary }]
     const [videoList, setVideoList] = useState([]); // [{ uid, file, preview }]
-    const [isFree, setIsFree] = useState(false);
+    const [hasNegotiation, setHasNegotiation] = useState(true);
 
     // Categories State
     const [categories, setCategories] = useState([]);
@@ -239,7 +239,7 @@ export default function PostListing() {
                         price: data.price,
                         condition: data.condition,
                         brand: data.brand,
-                        isFree: data.price === 0,
+                        hasNegotiation: data.hasNegotiation !== undefined ? data.hasNegotiation : true,
                         address: data.sellerAddress,
                     });
 
@@ -256,7 +256,7 @@ export default function PostListing() {
                         form.setFieldsValue(attrValues);
                     }
                     
-                    setIsFree(data.price === 0);
+                    setHasNegotiation(data.hasNegotiation !== undefined ? data.hasNegotiation : true);
 
                     // Setup Media
                     const images = data.media?.filter(m => m.mediaType === 'IMAGE').map(m => ({
@@ -598,7 +598,7 @@ export default function PostListing() {
                     description: values.description,
                     categoryId: selectedCategory?.id,
                     brand: values.brand || "",
-                    price: values.isFree ? 0 : parseFloat(values.price) || 0,
+                    price: parseFloat(values.price) || 0,
                     mediaUrls: allMediaUrls,
                     userId: String(userId),
                 };
@@ -675,10 +675,10 @@ export default function PostListing() {
                 description: values.description,
                 subCategoryId: selectedSubcategory?.id,
                 wardId: selectedWard || null,
-                price: values.isFree ? 0 : parseFloat(values.price) || 0,
+                price: parseFloat(values.price) || 0,
                 listingType: "Single",
                 availableQuantity: 1,
-                hasNegotiation: true,
+                hasNegotiation: values.hasNegotiation !== undefined ? !!values.hasNegotiation : true,
                 condition: values.condition,
                 brand: values.brand || "",
                 dimensions: null,
@@ -841,7 +841,8 @@ export default function PostListing() {
                     onFinish={onFinish}
                     onValuesChange={handleFormChange}
                     initialValues={{
-                        condition: undefined
+                        condition: undefined,
+                        hasNegotiation: true
                     }}
                 >
                     {/* Images & Video Section */}
@@ -986,21 +987,51 @@ export default function PostListing() {
                             </Form.Item>
                         ))}
 
-                        <Form.Item name="isFree" valuePropName="checked">
-                            <Checkbox onChange={(e) => setIsFree(e.target.checked)}>
-                                Tích miễn phí cho tặng miễn phí
-                            </Checkbox>
+                        <Form.Item
+                            name="price"
+                            label="Giá bán"
+                            rules={[{ required: true, message: 'Vui lòng nhập giá bán' }]}
+                            style={{ marginBottom: 8 }}
+                        >
+                            <Input prefix="₫" type="number" placeholder="VD: 5000000" />
                         </Form.Item>
 
-                        {!isFree && (
-                            <Form.Item
-                                name="price"
-                                label="Giá bán"
-                                rules={[{ required: true, message: 'Vui lòng nhập giá bán' }]}
-                            >
-                                <Input prefix="₫" type="number" placeholder="VD: 5000000" />
-                            </Form.Item>
-                        )}
+                        <Form.Item
+                            shouldUpdate={(prevValues, currentValues) => prevValues.price !== currentValues.price}
+                            style={{ marginBottom: 24 }}
+                        >
+                            {({ getFieldValue }) => {
+                                const priceVal = getFieldValue('price');
+                                const priceNum = parseFloat(priceVal);
+                                if (!priceNum || priceNum <= 0) return null;
+
+                                const fee = Math.round(priceNum * 0.07);
+                                const net = Math.round(priceNum * 0.93);
+
+                                return (
+                                    <div style={{ backgroundColor: '#f9fafb', padding: '12px 16px', borderRadius: 8, marginTop: 4 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                            <span style={{ color: '#6b7280', fontSize: 13 }}>Phí dịch vụ 2Go (7%):</span>
+                                            <span style={{ color: '#ef4444', fontWeight: 500, fontSize: 13 }}>
+                                                - {new Intl.NumberFormat('vi-VN').format(fee)} ₫
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span style={{ color: '#111827', fontSize: 14, fontWeight: 500 }}>Thực nhận:</span>
+                                            <span style={{ color: '#10b981', fontWeight: 600, fontSize: 14 }}>
+                                                {new Intl.NumberFormat('vi-VN').format(net)} ₫
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            }}
+                        </Form.Item>
+
+                        <Form.Item name="hasNegotiation" valuePropName="checked">
+                            <Checkbox onChange={(e) => setHasNegotiation(e.target.checked)}>
+                                Giá có thể thương lượng
+                            </Checkbox>
+                        </Form.Item>
                     </Card>
 
                     {/* Title & Description Section */}

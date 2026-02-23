@@ -11,6 +11,9 @@ import {
 } from '../../service/home/api.user';
 import { getBanks } from '../../service/payment/api.bank';
 import { uploadImageAndGetUrl } from '../../service/upload/api.upload';
+import { resendVerifyEmail, verifyEmail, verifyPhoneFirebase, changePhoneFirebase } from '../../service/auth/api.auth';
+import { auth } from '../../config/firebase';
+import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import '../../styles/loader.css';
 import './userinfo.css';
 
@@ -27,6 +30,19 @@ export default function UserInfo() {
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  
+  // Verification states
+  const [showEmailVerifyModal, setShowEmailVerifyModal] = useState(false);
+  const [emailVerifyCode, setEmailVerifyCode] = useState('');
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  
+  const [showPhoneVerifyModal, setShowPhoneVerifyModal] = useState(false);
+  const [phoneAction, setPhoneAction] = useState('verify'); // 'verify', 'change'
+  const [phoneVerifyState, setPhoneVerifyState] = useState('input_phone'); // 'input_phone', 'input_code'
+  const [phoneNumberInput, setPhoneNumberInput] = useState('');
+  const [phoneVerifyCode, setPhoneVerifyCode] = useState('');
+  const [confirmationResult, setConfirmationResult] = useState(null);
+  const [isSendingSms, setIsSendingSms] = useState(false);
   
   // Form states
   const [profileForm, setProfileForm] = useState({
@@ -108,9 +124,10 @@ export default function UserInfo() {
         avatarUrl: data.profile?.avatarUrl || '',
         bankAccountNumber: data.profile?.bankAccountNumber || '',
         bankAccountName: data.profile?.bankAccountName || '',
-        // Try to find bank details if we have bank name but missing other info
-        // This part depends on if backend stores all bank details or just name/number
-        // For now assuming we just load what we have
+        bankBin: data.profile?.bankBin || '',
+        // These are not returned by backend, but we need them in state if we want to preview
+        bankLogo: profileForm.bankLogo || '',
+        bankShortName: profileForm.bankShortName || ''
       });
     } catch (err) {
       console.error('Error loading user info:', err);
@@ -277,6 +294,146 @@ export default function UserInfo() {
     }
   };
 
+  // --- Email Verification Flow ---
+  const startEmailVerification = async () => {
+    if (!userInfo?.email) {
+      toast.warning('Không tìm thấy email cần xác minh');
+      return;
+    }
+    setIsSendingEmail(true);
+    try {
+      await resendVerifyEmail({ email: userInfo.email });
+      toast.success('Đã gửi mã xác minh. Vui lòng kiểm tra email của bạn.');
+      setShowEmailVerifyModal(true);
+      setEmailVerifyCode('');
+    } catch (err) {
+      console.error('Error sending email code:', err);
+      toast.error(err.response?.data?.message || 'Không thể gửi mã xác minh');
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
+  const handleVerifyEmailSubmit = async (e) => {
+    e.preventDefault();
+    if (!emailVerifyCode.trim()) {
+      toast.warning('Vui lòng nhập mã xác minh');
+      return;
+    }
+    setSaving(true);
+    try {
+      await verifyEmail({ email: userInfo.email, code: emailVerifyCode });
+      toast.success('Xác minh email thành công!');
+      setShowEmailVerifyModal(false);
+      loadUserInfo(); // refresh user info
+    } catch (err) {
+      console.error('Error verifying email:', err);
+      toast.error(err.response?.data?.message || 'Mã xác minh không hợp lệ');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // --- Phone Verification Flow ---
+  const setupRecaptcha = () => {
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'invisible'
+      });
+    }
+  };
+
+  const startPhoneVerification = (action = 'verify') => {
+    setPhoneAction(action);
+    if (action === 'verify') {
+      setPhoneNumberInput(userInfo?.phone || '');
+    } else {
+      setPhoneNumberInput('');
+    }
+    setPhoneVerifyCode('');
+    setPhoneVerifyState('input_phone');
+    setShowPhoneVerifyModal(true);
+    // Initialize recaptcha after modal is shown
+    setTimeout(setupRecaptcha, 100);
+  };
+
+  const handleSendSms = async (e) => {
+    e.preventDefault();
+    if (!phoneNumberInput.trim()) {
+      toast.warning('Vui lòng nhập số điện thoại');
+      return;
+    }
+
+    // Format phone for firebase (e.g. +84...)
+    let formattedPhone = phoneNumberInput;
+    if (formattedPhone.startsWith('0')) {
+      formattedPhone = '+84' + formattedPhone.slice(1);
+    } else if (!formattedPhone.startsWith('+')) {
+      formattedPhone = '+' + formattedPhone;
+    }
+
+    setIsSendingSms(true);
+    setupRecaptcha();
+    const appVerifier = window.recaptchaVerifier;
+
+    try {
+      const result = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
+      setConfirmationResult(result);
+      setPhoneVerifyState('input_code');
+      toast.success('Đã gửi mã xác minh đến số điện thoại của bạn');
+    } catch (err) {
+      console.error('Error sending SMS:', err);
+      toast.error('Lỗi khi gửi SMS. Vui lòng kiểm tra lại số điện thoại.');
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.render().then(widgetId => {
+          window.grecaptcha.reset(widgetId);
+        });
+      }
+    } finally {
+      setIsSendingSms(false);
+    }
+  };
+
+  const handleVerifyPhoneSubmit = async (e) => {
+    e.preventDefault();
+    if (!phoneVerifyCode.trim() || !confirmationResult) {
+      toast.warning('Vui lòng nhập mã xác minh hợp lệ');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // Confirm with Firebase
+      const result = await confirmationResult.confirm(phoneVerifyCode);
+      const idToken = await result.user.getIdToken(true);
+
+      // Call backend to link/verify
+      if (phoneAction === 'verify') {
+        await verifyPhoneFirebase({ idToken });
+        toast.success('Xác minh số điện thoại thành công!');
+      } else {
+        await changePhoneFirebase({ idToken });
+        toast.success('Đổi số điện thoại thành công!');
+      }
+
+      setShowPhoneVerifyModal(false);
+      
+      // Cleanup recaptcha
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = null;
+      }
+      
+      loadUserInfo(); // Refresh data
+    } catch (err) {
+      console.error('Error verifying phone code:', err);
+      toast.error(err.response?.data?.message || 'Mã xác minh không hợp lệ hoặc đã hết hạn');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+
   if (loading) {
     return (
       <UserLayout>
@@ -357,12 +514,42 @@ export default function UserInfo() {
                 <span className={`status-badge ${userInfo.emailVerified ? 'verified' : 'unverified'}`}>
                   {userInfo.emailVerified ? '✓ Đã xác minh' : 'Chưa xác minh'}
                 </span>
+                {!userInfo.emailVerified && !isEditing && !showPasswordForm && (
+                  <button 
+                    type="button" 
+                    className="ui-btn-text-small" 
+                    onClick={startEmailVerification}
+                    disabled={isSendingEmail}
+                  >
+                    {isSendingEmail ? <Loader2 size={12} className="spin" /> : 'Xác minh ngay'}
+                  </button>
+                )}
               </div>
               <div className="status-item">
                 <span className="ui-status-label">Điện thoại:</span>
                 <span className={`status-badge ${userInfo.phoneVerified ? 'verified' : 'unverified'}`}>
                   {userInfo.phoneVerified ? '✓ Đã xác minh' : 'Chưa xác minh'}
                 </span>
+                {/* {!isEditing && !showPasswordForm && (
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {!userInfo.phoneVerified && (
+                      <button 
+                        type="button" 
+                        className="ui-btn-text-small" 
+                        onClick={() => startPhoneVerification('verify')}
+                      >
+                        Xác minh
+                      </button>
+                    )}
+                    <button 
+                      type="button" 
+                      className="ui-btn-text-small" 
+                      onClick={() => startPhoneVerification('change')}
+                    >
+                      Đổi SĐT
+                    </button>
+                  </div>
+                )} */}
               </div>
             </div>  
             <div className="userinfo-header-actions">
@@ -501,20 +688,25 @@ export default function UserInfo() {
                       <td className="value">{userInfo.profile?.address || 'Chưa cập nhật'}</td>
                     </tr>
                     <tr>
-                      <td className="label">Số tài khoản</td>
-                      <td className="value">{userInfo.profile?.bankAccountNumber || 'Chưa cập nhật'}</td>
-                    </tr>
-                    <tr>
-                      <td className="label">Tên ngân hàng</td>
+                      <td className="label">Thông tin ngân hàng</td>
                       <td className="value">
-                        {userInfo.profile?.bankAccountName ? (
+                        {userInfo.profile?.bankAccountName || userInfo.profile?.bankAccountNumber ? (
                           <div className="bank-display-info">
                             {(() => {
-                              const bank = banks.find(b => b.shortName === userInfo.profile.bankAccountName || b.name === userInfo.profile.bankAccountName);
-                              return bank?.logo ? (
-                                <><img src={bank.logo} alt={userInfo.profile.bankAccountName} className="bank-logo-small" /> {bank.shortName}</>
-                              ) : (
-                                userInfo.profile.bankAccountName
+                              // Find bank by bin, shortName, or name
+                              const bank = banks.find(b => 
+                                (userInfo.profile.bankBin && b.bin === userInfo.profile.bankBin) || 
+                                b.shortName === userInfo.profile.bankAccountName || 
+                                b.name === userInfo.profile.bankAccountName
+                              );
+                              return (
+                                <>
+                                  {bank?.logo && <img src={bank.logo} alt={userInfo.profile.bankAccountName} className="bank-logo-small" />}
+                                  <span>
+                                    {bank ? bank.shortName : userInfo.profile.bankAccountName} 
+                                    {userInfo.profile.bankAccountNumber && ` - ${userInfo.profile.bankAccountNumber}`}
+                                  </span>
+                                </>
                               );
                             })()}
                           </div>
@@ -632,7 +824,11 @@ export default function UserInfo() {
                     <label>Tên ngân hàng</label>
                     <select
                       name="bankId"
-                      value={banks.find(b => b.shortName === profileForm.bankAccountName)?.id || ''}
+                      value={banks.find(b => 
+                        (profileForm.bankBin && b.bin === profileForm.bankBin) || 
+                        b.shortName === profileForm.bankAccountName || 
+                        b.name === profileForm.bankAccountName
+                      )?.id || ''}
                       onChange={handleProfileFormChange}
                       className="bank-select"
                     >
@@ -794,6 +990,117 @@ export default function UserInfo() {
           )}
         </div>
       </div>
+
+      {/* Verification Modals */}
+      {showEmailVerifyModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h4>Xác minh Email</h4>
+            <p>Mã xác minh đã được gửi đến: <strong>{userInfo?.email}</strong></p>
+            <form onSubmit={handleVerifyEmailSubmit}>
+              <div className="ui-form-group">
+                <label>Mã xác minh (6 chữ số)</label>
+                <input
+                  type="text"
+                  value={emailVerifyCode}
+                  onChange={(e) => setEmailVerifyCode(e.target.value)}
+                  placeholder="Nhập mã xác minh"
+                  required
+                  maxLength={6}
+                />
+              </div>
+              <div className="form-actions">
+                <button 
+                  type="button" 
+                  className="ui-btn ui-btn-secondary"
+                  onClick={() => setShowEmailVerifyModal(false)}
+                  disabled={saving}
+                >
+                  Đóng
+                </button>
+                <button type="submit" className="ui-btn ui-btn-primary" disabled={saving}>
+                  {saving ? <><Loader2 size={16} className="spin" /> Đang xử lý...</> : 'Xác nhận'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* {showPhoneVerifyModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h4>{phoneAction === 'verify' ? 'Xác minh số điện thoại' : 'Đổi số điện thoại'}</h4>
+            <div id="recaptcha-container"></div>
+            
+            {phoneVerifyState === 'input_phone' ? (
+              <form onSubmit={handleSendSms}>
+                <p>
+                  {phoneAction === 'verify'
+                    ? 'Nhấn "Gửi mã SMS" để nhận OTP xác minh cho số điện thoại hiện tại.'
+                    : 'Nhập số điện thoại mới của bạn để nhận mã xác minh OTP qua SMS.'}
+                </p>
+                <div className="ui-form-group">
+                  <label>Số điện thoại</label>
+                  <input
+                    type="tel"
+                    value={phoneNumberInput}
+                    onChange={(e) => setPhoneNumberInput(e.target.value)}
+                    placeholder="VD: 0987654321 hoặc +84987654321"
+                    disabled={phoneAction === 'verify'}
+                    required
+                  />
+                </div>
+                <div className="form-actions">
+                  <button 
+                    type="button" 
+                    className="ui-btn ui-btn-secondary"
+                    onClick={() => {
+                        setShowPhoneVerifyModal(false);
+                        if(window.recaptchaVerifier) window.recaptchaVerifier.clear();
+                    }}
+                    disabled={isSendingSms}
+                  >
+                    Hủy
+                  </button>
+                  <button type="submit" className="ui-btn ui-btn-primary" disabled={isSendingSms}>
+                    {isSendingSms ? <><Loader2 size={16} className="spin" /> Đang gửi...</> : 'Gửi mã SMS'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleVerifyPhoneSubmit}>
+                <p>Mã xác minh đã được gửi đến số: <strong>{phoneNumberInput}</strong></p>
+                <div className="ui-form-group">
+                  <label>Mã xác minh</label>
+                  <input
+                    type="text"
+                    value={phoneVerifyCode}
+                    onChange={(e) => setPhoneVerifyCode(e.target.value)}
+                    placeholder="Nhập mã xác minh từ tin nhắn SMS"
+                    required
+                    maxLength={6}
+                  />
+                </div>
+                <div className="form-actions">
+                  <button 
+                    type="button" 
+                    className="ui-btn ui-btn-secondary"
+                    onClick={() => setPhoneVerifyState('input_phone')}
+                    disabled={saving}
+                  >
+                    Quay lại
+                  </button>
+                  <button type="submit" className="ui-btn ui-btn-primary" disabled={saving}>
+                    {saving ? <><Loader2 size={16} className="spin" /> Đang xử lý...</> : 'Xác nhận'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )} */}
+
     </div>
     </UserLayout>
   );

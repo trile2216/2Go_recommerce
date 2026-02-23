@@ -9,6 +9,7 @@ import { getShippingByOrder, getGhnPrintToken } from "../../service/home/api.shi
 import { uploadImageAndGetUrl, uploadVideoAndGetUrl } from "../../service/upload/api.upload";
 import CreateShippingModal from "../../components/CreateShippingModal";
 import OrderStatusStepper, { getStatusLabel } from "../../components/OrderStatusStepper";
+import { createPayment } from "../../service/home/api.payment";
 import useAuth from "../../context/UseAuth";
 import { formatPrice, formatDate, getOrderStatusColor } from "../../utils/utils";
 import {
@@ -31,7 +32,8 @@ import {
   ImagePlus,
   Trash2,
   Star,
-  Printer
+  Printer,
+  Circle
 } from "lucide-react";
 import "./OrderDetail.css";
 import PageEmptyState from "../../components/PageEmptyState";
@@ -110,6 +112,34 @@ export default function OrderDetail() {
       fetchOrder();
     } catch (error) {
       toast.error(error.response?.data?.message || "Xác nhận đơn hàng thất bại");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handlePayDeposit = async () => {
+    try {
+      setActionLoading(true);
+      const res = await createPayment(order.orderId, "PAYOS", "DEPOSIT");
+      if (res.payUrl) {
+        window.location.href = res.payUrl;
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Tạo thanh toán cọc thất bại");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handlePayRemaining = async () => {
+    try {
+      setActionLoading(true);
+      const res = await createPayment(order.orderId, "PAYOS", "REMAINING");
+      if (res.payUrl) {
+        window.location.href = res.payUrl;
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Tạo thanh toán phần còn lại thất bại");
     } finally {
       setActionLoading(false);
     }
@@ -277,10 +307,13 @@ export default function OrderDetail() {
   const sellerCanCancel = isSeller && (order.status === "Pending" || order.status === "Paid");
 
   const sellerCanConfirm = isSeller && (order.status === "Pending" || order.status === "Paid");
-  const buyerCanComplete = isBuyer && (order.status === "Confirmed" || order.status === "Shipping");
+  const buyerCanComplete = isBuyer && order.status === "Delivered";
 
-  const hasCheckoutUrl = isBuyer && order.status === "Pending" && order.checkoutUrl;
   const sellerCanCreateShipping = isSeller && order.status === "Confirmed" && !shippingInfo;
+
+  // Deposit Actions logic
+  const buyerNeedsToPayDeposit = isBuyer && order.depositRequired && !order.depositPaid && order.status === "Pending";
+  const buyerNeedsToPayRemaining = isBuyer && order.depositRequired && order.depositPaid && order.status === "Confirmed" && order.escrowStatus !== "Funded";
 
   return (
     <UserLayout>
@@ -479,10 +512,10 @@ export default function OrderDetail() {
             <div className="order-right-col">
               <div className="order-card">
                  <div className="od-card-header">
-                   <h3 className="od-card-subtitle">Trạng thái & Thao tác</h3>
+                   <h3 className="od-card-subtitle">Trạng thái Giao hàng</h3>
                  </div>
                  <div className="od-card-body">
-                    <OrderStatusStepper currentStatus={order.status} paymentMethod={order.paymentMethod} />
+                    <OrderStatusStepper currentStatus={order.status} />
 
                     {isSeller && order.paymentMethod === "PAYOS" && ["Confirmed", "Shipping", "Completed"].includes(order.status) && (
                       <div className="od-info-banner">
@@ -491,24 +524,69 @@ export default function OrderDetail() {
                       </div>
                     )}
 
+                    {/* New Payment Flow Box */}
+                    <div className="order-payment-box">
+                      <h4 className="payment-box-title"><CreditCard size={18} /> Tình trạng thanh toán</h4>
+                      <div className="payment-box-content">
+                        {order.depositRequired && !order.depositPaid && order.depositDeadlineAt && new Date(order.depositDeadlineAt) < new Date() ? (
+                          <div className="payment-alert error">
+                            <XCircle size={16} /> Quá hạn cọc – có thể bị tịch thu
+                          </div>
+                        ) : order.depositPaid && !["Completed", "Cancelled"].includes(order.status) && order.escrowStatus !== "Funded" ? (
+                          <div className="payment-alert info">
+                            <CheckCircle2 size={16} /> Đã thanh toán cọc {formatPrice((order.totalAmount || 0) * 0.1)}
+                          </div>
+                        ) : order.depositPaid && (order.status === "Completed" || order.escrowStatus === "Funded") ? (
+                          <div className="payment-alert success">
+                            <CheckCircle2 size={16} /> Đã thanh toán đủ
+                          </div>
+                        ) : !order.depositRequired && order.paymentMethod !== "COD" ? (
+                          <div className="payment-alert success">
+                            <CheckCircle2 size={16} /> Đã thanh toán online
+                          </div>
+                        ) : order.paymentMethod === "COD" ? (
+                          <div className="payment-alert pending">
+                            <Circle size={16} /> Thanh toán khi nhận hàng (COD)
+                          </div>
+                        ) : (
+                          <div className="payment-alert pending">
+                            <Circle size={16} /> Chờ thanh toán
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
                     <div className="od-actions-wrapper">
-                        {/* PAY BUTTON for Buyer */}
-                        {hasCheckoutUrl && (
+                        {/* DEPOSIT ACTION BUTTONS for Buyer */}
+                        {buyerNeedsToPayDeposit && (
                           <div className="action-group">
-                            <a
-                              href={order.checkoutUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="od-action-button primary-button"
-                            >
-                              <ExternalLink size={16} />
-                              Thanh toán ngay
-                            </a>
-                            {order.paymentExpiredAt && (
-                              <p className="payment-expiry">
-                                Hết hạn: {formatDate(order.paymentExpiredAt)}
-                              </p>
-                            )}
+                             <button
+                               className="od-action-button primary-button"
+                               onClick={handlePayDeposit}
+                               disabled={actionLoading}
+                             >
+                               <CreditCard size={18} />
+                               {actionLoading ? "Đang chuyển hướng..." : "Thanh toán tiền cọc (10%)"}
+                             </button>
+                             <p className="rating-label" style={{ color: "#6b7280", marginTop: 4, fontWeight: 'normal' }}>
+                               Bạn cần đặt cọc trước khi người bán xác nhận đơn hàng.
+                             </p>
+                          </div>
+                        )}
+
+                        {buyerNeedsToPayRemaining && (
+                          <div className="action-group">
+                             <button
+                               className="od-action-button primary-button"
+                               onClick={handlePayRemaining}
+                               disabled={actionLoading}
+                             >
+                               <CreditCard size={18} />
+                               {actionLoading ? "Đang chuyển hướng..." : "Thanh toán phần còn lại (90%)"}
+                             </button>
+                             <p className="rating-label" style={{ color: "#0369a1", marginTop: 4, fontWeight: 'normal' }}>
+                               Người bán đã xác nhận. Vui lòng thanh toán phần còn lại để người bán giao hàng.
+                             </p>
                           </div>
                         )}
 

@@ -251,6 +251,72 @@
   color: #111827;
 }
 
+/* Payment Status Box */
+.order-payment-box {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: #f9fafb;
+  border: 1px solid #f3f4f6;
+  border-radius: 0.5rem;
+}
+
+.payment-box-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.75rem;
+  margin-top: 0;
+}
+
+.payment-box-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.payment-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.payment-alert.success {
+  background-color: #ecfdf5;
+  color: #064e3b;
+  border: 1px solid #10b981;
+}
+
+.payment-alert.info {
+  background-color: #eff6ff;
+  color: #1e3a8a;
+  border: 1px solid #3b82f6;
+}
+
+.payment-alert.error {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #ef4444;
+}
+
+.payment-alert.warning {
+  background-color: #fffbeb;
+  color: #92400e;
+  border: 1px solid #f59e0b;
+}
+
+.payment-alert.pending {
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+}
+
 /* Actions Wrapper */
 .od-actions-wrapper {
   display: flex;

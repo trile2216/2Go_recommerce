@@ -133,7 +133,7 @@ export default function ProductInfo({ product, listingId, primaryImageUrl, rawPr
     try {
       const chat = await createOrGetChat(product.sellerId);
       if (chat && chat.chatId) {
-        navigate(`/chats/${chat.chatId}`);
+        navigate(`/chat/${chat.chatId}`);
       } else {
         toast.error('Không thể tạo cuộc trò chuyện với người bán.');
       }

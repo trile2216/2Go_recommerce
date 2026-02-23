@@ -29,7 +29,7 @@ export default function AdminLayout({ children }) {
         </main>
 
         {/* Footer */}
-        <footer className="admin-footer">
+        {/* <footer className="admin-footer">
           <div className="admin-footer-content">
             <p className="admin-footer-text">
               © 2024 ReCommerce Admin. All rights reserved.
@@ -40,7 +40,7 @@ export default function AdminLayout({ children }) {
               <a href="#privacy">Privacy</a>
             </div>
           </div>
-        </footer>
+        </footer> */}
       </div>
     </div>
   );

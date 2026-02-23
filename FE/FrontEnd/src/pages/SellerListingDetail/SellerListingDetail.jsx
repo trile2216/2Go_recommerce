@@ -210,7 +210,6 @@ export default function SellerListingDetail() {
                   icon={<Send size={16} />} 
                   loading={actionLoading}
                   onClick={handlePublish}
-                  style={{ backgroundColor: '#facc15', color: '#000' }}
                 >
                   Đăng ngay
                 </Button>

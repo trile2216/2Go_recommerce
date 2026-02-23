@@ -7,7 +7,7 @@ export const login = async (credentials) => {
     } catch (error) {
         console.error('Error during login:', error);
         throw error;
-    }   
+    }
 };
 
 export const register = async (userInfo) => {
@@ -17,7 +17,7 @@ export const register = async (userInfo) => {
     } catch (error) {
         console.error('Error during registration:', error);
         throw error;
-    }   
+    }
 };
 
 export const loginWithOAuth = async (oauthData) => {
@@ -27,7 +27,7 @@ export const loginWithOAuth = async (oauthData) => {
     } catch (error) {
         console.error('Error during OAuth login:', error);
         throw error;
-    }   
+    }
 };
 
 export const logout = async (refreshToken) => {
@@ -46,6 +46,46 @@ export const refreshToken = async (refreshToken) => {
         return response.data;
     } catch (error) {
         console.error('Error during token refresh:', error);
+        throw error;
+    }
+};
+
+export const verifyEmail = async (data) => {
+    try {
+        const response = await api.post('/Auth/verify-email', data);
+        return response.data;
+    } catch (error) {
+        console.error('Error during email verification:', error);
+        throw error;
+    }
+};
+
+export const resendVerifyEmail = async (data) => {
+    try {
+        const response = await api.post('/Auth/resend-verify-email', data);
+        return response.data;
+    } catch (error) {
+        console.error('Error resending email verification:', error);
+        throw error;
+    }
+};
+
+export const verifyPhoneFirebase = async (data) => {
+    try {
+        const response = await api.post('/Auth/verify-phone-firebase', data);
+        return response.data;
+    } catch (error) {
+        console.error('Error during phone verification:', error);
+        throw error;
+    }
+};
+
+export const changePhoneFirebase = async (data) => {
+    try {
+        const response = await api.post('/Auth/change-phone-firebase', data);
+        return response.data;
+    } catch (error) {
+        console.error('Error changing phone number:', error);
         throw error;
     }
 };

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Eye, Search, Filter, X, Check, Bell } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Edit2, Trash2, Eye, Search, Filter, X, Check, Bell } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import AdminLayout from '../../../layouts/AdminLayout';
-import { fetchListings, fetchListingById, deleteListingById, updateListingStatusById } from '../../../service/admin/api.listing';
+import { fetchListings, deleteListingById, updateListingStatusById } from '../../../service/admin/api.listing';
 import './AdminListing.css';
 import { useToast } from '../../../context/ToastContext';
 import ConfirmationModal from '../../../components/Admin/ConfirmationModal';
@@ -10,26 +10,24 @@ import SendNotificationModal from '../../../components/Admin/SendNotificationMod
 
 export default function AdminListing() {
   const toast = useToast();
+  const navigate = useNavigate();
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   
   // Modal states
-  const [selectedListing, setSelectedListing] = useState(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [statusFormData, setStatusFormData] = useState({});
+  const [deleteId, setDeleteId] = useState(null);
 
   // Notification Modal State
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
   const [notifyTarget, setNotifyTarget] = useState({ userId: null, userName: '', defaultTitle: '', defaultMessage: '' });
-  const [statusFormData, setStatusFormData] = useState({});
-  const [deleteId, setDeleteId] = useState(null);
 
-  // Pagination (simple client-side for now, or match backend params)
+  // Pagination
   const [pagination, setPagination] = useState({ skip: 0, take: 20, total: 0, page: 1 });
 
-  // Fetch listings
   useEffect(() => {
     loadListings();
   }, [filterStatus, pagination.page]);
@@ -90,15 +88,6 @@ export default function AdminListing() {
     );
   });
 
-  const handleViewDetails = async (listing) => {
-    try {
-      const detailedListing = await fetchListingById(listing.listingId);
-      setSelectedListing(detailedListing);
-      setShowDetailModal(true);
-    } catch (err) {
-      toast.error('Failed to load listing details');
-    }
-  };
 
   const handleEditStatusClick = (listing) => {
     setStatusFormData({
@@ -234,7 +223,7 @@ export default function AdminListing() {
                       <td className="admin-actions">
                         <button 
                           className="admin-action-icon view"
-                          onClick={() => handleViewDetails(listing)}
+                          onClick={() => navigate(`/admin/listings/${listing.listingId}`)}
                           title="View Details"
                         >
                           <Eye size={18} />
@@ -300,70 +289,6 @@ export default function AdminListing() {
           </div>
         </div>
 
-        {/* Detail Modal */}
-        {showDetailModal && selectedListing && (
-          <div className="admin-modal-overlay" onClick={() => setShowDetailModal(false)}>
-            <div className="admin-modal admin-modal-xl" onClick={(e) => e.stopPropagation()}>
-              <div className="admin-modal-header">
-                <h3>Listing Details</h3>
-                <button 
-                  className="admin-modal-close"
-                  onClick={() => setShowDetailModal(false)}
-                >
-                  <X size={24} />
-                </button>
-              </div>
-              <div className="admin-modal-body">
-                <div className="admin-modal-grid">
-                  <div className="admin-modal-image">
-                    <img 
-                      src={selectedListing.primaryImageUrl} 
-                      alt={selectedListing.title}
-                      onError={(e) => e.target.src = 'https://via.placeholder.com/200'}
-                    />
-                    {/* Show gallery if needed */}
-                  </div>
-                  <div className="admin-modal-info">
-                    <div className="admin-modal-row">
-                      <span className="admin-modal-label">Title:</span>
-                      <span className="admin-modal-value">{selectedListing.title}</span>
-                    </div>
-                    <div className="admin-modal-row">
-                      <span className="admin-modal-label">Listing ID:</span>
-                      <span className="admin-modal-value">{selectedListing.listingId}</span>
-                    </div>
-                    <div className="admin-modal-row">
-                      <span className="admin-modal-label">Seller:</span>
-                      <span className="admin-modal-value">{selectedListing.sellerName} ({selectedListing.sellerEmail})</span>
-                    </div>
-                    <div className="admin-modal-row">
-                      <span className="admin-modal-label">Price:</span>
-                      <span className="admin-modal-value">{formatPrice(selectedListing.price)}</span>
-                    </div>
-                    <div className="admin-modal-row">
-                      <span className="admin-modal-label">Status:</span>
-                      <span className={`admin-badge ${getStatusBadgeClass(selectedListing.status)}`}>
-                        {selectedListing.status}
-                      </span>
-                    </div>
-                    <div className="admin-modal-row">
-                      <span className="admin-modal-label">Category:</span>
-                      <span className="admin-modal-value">{selectedListing.categoryName} {'>'} {selectedListing.subCategoryName}</span>
-                    </div>
-                    <div className="admin-modal-row">
-                      <span className="admin-modal-label">Created:</span>
-                      <span className="admin-modal-value">{formatDate(selectedListing.createdAt)}</span>
-                    </div>
-                     <div className="admin-modal-row" style={{flexDirection: 'column', alignItems: 'flex-start'}}>
-                      <span className="admin-modal-label">Full Description:</span>
-                      <p className="admin-modal-value description-text" style={{marginTop: '5px', textAlign: 'left', lineHeight: '1.5'}}>{selectedListing.description || 'No description provided.'}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Update Status Modal */}
         {showStatusModal && (

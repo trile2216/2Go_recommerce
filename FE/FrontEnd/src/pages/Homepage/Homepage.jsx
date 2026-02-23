@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import { Navigate } from 'react-router-dom';
 import './Homepage.css';
 import '../../styles/loader.css';
 import Header from '../../components/Header';
@@ -11,12 +13,16 @@ import { fetchProducts } from '../../service/home/api.product';
 const PAGE_SIZE = 20;
 
 export default function Homepage() {
+  const role = useSelector((state) => state.user.role);
   const [products, setProducts] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // Skip fetching if user will be redirected
+    if (role === 'Admin' || role === 'Manager') return;
+
     const getProducts = async () => {
       try {
         setLoading(true);
@@ -34,7 +40,11 @@ export default function Homepage() {
     };
 
     getProducts();
-  }, []);
+  }, [role]);
+
+  // Redirect Admin/Manager to their dashboard
+  if (role === 'Admin') return <Navigate to="/admin" replace />;
+  if (role === 'Manager') return <Navigate to="/mod/users" replace />;
 
   return (
     <div className="homepage">

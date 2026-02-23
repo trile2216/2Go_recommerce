@@ -60,3 +60,18 @@ export const deleteComment = async (listingId, commentId) => {
         throw error;
     }
 };
+
+/**
+ * Lấy danh sách trả lời của một bình luận
+ */
+export const getCommentReplies = async (listingId, commentId, skip = 0, take = 20) => {
+    try {
+        const response = await api.get(
+            `/listings/${listingId}/comments/${commentId}/replies?skip=${skip}&take=${take}`
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching comment replies:', error);
+        throw error;
+    }
+};

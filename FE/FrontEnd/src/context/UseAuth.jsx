@@ -44,8 +44,8 @@ const useAuth = () => {
         case "Admin":
           navigate("/admin");
           break;
-        case "Moderator":
-          navigate("/admin");
+        case "Manager":
+          navigate("/mod/users");
           break;
         case "User":
           navigate("/");
@@ -85,8 +85,8 @@ const useAuth = () => {
         case "Admin":
           navigate("/admin");
           break;
-        case "Moderator":
-          navigate("/admin");
+        case "Manager":
+          navigate("/mod/users");
           break;
         case "User":
           navigate("/");

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Eye, Search, Filter, X, Check, Bell } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import AdminLayout from '../../../layouts/AdminLayout';
 import { fetchCustomers, fetchCustomerById, deleteCustomerById, updateCustomerById } from '../../../service/admin/api.customer';
 import { useToast } from '../../../context/ToastContext';
@@ -9,13 +9,12 @@ import './admin-customers.css';
 
 export default function AdminCustomers() {
   const toast = useToast();
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterRole, setFilterRole] = useState('All');
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editFormData, setEditFormData] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
@@ -97,17 +96,6 @@ export default function AdminCustomers() {
     return matchesSearch && matchesStatus && matchesRole;
   });
 
-  const handleViewDetails = async (customer) => {
-    try {
-      const detailedCustomer = await fetchCustomerById(customer.userId);
-      console.log('Fetched customer details:', detailedCustomer);
-      setSelectedCustomer(detailedCustomer);
-      setShowDetailModal(true);
-    } catch (error) {
-      toast.error('Failed to load customer details');
-      console.error(error);
-    }
-  };
 
   const handleEditClick = (customer) => {
     // Handle both flat structure (from list) and nested profile structure (from detail)
@@ -297,7 +285,7 @@ export default function AdminCustomers() {
                       <td className="admin-actions">
                         <button 
                           className="admin-btn-icon admin-btn-view"
-                          onClick={() => handleViewDetails(customer)}
+                          onClick={() => navigate(`/admin/customers/${customer.userId}`)}
                           title="View Details"
                         >
                           <Eye size={18} />
@@ -363,98 +351,6 @@ export default function AdminCustomers() {
           </div>
         </div>
 
-        {/* Detail Modal */}
-        {showDetailModal && selectedCustomer && (
-          <div className="admin-modal-overlay" onClick={() => setShowDetailModal(false)}>
-            <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
-              <div className="admin-modal-header">
-                <h3>Customer Details</h3>
-                <button 
-                  className="admin-modal-close"
-                  onClick={() => setShowDetailModal(false)}
-                >
-                  <X size={24} />
-                </button>
-              </div>
-              <div className="admin-modal-body">
-                <div className="admin-modal-info">
-                  <div className="admin-modal-row">
-                    <span className="admin-modal-label">User ID:</span>
-                    <span className="admin-modal-value">{selectedCustomer.userId}</span>
-                  </div>
-                  <div className="admin-modal-row">
-                    <span className="admin-modal-label">Full Name:</span>
-                    <span className="admin-modal-value">{selectedCustomer.profile?.fullName || selectedCustomer.fullName || 'N/A'}</span>
-                  </div>
-                  <div className="admin-modal-row">
-                    <span className="admin-modal-label">Email:</span>
-                    <span className="admin-modal-value">{selectedCustomer.email}</span>
-                  </div>
-                  <div className="admin-modal-row">
-                    <span className="admin-modal-label">Phone:</span>
-                    <span className="admin-modal-value">{selectedCustomer.phone}</span>
-                  </div>
-                  <div className="admin-modal-row">
-                    <span className="admin-modal-label">Birthday:</span>
-                    <span className="admin-modal-value">
-                      {selectedCustomer.profile?.birthday 
-                        ? formatDate(selectedCustomer.profile.birthday) 
-                        : 'N/A'}
-                    </span>
-                  </div>
-                  <div className="admin-modal-row">
-                    <span className="admin-modal-label">Gender:</span>
-                    <span className="admin-modal-value">{selectedCustomer.profile?.gender || 'N/A'}</span>
-                  </div>
-                  <div className="admin-modal-row">
-                    <span className="admin-modal-label">Address:</span>
-                    <span className="admin-modal-value">{selectedCustomer.profile?.address || 'N/A'}</span>
-                  </div>
-                  <div className="admin-modal-row">
-                    <span className="admin-modal-label">Bio:</span>
-                    <span className="admin-modal-value">{selectedCustomer.profile?.bio || 'N/A'}</span>
-                  </div>
-                  <div className="admin-modal-row">
-                    <span className="admin-modal-label">Avatar URL:</span>
-                    <span className="admin-modal-value">{selectedCustomer.profile?.avatarUrl || 'N/A'}</span>
-                  </div>
-                  <div className="admin-modal-row">
-                    <span className="admin-modal-label">Role:</span>
-                    <span className={`admin-badge ${getRoleBadgeClass(selectedCustomer.role)}`}>
-                      {selectedCustomer.role}
-                    </span>
-                  </div>
-                  <div className="admin-modal-row">
-                    <span className="admin-modal-label">Status:</span>
-                    <span className={`admin-badge ${getStatusBadgeClass(selectedCustomer.status)}`}>
-                      {selectedCustomer.status}
-                    </span>
-                  </div>
-                  <div className="admin-modal-row">
-                    <span className="admin-modal-label">Email Verified:</span>
-                    <span className="admin-modal-value">
-                      {selectedCustomer.emailVerified ? <span style={{color: 'green'}}>✓ Yes</span> : <span style={{color: 'red'}}>✗ No</span>}
-                    </span>
-                  </div>
-                  <div className="admin-modal-row">
-                    <span className="admin-modal-label">Phone Verified:</span>
-                    <span className="admin-modal-value">
-                      {selectedCustomer.phoneVerified ? <span style={{color: 'green'}}>✓ Yes</span> : <span style={{color: 'red'}}>✗ No</span>}
-                    </span>
-                  </div>
-                  <div className="admin-modal-row">
-                    <span className="admin-modal-label">Joined:</span>
-                    <span className="admin-modal-value">{formatDate(selectedCustomer.createdAt)}</span>
-                  </div>
-                  <div className="admin-modal-row">
-                    <span className="admin-modal-label">Last Login:</span>
-                    <span className="admin-modal-value">{formatTime(selectedCustomer.lastLoginAt)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Edit Modal */}
         {showEditModal && (

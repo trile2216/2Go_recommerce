@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
-import { getComments, createComment, updateComment, deleteComment } from '../service/home/api.comment';
+import { getComments, createComment, updateComment, deleteComment, getCommentReplies } from '../service/home/api.comment';
 import { formatTimeAgo } from '../utils/utils';
+import ConfirmationModal from './Admin/ConfirmationModal';
 
 function CommentItem({ comment, listingId, currentUserId, onReplySubmit, onUpdate, onDelete, depth = 0 }) {
   const [showReplyForm, setShowReplyForm] = useState(false);
@@ -12,6 +13,7 @@ function CommentItem({ comment, listingId, currentUserId, onReplySubmit, onUpdat
   const [replies, setReplies] = useState([]);
   const [showReplies, setShowReplies] = useState(false);
   const [loadingReplies, setLoadingReplies] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const isOwner = currentUserId && currentUserId === comment.userId;
 
@@ -22,10 +24,8 @@ function CommentItem({ comment, listingId, currentUserId, onReplySubmit, onUpdat
     }
     setLoadingReplies(true);
     try {
-      // Replies are fetched as sub-comments. We'll load them from the parent listing
-      const data = await getComments(listingId, 0, 100);
-      const childReplies = data.items.filter(c => c.parentId === comment.commentId);
-      setReplies(childReplies);
+      const data = await getCommentReplies(listingId, comment.commentId, 0, 100);
+      setReplies(data.items || []);
       setShowReplies(true);
     } catch {
       // silent
@@ -61,9 +61,17 @@ function CommentItem({ comment, listingId, currentUserId, onReplySubmit, onUpdat
     }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm('Bạn có chắc muốn xoá bình luận này?')) return;
+  const handleDeleteClick = () => {
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    setIsDeleteModalOpen(false);
     await onDelete(comment.commentId);
+  };
+
+  const cancelDelete = () => {
+    setIsDeleteModalOpen(false);
   };
 
   const avatarLetter = comment.userName ? comment.userName.charAt(0).toUpperCase() : 'U';
@@ -115,7 +123,7 @@ function CommentItem({ comment, listingId, currentUserId, onReplySubmit, onUpdat
               {isOwner && (
                 <>
                   <button className="btn-comment-action" onClick={() => setIsEditing(true)}>✏️ Sửa</button>
-                  <button className="btn-comment-action btn-comment-delete" onClick={handleDelete}>🗑️ Xoá</button>
+                  <button className="btn-comment-action btn-comment-delete" onClick={handleDeleteClick}>🗑️ Xoá</button>
                 </>
               )}
               {comment.replyCount > 0 && depth === 0 && (
@@ -164,6 +172,16 @@ function CommentItem({ comment, listingId, currentUserId, onReplySubmit, onUpdat
           )}
         </div>
       </div>
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        title="Xác nhận xoá bình luận"
+        message="Bạn có chắc chắn muốn xoá bình luận này không?"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+        confirmText="Xoá"
+        cancelText="Huỷ"
+        type="danger"
+      />
     </div>
   );
 }
