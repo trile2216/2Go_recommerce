@@ -590,6 +590,12 @@ const Profile = () => {
             />
             <View style={styles.menuDivider} />
             <MenuItem
+              icon="store"
+              label="Bài đăng của tôi"
+              onPress={() => navigation.navigate("MyPost")}
+            />
+            <View style={styles.menuDivider} />
+            <MenuItem
               icon="heart"
               label="Danh sách yêu thích"
               onPress={() => navigation.navigate("Favorites")}
