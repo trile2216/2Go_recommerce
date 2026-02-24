@@ -10,12 +10,16 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
-  Keyboard
+  Keyboard,
+  Linking
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import * as ImagePicker from "expo-image-picker";
+
 import { fetchMessages, sendMessage } from "../service/home/api.chat";
+import { uploadImageAndGetUrl, uploadVideoAndGetUrl } from "../service/upload/api.upload";
 import { useAuth } from "../context/AuthContext";
 import { formatMessageTime, formatDateLabel } from "../utils/dateUtils";
 
@@ -29,6 +33,7 @@ const Conversation = () => {
   const [messageText, setMessageText] = useState("");
   const [loading, setLoading] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null); // { uri, type }
   const flatListRef = useRef(null);
 
   const loadMessages = useCallback(async () => {
@@ -74,9 +79,37 @@ const Conversation = () => {
     };
   }, [messages.length]);
 
+  const handlePickFile = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        setSelectedFile({
+          uri: asset.uri,
+          type: asset.type === "video" ? "video" : "image"
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Lỗi", "Không thể chọn ảnh/video.");
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+  };
+
+  const isVideoUrl = (url) => {
+    return url?.match(/\.(mp4|mov|webm|ogg)$/i) || url?.includes('/video/upload/');
+  };
+
   const handleSendMessage = async () => {
     const text = messageText.trim();
-    if (!text || !chatId || sendingMessage) return;
+    if ((!text && !selectedFile) || !chatId || sendingMessage) return;
 
     setSendingMessage(true);
     setMessageText("");
@@ -86,7 +119,8 @@ const Conversation = () => {
       chatId: chatId,
       senderId: user?.userId,
       content: text,
-      imageUrl: null,
+      imageUrl: selectedFile ? selectedFile.uri : null,
+      isVideo: selectedFile?.type === "video",
       sentAt: new Date().toISOString(),
       _optimistic: true,
     };
@@ -97,7 +131,27 @@ const Conversation = () => {
     }, 50);
 
     try {
-      await sendMessage(chatId, { content: text });
+      let uploadedUrl = null;
+      if (selectedFile) {
+        const fileObj = {
+          uri: selectedFile.uri,
+          type: selectedFile.type === 'video' ? 'video/mp4' : 'image/jpeg',
+          name: `upload_chat_${Date.now()}.${selectedFile.type === 'video' ? 'mp4' : 'jpg'}`
+        };
+
+        if (selectedFile.type === "video") {
+          uploadedUrl = await uploadVideoAndGetUrl([fileObj]);
+        } else {
+          uploadedUrl = await uploadImageAndGetUrl([fileObj]);
+        }
+        
+        if (Array.isArray(uploadedUrl)) {
+          uploadedUrl = uploadedUrl[0]; // If the API returns an array, take the first URL
+        }
+      }
+
+      await sendMessage(chatId, { content: text, imageUrl: uploadedUrl });
+      setSelectedFile(null); // Clear selected file after successful send
       await loadMessages();
     } catch (error) {
       Alert.alert('Lỗi', 'Gửi tin nhắn thất bại');
@@ -170,30 +224,51 @@ const Conversation = () => {
         <View style={{ maxWidth: "75%", gap: 4 }}>
           <View
             style={{
-              backgroundColor: isMe ? "#389cfa" : "#fff",
-              paddingHorizontal: 16,
-              paddingVertical: 12,
+              backgroundColor: (!msg.content && msg.imageUrl) ? "transparent" : (isMe ? "#389cfa" : "#fff"),
+              paddingHorizontal: (!msg.content && msg.imageUrl) ? 0 : 16,
+              paddingVertical: (!msg.content && msg.imageUrl) ? 0 : 12,
               borderRadius: 16,
               borderBottomLeftRadius: isMe ? 16 : 0,
               borderBottomRightRadius: isMe ? 0 : 16,
-              shadowColor: "#000",
+              shadowColor: (!msg.content && msg.imageUrl) ? "transparent" : "#000",
               shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.1,
+              shadowOpacity: (!msg.content && msg.imageUrl) ? 0 : 0.1,
               shadowRadius: 2,
-              elevation: 1,
+              elevation: (!msg.content && msg.imageUrl) ? 0 : 1,
             }}
           >
             {msg.imageUrl && (
-              <Image
-                source={{ uri: msg.imageUrl }}
-                style={{
-                  width: 200,
-                  height: 150,
-                  resizeMode: "cover",
-                  borderRadius: 8,
-                  marginBottom: msg.content ? 8 : 0,
-                }}
-              />
+              <Pressable onPress={() => {
+                if (isVideoUrl(msg.imageUrl) || msg.isVideo) {
+                  Linking.openURL(msg.imageUrl).catch(() => Alert.alert("Lỗi", "Không thể mở video"));
+                }
+              }}>
+                <View style={{ position: 'relative' }}>
+                  <Image
+                    source={{ uri: msg.imageUrl }}
+                    style={{
+                      width: 200,
+                      height: 150,
+                      resizeMode: "cover",
+                      borderRadius: (!msg.content && msg.imageUrl) ? 16 : 8,
+                      marginBottom: msg.content ? 8 : 0,
+                      backgroundColor: "#e5e7eb"
+                    }}
+                  />
+                  {(isVideoUrl(msg.imageUrl) || msg.isVideo) && (
+                    <View style={{
+                      position: 'absolute',
+                      top: 0, left: 0, right: 0, bottom: (msg.content ? 8 : 0),
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      backgroundColor: 'rgba(0,0,0,0.3)',
+                      borderRadius: (!msg.content && msg.imageUrl) ? 16 : 8,
+                    }}>
+                      <MaterialCommunityIcons name="play-circle" size={40} color="#fff" />
+                    </View>
+                  )}
+                </View>
+              </Pressable>
             )}
             {!!msg.content && (
               <Text
@@ -292,6 +367,51 @@ const Conversation = () => {
           )}
         </View>
 
+        {/* File Preview */}
+        {selectedFile && (
+          <View style={{
+            backgroundColor: "#fff",
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            borderTopWidth: 1,
+            borderTopColor: "#e5e7eb",
+          }}>
+            <View style={{
+              width: 80,
+              height: 80,
+              borderRadius: 8,
+              position: "relative",
+              overflow: "hidden",
+            }}>
+              {selectedFile.type === "image" ? (
+                <Image source={{ uri: selectedFile.uri }} style={{ width: "100%", height: "100%", backgroundColor: "#e5e7eb" }} />
+              ) : (
+                <View style={{
+                  width: "100%",
+                  height: "100%",
+                  backgroundColor: "#374151",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}>
+                  <MaterialCommunityIcons name="play-circle" size={24} color="#fff" />
+                </View>
+              )}
+              <Pressable
+                style={{
+                  position: "absolute",
+                  top: 4,
+                  right: 4,
+                  backgroundColor: "rgba(255,255,255,0.8)",
+                  borderRadius: 12,
+                }}
+                onPress={handleRemoveFile}
+              >
+                <MaterialCommunityIcons name="close-circle" size={20} color="#ef4444" />
+              </Pressable>
+            </View>
+          </View>
+        )}
+
         {/* Input Area */}
         <View
           style={{
@@ -305,6 +425,15 @@ const Conversation = () => {
             gap: 8,
           }}
         >
+          <Pressable
+            onPress={handlePickFile}
+            style={({ pressed }) => ({
+              padding: 8,
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <MaterialCommunityIcons name="image-plus" size={24} color="#359EFF" />
+          </Pressable>
           <View
             style={{
               flex: 1,
@@ -329,12 +458,12 @@ const Conversation = () => {
 
           <Pressable
             onPress={handleSendMessage}
-            disabled={!messageText.trim() || sendingMessage}
+            disabled={(!messageText.trim() && !selectedFile) || sendingMessage}
             style={({ pressed }) => ({
               width: 40,
               height: 40,
               borderRadius: 20,
-              backgroundColor: !messageText.trim() || sendingMessage ? "#9ca3af" : "#389cfa",
+              backgroundColor: (!messageText.trim() && !selectedFile) || sendingMessage ? "#9ca3af" : "#389cfa",
               justifyContent: "center",
               alignItems: "center",
               opacity: pressed ? 0.8 : 1,

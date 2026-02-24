@@ -50,17 +50,19 @@ export default function Homepage() {
 
   return (
     <div className="homepage">
-      <Header />
-      <HeroBanner />
-      {loading && (
-        <div className="loading-state">
-          <div className="loader"></div>
-          <div className="loading-state-text">Đang tải sản phẩm...</div>
-        </div>
-      )}
       {error && <ErrorPage error={error} />}
-      {!loading && !error && <ProductGrid products={products} totalCount={totalCount} />}
-      <Footer />
-    </div>
+      {!error && <>
+        <Header />
+        <HeroBanner />
+        {loading && (
+          <div className="loading-state">
+            <div className="loader"></div>
+            <div className="loading-state-text">Đang tải sản phẩm...</div>
+          </div>
+        )}
+        {!loading && !error && <ProductGrid products={products} totalCount={totalCount} />}
+        <Footer />
+      </>}
+    </div>  
   );
 }

@@ -23,9 +23,12 @@ import {
 } from "../service/home/api.sellerListing";
 
 const STATUS_TABS = [
-  { key: "Active", label: "Đang bán" },
+  { key: "", label: "Tất cả" },
+  { key: "Draft", label: "Nháp" },
   { key: "PendingReview", label: "Chờ duyệt" },
+  { key: "Active", label: "Đang bán" },
   { key: "Archived", label: "Đã ẩn" },
+  { key: "Rejected", label: "Bị từ chối" },
 ];
 
 const STATUS_LABEL = {
@@ -63,7 +66,7 @@ const MyPost = () => {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState("Active");
+  const [activeTab, setActiveTab] = useState("");
   const [skip, setSkip] = useState(0);
   const [actionLoading, setActionLoading] = useState(null);
   const take = 15;
@@ -280,7 +283,7 @@ const MyPost = () => {
               onPress={() => navigation.navigate("PostListing", { editId: item.listingId })}
               disabled={isProcessing}
             >
-              <MaterialCommunityIcons name="pencil" size={18} color="#ff6b35" />
+              <MaterialCommunityIcons name="pencil" size={18} color="#3b82f6" />
               <Text style={styles.actionButtonText}>Sửa</Text>
             </Pressable>
             <Pressable
@@ -329,7 +332,7 @@ const MyPost = () => {
               onPress={() => navigation.navigate("PostListing", { editId: item.listingId })}
               disabled={isProcessing}
             >
-              <MaterialCommunityIcons name="pencil" size={18} color="#ff6b35" />
+              <MaterialCommunityIcons name="pencil" size={18} color="#3b82f6" />
               <Text style={styles.actionButtonText}>Sửa</Text>
             </Pressable>
             <Pressable
@@ -362,7 +365,7 @@ const MyPost = () => {
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor="#fff" />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#359EFF" />
+          <ActivityIndicator size="large" color="#3b82f6" />
           <Text style={styles.loadingText}>Đang tải bài đăng...</Text>
         </View>
       </SafeAreaView>
@@ -391,7 +394,11 @@ const MyPost = () => {
 
       {/* Segmented Tabs */}
       <View style={styles.segmentedContainer}>
-        <View style={styles.segmentedControl}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.segmentedControl}
+        >
           {STATUS_TABS.map((tab) => (
             <Pressable
               key={tab.key}
@@ -415,7 +422,7 @@ const MyPost = () => {
               </Text>
             </Pressable>
           ))}
-        </View>
+        </ScrollView>
       </View>
 
       {/* Content */}
@@ -443,7 +450,7 @@ const MyPost = () => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              colors={["#359EFF"]}
+              colors={["#3b82f6"]}
             />
           }
         >
@@ -458,7 +465,7 @@ const MyPost = () => {
 
           {loading && listings.length > 0 && (
             <View style={styles.loadingMore}>
-              <ActivityIndicator size="small" color="#359EFF" />
+              <ActivityIndicator size="small" color="#3b82f6" />
             </View>
           )}
 
@@ -536,9 +543,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   segmentedTab: {
-    flex: 1,
     paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
@@ -552,12 +558,13 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   segmentedTabText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "500",
     color: "#6b7280",
+    whiteSpace: "nowrap",
   },
   segmentedTabTextActive: {
-    color: "#1a1a1a",
+    color: "#3b82f6",
     fontWeight: "600",
   },
   content: {
@@ -626,16 +633,16 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   cardTitle: {
-    fontSize: 13,
-    fontWeight: "700",
+    fontSize: 14,
+    fontWeight: "600",
     color: "#1a1a1a",
     marginBottom: 6,
-    lineHeight: 18,
+    lineHeight: 20,
   },
   price: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "700",
-    color: "#ff6b35",
+    color: "#dc2626",
     marginBottom: 8,
   },
   metaContainer: {
@@ -644,8 +651,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   meta: {
-    fontSize: 10,
-    color: "#9ca3af",
+    fontSize: 11,
+    color: "#6b7280",
   },
   cardActions: {
     flexDirection: "row",
@@ -664,17 +671,19 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     backgroundColor: "#f9fafb",
     borderRadius: 8,
-    borderWidth: 0,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
   },
   actionButtonDisabled: {
     opacity: 0.6,
   },
   deleteButton: {
-    backgroundColor: "#fef2f2",
+    backgroundColor: "#fff",
+    borderColor: "#e5e7eb",
   },
   actionButtonText: {
-    fontSize: 11,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "500",
     color: "#4b5563",
   },
   deleteButtonText: {
@@ -696,7 +705,7 @@ const styles = StyleSheet.create({
   },
   loadMoreBtnText: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "500",
     color: "#4b5563",
   },
   emptyContainer: {
@@ -729,7 +738,7 @@ const styles = StyleSheet.create({
   emptyButton: {
     paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: "#ff6b35",
+    backgroundColor: "#3b82f6",
     borderRadius: 8,
   },
   emptyButtonText: {
@@ -744,10 +753,10 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#ff6b35",
+    backgroundColor: "#3b82f6",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#ff6b35",
+    shadowColor: "#3b82f6",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 10,

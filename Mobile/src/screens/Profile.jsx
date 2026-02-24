@@ -415,7 +415,6 @@ const Profile = () => {
           <Text style={styles.profileName}>
             {userInfo?.profile?.fullName || "Chưa cập nhật"}
           </Text>
-          <Text style={styles.profileRole}>{userInfo?.role}</Text>
 
           {/* Status Badges */}
           <View style={styles.statusRow}>

@@ -34,7 +34,7 @@ const STATUS_MAP = {
   Pending: "Chờ thanh toán",
   Paid: "Đã thanh toán",
   Confirmed: "Đã xác nhận",
-  Shipping: "Đang giao hàng",
+  Delivering: "Đang giao hàng",
   Completed: "Hoàn thành",
   Cancelled: "Đã hủy",
 };
@@ -279,8 +279,16 @@ const OrderDetail = () => {
 
       if (reportFiles.length > 0) {
         setReportUploading(true);
-        const imageFiles = reportFiles.filter(f => f.type === "image").map(f => f.uri);
-        const videoFiles = reportFiles.filter(f => f.type === "video").map(f => f.uri);
+        const imageFiles = reportFiles.filter(f => f.type === "image").map((f, i) => ({
+            uri: f.uri,
+            type: "image/jpeg",
+            name: `report_img_${Date.now()}_${i}.jpg`
+        }));
+        const videoFiles = reportFiles.filter(f => f.type === "video").map((f, i) => ({
+            uri: f.uri,
+            type: "video/mp4",
+            name: `report_vid_${Date.now()}_${i}.mp4`
+        }));
 
         if (imageFiles.length > 0) {
            const urls = await uploadImageAndGetUrl(imageFiles); // API handles multiple URIs via FormData
@@ -388,14 +396,20 @@ const OrderDetail = () => {
 
   const statusStyle = getStatusStyle(order.status);
   
-  const isBuyer = user?.userId === order.buyerId;
-  const isSeller = user?.userId === order.sellerId;
+  const isBuyer = String(user?.userId) === String(order.buyerId);
+  const isSeller = String(user?.userId) === String(order.sellerId);
 
   const buyerCanCancel = isBuyer && (order.status === "Pending" || order.status === "Paid");
   const sellerCanCancel = isSeller && (order.status === "Pending" || order.status === "Paid");
   const sellerCanConfirm = isSeller && (order.status === "Pending" || order.status === "Paid");
   const buyerCanComplete = isBuyer && order.status === "Delivered";
-  const sellerCanCreateShipping = isSeller && order.status === "Confirmed" && !shippingInfo;
+
+  const hasShipping = Boolean(shippingInfo && (shippingInfo.provider || shippingInfo.trackingCode || shippingInfo.status));
+
+  const sellerCanCreateShipping = isSeller && !hasShipping && (
+    (order.depositRequired && order.escrowStatus === "Funded") ||
+    (!order.depositRequired && (order.status === "Confirmed" || order.status === "Paid"))
+  );
 
   const buyerNeedsToPayDeposit = isBuyer && order.depositRequired && !order.depositPaid && order.status === "Pending";
   const buyerNeedsToPayRemaining = isBuyer && order.depositRequired && order.depositPaid && order.status === "Confirmed" && order.escrowStatus !== "Funded";
@@ -546,7 +560,7 @@ const OrderDetail = () => {
         </View>
 
         {/* Shipping Info Box */}
-        {shippingInfo && (
+        {hasShipping && (
            <View style={styles.card}>
              <View style={styles.cardHeader}>
                 <MaterialCommunityIcons name="truck-fast" size={20} color="#359EFF" />

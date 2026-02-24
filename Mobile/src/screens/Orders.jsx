@@ -18,7 +18,8 @@ const STATUS_MAP = {
   Pending: "Chờ thanh toán",
   Paid: "Đã thanh toán",
   Confirmed: "Đã xác nhận",
-  Shipping: "Đang giao hàng",
+  Delivering: "Đang giao hàng",
+  Delivered: "Đã giao hàng",
   Completed: "Hoàn thành",
   Cancelled: "Đã hủy",
 };
@@ -27,7 +28,8 @@ const STATUS_COLORS = {
   Pending: { bg: "#fef3c7", text: "#d97706" },
   Paid: { bg: "#dbeafe", text: "#2563eb" },
   Confirmed: { bg: "#dbeafe", text: "#2563eb" },
-  Shipping: { bg: "#dbeafe", text: "#2563eb" },
+  Delivering: { bg: "#dbeafe", text: "#b4d20bff" },
+  Delivered: { bg: "#dcfce7", text: "#bdb236ff" },
   Completed: { bg: "#dcfce7", text: "#16a34a" },
   Cancelled: { bg: "#fee2e2", text: "#dc2626" },
 };

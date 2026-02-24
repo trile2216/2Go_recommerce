@@ -10,7 +10,7 @@ export const getStatusLabel = (status, paymentMethod) => {
       return "Đã thanh toán";
     case "Confirmed":
       return "Đã xác nhận";
-    case "Shipping":
+    case "Delivering":
       return "Đang giao hàng";
     case "Delivered":
       return "Đã giao hàng";
@@ -37,7 +37,7 @@ const OrderStatusStepper = ({ currentStatus }) => {
   const defaultSteps = [
     { id: "Pending", label: "Chờ xác nhận", icon: "clock-outline" },
     { id: "Confirmed", label: "Đã xác nhận", icon: "check-circle-outline" },
-    { id: "Shipping", label: "Đang giao", icon: "truck-delivery-outline" },
+    { id: "Delivering", label: "Đang giao", icon: "truck-delivery-outline" },
     { id: "Delivered", label: "Đã giao", icon: "package-variant-closed" },
     { id: "Completed", label: "Hoàn thành", icon: "star-outline" },
   ];
@@ -46,7 +46,7 @@ const OrderStatusStepper = ({ currentStatus }) => {
     { id: "Pending", label: "Chờ thanh toán", icon: "clock-outline" },
     { id: "Paid", label: "Đã thanh toán", icon: "credit-card-outline" },
     { id: "Confirmed", label: "Đã xác nhận", icon: "check-circle-outline" },
-    { id: "Shipping", label: "Đang giao", icon: "truck-delivery-outline" },
+    { id: "Delivering", label: "Đang giao", icon: "truck-delivery-outline" },
     { id: "Delivered", label: "Đã giao", icon: "package-variant-closed" },
     { id: "Completed", label: "Hoàn thành", icon: "star-outline" },
   ];
@@ -61,8 +61,8 @@ const OrderStatusStepper = ({ currentStatus }) => {
     switch(status) {
         case "Pending": return 0;
         case "Paid": return 0; // Paid is essentially step 1 before confirmed
-        case "Confirmed": return 1;
-        case "Shipping": return 2;
+        case "Confirmed": return 1; 
+        case "Delivering": return 2;
         case "Delivered": return 3;
         case "Completed": return 4;
         default: return -1;

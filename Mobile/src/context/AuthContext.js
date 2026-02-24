@@ -82,7 +82,7 @@ export const AuthProvider = ({ children }) => {
         throw firstError;
       }
 
-      const { accessToken, refreshToken: newRefreshToken, userId, email, phone, role: userRole } = response;
+      const { accessToken, refreshToken: newRefreshToken, userId, email, phone, avatarUrl, role: userRole } = response;
 
       console.log("[Auth] Login response - accessToken exists:", !!accessToken, "length:", accessToken?.length);
 
@@ -90,6 +90,7 @@ export const AuthProvider = ({ children }) => {
         userId,
         email: email || credentials.email,
         phone,
+        avatarUrl,
         role: userRole,
         fullName: (email || credentials.email)?.split("@")[0],
       };
@@ -132,12 +133,13 @@ export const AuthProvider = ({ children }) => {
   const handleRegister = async (userInfo) => {
     try {
       const response = await register(userInfo);
-      const { accessToken, refreshToken: newRefreshToken, userId, email, phone, role: userRole } = response;
+      const { accessToken, refreshToken: newRefreshToken, userId, email, phone, avatarUrl, role: userRole } = response;
 
       const userData = {
         userId,
         email,
         phone,
+        avatarUrl,
         role: userRole,
         fullName: email?.split("@")[0],
       };
@@ -182,7 +184,7 @@ export const AuthProvider = ({ children }) => {
   const handleLoginWithOAuth = async (oauthData) => {
     try {
       const response = await loginWithOAuth(oauthData);
-      const { accessToken, refreshToken: newRefreshToken, userId, email, phone, role: userRole } = response;
+      const { accessToken, refreshToken: newRefreshToken, userId, email, phone, avatarUrl, role: userRole } = response;
 
       console.log("[Auth OAuth] accessToken exists:", !!accessToken, "length:", accessToken?.length);
 
@@ -190,6 +192,7 @@ export const AuthProvider = ({ children }) => {
         userId,
         email,
         phone,
+        avatarUrl,
         role: userRole,
         fullName: email?.split("@")[0],
       };
