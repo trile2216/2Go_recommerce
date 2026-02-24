@@ -11,7 +11,7 @@ public record VerifyPhoneFirebaseRequest(string IdToken);
 public record ChangePhoneFirebaseRequest(string IdToken);
 
 public record RegisterResponse(long UserId, string Message);
-public record AuthResponse(long UserId, string? Email, string? Phone, string? Role, string AccessToken, string RefreshToken, DateTime AccessTokenExpiresAt);
+public record AuthResponse(long UserId, string? Email, string? Phone, string? Role, string? AvatarUrl, string AccessToken, string RefreshToken, DateTime AccessTokenExpiresAt);
 public record BasicResponse(bool Success, string Message);
 public record FirebaseLoginRequest(string IdToken);
 public record UserProfileInfo(string? FullName, DateOnly? Birthday, string? Gender, string? Address, string? Bio, string? AvatarUrl, string? BankAccountNumber, string? BankBin, string? BankAccountName);
