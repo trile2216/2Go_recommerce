@@ -5,6 +5,7 @@ import { useToast } from "../../context/ToastContext";
 import { getMyRatings, getRatingsForUser } from "../../service/home/api.rating";
 import { formatDate } from "../../utils/utils";
 import useAuth from "../../context/UseAuth";
+import { useTitle } from "../../hooks/useTitle";
 import { Star, Loader2, ShoppingBag, User } from "lucide-react";
 import "./MyReviews.css";
 
@@ -19,6 +20,7 @@ const SCORE_LABELS = {
 const PAGE_SIZE = 10;
 
 export default function MyReviews() {
+  useTitle('My Reviews');
   const toast = useToast();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("received"); // "sent" | "received"

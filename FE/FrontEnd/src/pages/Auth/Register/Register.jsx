@@ -5,11 +5,13 @@ import { useDispatch } from 'react-redux';
 import { loginSuccess } from '../../../context/UserSlice';
 import useAuth from '../../../context/UseAuth';
 import { useToast } from '../../../context/ToastContext';
+import { useTitle } from '../../../hooks/useTitle';
 import './Register.css';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../../../config/firebase';
 
 const Register = () => {
+  useTitle('Register');
   const [userInfo, setUserInfo] = useState({
     email: '',
     phone: '',

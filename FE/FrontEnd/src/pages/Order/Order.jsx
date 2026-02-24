@@ -5,6 +5,7 @@ import { useToast } from "../../context/ToastContext";
 import { getMyOrders } from "../../service/home/api.order";
 import { Package, Loader2, ShoppingBag, Store } from "lucide-react";
 import useAuth from "../../context/UseAuth";
+import { useTitle } from "../../hooks/useTitle";
 import "./Order.css";
 
 const STATUS_MAP = {
@@ -98,6 +99,7 @@ function EmptyState({ activeTab }) {
 }
 
 export default function Orders() {
+  useTitle('My Orders');
   const toast = useToast();
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);

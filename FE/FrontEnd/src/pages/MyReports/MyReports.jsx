@@ -5,6 +5,7 @@ import { useToast } from "../../context/ToastContext";
 import { getMyReports, replyReport } from "../../service/home/api.report";
 import { formatDate } from "../../utils/utils";
 import useAuth from "../../context/UseAuth";
+import { useTitle } from "../../hooks/useTitle";
 import { Loader2, ShoppingBag, FileWarning, Send, Image, ChevronDown, ChevronUp } from "lucide-react";
 import "./MyReports.css";
 
@@ -19,6 +20,7 @@ const STATUS_MAP = {
 const PAGE_SIZE = 10;
 
 export default function MyReports() {
+  useTitle('My Reports');
   const toast = useToast();
   const { user } = useAuth();
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { SlidersHorizontal, X, PackageSearch } from 'lucide-react';
+import { useTitle } from '../../hooks/useTitle';
 import './Listings.css';
 import '../../styles/loader.css';
 import Header from '../../components/Header';
@@ -26,6 +27,7 @@ const SORT_OPTIONS = [
 ];
 
 export default function Listings() {
+  useTitle('Browse Listings');
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Products state
