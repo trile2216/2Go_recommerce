@@ -28,6 +28,16 @@ var corsName = "AllowAll";
 var corsOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? Array.Empty<string>();
 if (corsOrigins.Length == 0)
 {
+    var envOrigins = Environment.GetEnvironmentVariable("CORS_ORIGINS");
+    if (!string.IsNullOrWhiteSpace(envOrigins))
+    {
+        corsOrigins = envOrigins
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToArray();
+    }
+}
+if (corsOrigins.Length == 0)
+{
     corsOrigins = new[] { "http://localhost:5173" };
 }
 
