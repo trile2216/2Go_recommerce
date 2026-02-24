@@ -85,6 +85,13 @@ public class OrderService : IOrderService
         await _uow.Orders.AddAsync(order, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
 
+        if (string.Equals(method, PaymentMethods.COD, StringComparison.OrdinalIgnoreCase))
+        {
+            order.OrderCode = order.OrderId;
+            _uow.Orders.Update(order);
+            await _uow.SaveChangesAsync(cancellationToken);
+        }
+
         var totalAmount = order.TotalAmount ?? 0m;
         var requiresDeposit = totalAmount >= EscrowRules.DepositThresholdAmount;
         var depositAmount = Math.Round(totalAmount * EscrowRules.DepositRate, 2, MidpointRounding.AwayFromZero);
@@ -594,3 +601,4 @@ public class OrderService : IOrderService
             .FirstOrDefaultAsync(o => o.OrderCode == orderCode, cancellationToken);
     }
 }
+
