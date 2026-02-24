@@ -297,9 +297,18 @@
   word-wrap: break-word;
 }
 
+.message-bubble.image-only {
+  background-color: transparent !important;
+  padding: 0 !important;
+}
+
 .message-group.sent .message-bubble {
   background-color: #0091ff;
   color: #fff;
+}
+
+.message-group.sent .message-bubble.image-only {
+  background-color: transparent !important;
 }
 
 .message-text {

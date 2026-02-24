@@ -29,8 +29,10 @@ import {
   Flag,
   Shield,
   EyeOff,
+  X,
 } from 'lucide-react';
 import { fetchMyChats, fetchMessages, sendMessage } from '../../service/home/api.chat';
+import { uploadImageAndGetUrl, uploadVideoAndGetUrl } from '../../service/upload/api.upload';
 import useAuth from '../../context/UseAuth';
 import { formatTimeAgo, formatMessageTime, formatDateLabel } from '../../utils/utils';
 import './Chat.css';
@@ -60,7 +62,10 @@ export default function Chat() {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [filePreview, setFilePreview] = useState(null);
 
+  const fileInputRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const messagesEndRef = useRef(null);
   const pollIntervalRef = useRef(null);
@@ -77,6 +82,24 @@ export default function Chat() {
   // Get initials from a user ID
   const getInitials = (userId) => {
     return `U${userId}`;
+  };
+
+  const isVideoUrl = (url) => url?.match(/\.(mp4|mov|webm|ogg)$/i) || url?.includes('/video/upload/');
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSelectedFile(file);
+    setFilePreview(URL.createObjectURL(file));
+  };
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    setFilePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   // Fetch conversations
@@ -146,10 +169,9 @@ export default function Chat() {
   // Send message
   const handleSendMessage = async () => {
     const text = messageText.trim();
-    if (!text || !selectedChatId) return;
+    if ((!text && !selectedFile) || !selectedChatId) return;
 
     setSendingMessage(true);
-    setMessageText('');
     
     // Optimistic update
     const optimisticMsg = {
@@ -157,19 +179,35 @@ export default function Chat() {
       chatId: selectedChatId,
       senderId: currentUserId,
       content: text,
-      imageUrl: null,
+      imageUrl: filePreview || null,
+      isVideo: selectedFile?.type?.startsWith('video/'),
       sentAt: new Date().toISOString(),
       _optimistic: true,
     };
     setMessages(prev => [...prev, optimisticMsg]);
     scrollToBottom();
+    
+    setMessageText('');
 
     try {
-      await sendMessage(selectedChatId, { content: text });
+      let uploadedUrl = null;
+      if (selectedFile) {
+        if (selectedFile.type.startsWith('video/')) {
+          uploadedUrl = await uploadVideoAndGetUrl(selectedFile);
+        } else {
+          uploadedUrl = await uploadImageAndGetUrl(selectedFile);
+        }
+      }
+
+      await sendMessage(selectedChatId, { content: text, imageUrl: uploadedUrl });
+      
+      handleRemoveFile();
+
       // Reload messages to get the real one from server
       await loadMessages(selectedChatId);
       // Also refresh chat list to update lastMessage
       await loadChats();
+      scrollToBottom();
     } catch (error) {
       antMessage.error('Gửi tin nhắn thất bại');
       // Remove optimistic message
@@ -385,13 +423,21 @@ export default function Chat() {
                           </Avatar>
                         )}
                         <div className="message-content">
-                          <div className="message-bubble">
+                          <div className={`message-bubble ${!msg.content && msg.imageUrl ? 'image-only' : ''}`}>
                             {msg.imageUrl && (
-                              <img
-                                src={msg.imageUrl}
-                                alt="attachment"
-                                style={{ maxWidth: '200px', borderRadius: '4px', marginBottom: msg.content ? '8px' : 0 }}
-                              />
+                              msg.isVideo || isVideoUrl(msg.imageUrl) ? (
+                                <video
+                                  src={msg.imageUrl}
+                                  controls
+                                  style={{ maxWidth: '200px', borderRadius: '4px', marginBottom: msg.content ? '8px' : 0 }}
+                                />
+                              ) : (
+                                <img
+                                  src={msg.imageUrl}
+                                  alt="attachment"
+                                  style={{ maxWidth: '200px', borderRadius: '4px', marginBottom: msg.content ? '8px' : 0 }}
+                                />
+                              )
                             )}
                             {msg.content && (
                               <p className="message-text">{msg.content}</p>
@@ -427,14 +473,44 @@ export default function Chat() {
                   ))}
                 </div>
 
+                {/* File Preview */}
+                {filePreview && (
+                  <div style={{ padding: '0 16px', position: 'relative', display: 'inline-block' }}>
+                    <div style={{ position: 'relative', display: 'inline-block' }}>
+                      {selectedFile?.type?.startsWith('video/') ? (
+                        <video src={filePreview} style={{ maxHeight: '100px', borderRadius: '8px' }} />
+                      ) : (
+                        <img src={filePreview} alt="preview" style={{ maxHeight: '100px', borderRadius: '8px', objectFit: 'contain' }} />
+                      )}
+                      <Button 
+                        type="primary" 
+                        shape="circle" 
+                        icon={<X size={14} />} 
+                        size="small"
+                        danger
+                        style={{ position: 'absolute', top: -8, right: -8 }}
+                        onClick={handleRemoveFile}
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {/* Input Area */}
                 <div className="chat-input-area">
-                  {/* <Button
+                  <input 
+                    type="file" 
+                    accept="image/*,video/*" 
+                    ref={fileInputRef} 
+                    style={{ display: 'none' }} 
+                    onChange={handleFileSelect} 
+                  />
+                  <Button
                     type="text"
                     icon={<ImageIcon size={20} />}
                     className="input-icon-btn"
+                    onClick={() => fileInputRef.current?.click()}
                   />
-                  <Button
+                  {/* <Button
                     type="text"
                     icon={<MapPin size={20} />}
                     className="input-icon-btn"
@@ -452,7 +528,7 @@ export default function Chat() {
                     type="primary"
                     icon={<Send size={16} />}
                     className="send-button"
-                    disabled={!messageText.trim() || sendingMessage}
+                    disabled={(!messageText.trim() && !selectedFile) || sendingMessage}
                     loading={sendingMessage}
                     onClick={handleSendMessage}
                   />
