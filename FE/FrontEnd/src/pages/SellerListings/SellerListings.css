@@ -154,14 +154,29 @@
   color: #059669;
 }
 
-.sl-badge-archived {
-  background: #e5e7eb;
-  color: #4b5563;
+.sl-badge-reserved {
+  background: #fed7aa;
+  color: #ea580c;
+}
+
+.sl-badge-sold {
+  background: #cffafe;
+  color: #0891b2;
 }
 
 .sl-badge-rejected {
   background: #fee2e2;
   color: #dc2626;
+}
+
+.sl-badge-archived {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
+.sl-badge-flagged {
+  background: #fde68a;
+  color: #b45309;
 }
 
 .sl-badge-deleted {

@@ -38,7 +38,7 @@ export default function AdminCustomerDetail() {
   const formatDate = (d) => (d ? new Date(d).toLocaleDateString('vi-VN') : '-');
   const formatTime = (d) => (d ? new Date(d).toLocaleString('vi-VN') : 'Never');
 
-  const getStatusBadgeClass = (s) => (s === 'Active' ? 'badge-success' : s === 'Deleted' ? 'badge-danger' : 'badge-secondary');
+  const getStatusBadgeClass = (s) => (s === 'Active' ? 'badge-success' : s === 'Banned' ? 'badge-warning' : s === 'Deleted' ? 'badge-danger' : 'badge-secondary');
   const getRoleBadgeClass = (r) => (r === 'Admin' ? 'badge-danger' : r === 'Manager' ? 'badge-warning' : r === 'User' ? 'badge-info' : 'badge-secondary');
 
   const startEditing = () => {
@@ -240,6 +240,7 @@ export default function AdminCustomerDetail() {
                   <select value={editForm.status} onChange={(e) => setEditForm({...editForm, status: e.target.value})}
                     className="admin-input" style={{width: '100%'}}>
                     <option value="Active">Active</option>
+                    <option value="Banned">Banned</option>
                     <option value="Deleted">Deleted</option>
                   </select>
                 </div>

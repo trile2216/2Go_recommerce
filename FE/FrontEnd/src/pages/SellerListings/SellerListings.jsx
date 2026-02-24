@@ -20,16 +20,22 @@ const STATUS_TABS = [
   { key: 'Draft', label: 'Nháp' },
   { key: 'PendingReview', label: 'Chờ duyệt' },
   { key: 'Active', label: 'Đang bán' },
+  { key: 'Reserved', label: 'Đã đặt cọc' },
+  { key: 'Sold', label: 'Đã bán' },
   { key: 'Archived', label: 'Đã ẩn' },
   { key: 'Rejected', label: 'Bị từ chối' },
+  { key: 'Flagged', label: 'Bị báo cáo' },
 ];
 
 const STATUS_LABEL = {
   Draft: 'Nháp',
   PendingReview: 'Chờ duyệt',
   Active: 'Đang bán',
-  Archived: 'Đã ẩn',
+  Reserved: 'Đã đặt cọc',
+  Sold: 'Đã bán',
   Rejected: 'Bị từ chối',
+  Archived: 'Đã ẩn',
+  Flagged: 'Bị báo cáo',
   Deleted: 'Đã xóa',
 };
 
@@ -37,8 +43,11 @@ const STATUS_CLASS = {
   Draft: 'sl-badge-draft',
   PendingReview: 'sl-badge-pending',
   Active: 'sl-badge-active',
-  Archived: 'sl-badge-archived',
+  Reserved: 'sl-badge-reserved',
+  Sold: 'sl-badge-sold',
   Rejected: 'sl-badge-rejected',
+  Archived: 'sl-badge-archived',
+  Flagged: 'sl-badge-flagged',
   Deleted: 'sl-badge-deleted',
 };
 

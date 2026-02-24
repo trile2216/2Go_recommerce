@@ -10,9 +10,9 @@ import { Loader2, ShoppingBag, FileWarning, Send, Image, ChevronDown, ChevronUp 
 import "./MyReports.css";
 
 const STATUS_MAP = {
-  Pending: { label: "Chờ xử lý", className: "status-pending" },
-  WaitingForReply: { label: "Chờ phản hồi", className: "status-waiting" },
-  InProgress: { label: "Đang xử lý", className: "status-progress" },
+  Open: { label: "Mở", className: "status-pending" },
+  InReview: { label: "Đang xem xét", className: "status-progress" },
+  WaitingOtherParty: { label: "Chờ phản hồi", className: "status-waiting" },
   Resolved: { label: "Đã giải quyết", className: "status-resolved" },
   Rejected: { label: "Từ chối", className: "status-rejected" },
 };

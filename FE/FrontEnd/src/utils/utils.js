@@ -31,11 +31,11 @@ export const formatDate = (dateString) => {
 export const getOrderStatusColor = (status) => {
   const colors = {
     Pending: "status-warning",
-    Paid: "status-info",
     Confirmed: "status-info",
-    Shipping: "status-info",
+    Delivered: "status-info",
     Completed: "status-success",
     Cancelled: "status-danger",
+    Disputed: "status-danger",
   };
   return colors[status] || "status-default";
 };
