@@ -64,7 +64,12 @@ public class OrderService : IOrderService
 
         var hasActiveOrder = await _uow.Orders.Query()
             .AnyAsync(o => o.ListingId == listing.ListingId &&
-                           (o.Status == OrderStatuses.Pending || o.Status == OrderStatuses.Confirmed || o.Status == OrderStatuses.Delivered || o.Status == OrderStatuses.Completed || o.Status == OrderStatuses.Disputed),
+                           (o.Status == OrderStatuses.Pending ||
+                            o.Status == OrderStatuses.Confirmed ||
+                            o.Status == OrderStatuses.Delivering ||
+                            o.Status == OrderStatuses.Delivered ||
+                            o.Status == OrderStatuses.Completed ||
+                            o.Status == OrderStatuses.Disputed),
                 cancellationToken);
         if (hasActiveOrder)
         {

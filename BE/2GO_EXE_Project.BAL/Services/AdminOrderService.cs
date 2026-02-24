@@ -213,8 +213,13 @@ public class AdminOrderService : IAdminOrderService
         }
         if (string.Equals(current, OrderStatuses.Confirmed, StringComparison.OrdinalIgnoreCase))
         {
+            return string.Equals(next, OrderStatuses.Delivering, StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(next, OrderStatuses.Cancelled, StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(next, OrderStatuses.Disputed, StringComparison.OrdinalIgnoreCase);
+        }
+        if (string.Equals(current, OrderStatuses.Delivering, StringComparison.OrdinalIgnoreCase))
+        {
             return string.Equals(next, OrderStatuses.Delivered, StringComparison.OrdinalIgnoreCase) ||
-                   string.Equals(next, OrderStatuses.Completed, StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(next, OrderStatuses.Cancelled, StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(next, OrderStatuses.Disputed, StringComparison.OrdinalIgnoreCase);
         }
