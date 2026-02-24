@@ -19,7 +19,7 @@ export default function PaymentResult() {
   const isSuccess = code === "00" && status === "PAID" && cancel !== "true";
   const isCancelled = cancel === "true" || status === "CANCELLED";
 
-  const [countdown, setCountdown] = useState(5);
+  const [countdown, setCountdown] = useState(10);
   const [cancellingOrder, setCancellingOrder] = useState(false);
   const [cancelResult, setCancelResult] = useState(null); // "success" | "error" | null
   const hasCancelledRef = useRef(false);

@@ -298,17 +298,6 @@ export default function SellerListings() {
   return (
     <UserLayout>
       <div className="sl-container">
-        {/* Header */}
-        <div className="sl-header">
-          <div>
-            <h1 className="sl-title">Bài đăng của tôi</h1>
-            <p className="sl-subtitle">Quản lý các bài đăng bán hàng của bạn</p>
-          </div>
-          <button className="sl-create-btn" onClick={() => navigate('/post/listing')}>
-            <Plus size={18} />
-            Đăng tin mới
-          </button>
-        </div>
 
         {/* Tabs */}
         <div className="sl-tabs">

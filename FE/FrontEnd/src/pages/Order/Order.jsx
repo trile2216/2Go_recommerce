@@ -137,11 +137,6 @@ export default function Orders() {
 
   return (
     <UserLayout>
-      <div className="order-header">
-        <h1 className="order-title">Quản lý đơn hàng</h1>
-        <p className="order-subtitle">Theo dõi đơn mua và đơn bán của bạn</p>
-      </div>
-
       <div className="order-tabs">
         <div className="tabs-list">
           <button 

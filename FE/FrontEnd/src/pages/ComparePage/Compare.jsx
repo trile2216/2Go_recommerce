@@ -61,15 +61,6 @@ const Compare = () => {
       
       <main className="compare-container">
         <div className="compare-wrapper">
-          {/* Title */}
-          <div className="compare-header">
-            <h1 className="compare-title">So sánh sản phẩm ({products.length})</h1>
-            <p className="compare-subtitle">So sánh chi tiết giữa các sản phẩm để chọn lựa tốt nhất</p>
-            {/* <button className="cmp-btn-clear" onClick={handleClearAll}>
-              Xóa tất cả
-            </button> */}
-          </div>
-
           {/* Product Cards */}
           <div className="compare-cards">
             {products.map((product) => (
@@ -149,6 +140,9 @@ const Compare = () => {
               onClick={() => navigate('/')}
             >
               + Thêm sản phẩm để so sánh
+            </button>
+            <button className="cmp-btn-clear" onClick={handleClearAll}>
+              Xóa tất cả
             </button>
           </div>
         </div>

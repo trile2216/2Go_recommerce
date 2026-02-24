@@ -99,11 +99,6 @@ export default function MyReports() {
   return (
     <UserLayout>
       <div className="reports-page">
-        <div className="reports-header">
-          <h1>Phiếu báo cáo của tôi</h1>
-          <p>Theo dõi tình trạng các phiếu báo cáo bạn đã gửi</p>
-        </div>
-
         {reports.length === 0 ? (
           <div className="reports-empty">
             <FileWarning size={48} className="reports-empty-icon" />

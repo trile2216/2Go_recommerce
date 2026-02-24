@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './SubscriptionPlans.css';
-import { fetchSubscriptionPlans } from '../../service/home/api.subscription';
+import { fetchSubscriptionPlans, fetchMySubscription } from '../../service/home/api.subscription';
 import { createSubscriptionPayment } from '../../service/home/api.payment';
 import { Check, Package } from 'lucide-react';
 import PageEmptyState from '../../components/PageEmptyState';
@@ -8,6 +8,7 @@ import { useToast } from '../../context/ToastContext';
 
 const SubscriptionPlans = () => {
     const [plans, setPlans] = useState([]);
+    const [currentPlan, setCurrentPlan] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const toast = useToast();
@@ -15,8 +16,14 @@ const SubscriptionPlans = () => {
     useEffect(() => {
         const loadPlans = async () => {
             try {
-                const data = await fetchSubscriptionPlans();
+                const [data, mySub] = await Promise.all([
+                    fetchSubscriptionPlans(),
+                    fetchMySubscription().catch(() => null)
+                ]);
                 setPlans(data.items || []);
+                if (mySub && mySub.isActive) {
+                    setCurrentPlan(mySub);
+                }
             } catch (err) {
                 setError('Failed to load subscription plans. Please try again later.');
                 console.error(err);
@@ -30,17 +37,20 @@ const SubscriptionPlans = () => {
 
     const handleBuySubscription = async (code) => {
         try {
-            // Assuming we want to show some loading state for the button or global
-            // For now, let's just proceed. Ideally, we should have a local loading state per button.
             const response = await createSubscriptionPayment('PAYOS', code);
-            if (response && response.payUrl) {
+            
+            if (response && response.status === 'PAID') {
+                 toast.success('Đã kích hoạt gói dịch vụ thành công!');
+                 window.location.reload();
+            } else if (response && response.payUrl) {
                 window.location.href = response.payUrl;
             } else {
                 toast.error('Không thể tạo thanh toán. Vui lòng thử lại.');
             }
         } catch (error) {
             console.error('Payment creation failed:', error);
-            toast.error('Đã có lỗi xảy ra khi tạo thanh toán.');
+            const errMs = error?.response?.data || 'Đã có lỗi xảy ra khi tạo thanh toán.';
+            toast.error(errMs);
         }
     };
 
@@ -79,9 +89,15 @@ const SubscriptionPlans = () => {
             </div>
 
             <div className="subscription-plans-grid">
-                {plans.map((plan) => (
-                    <div key={plan.planId} className={`plan-card ${plan.isFeatured ? 'featured' : ''}`}>
-                        {plan.isFeatured && <div className="featured-badge">Phổ biến nhất</div>}
+                {plans.map((plan) => {
+                    // Match current plan by code or name
+                    const isCurrentPlan = currentPlan && 
+                        (currentPlan.code === plan.code || currentPlan.name === plan.name || currentPlan.planCode === plan.code);
+
+                    return (
+                    <div key={plan.planId} className={`plan-card ${plan.isFeatured ? 'featured' : ''} ${isCurrentPlan ? 'current-plan-card' : ''}`}>
+                        {plan.isFeatured && !isCurrentPlan && <div className="featured-badge">Phổ biến nhất</div>}
+                        {isCurrentPlan && <div className="featured-badge current-badge">Gói hiện tại</div>}
                         
                         <div className="plan-header">
                             <h2 className="plan-name">{plan.name}</h2>
@@ -111,15 +127,25 @@ const SubscriptionPlans = () => {
                         </ul>
 
                         <div className="plan-action">
-                            <button 
-                                className={`plan-btn ${plan.isFeatured ? '' : 'outline'}`}
-                                onClick={() => handleBuySubscription(plan.code)}
-                            >
-                                Chọn gói này
-                            </button>
+                            {isCurrentPlan ? (
+                                <button 
+                                    className="plan-btn outline current-btn"
+                                    disabled
+                                >
+                                    Đang sử dụng
+                                </button>
+                            ) : (
+                                <button 
+                                    className={`plan-btn ${plan.isFeatured ? '' : 'outline'}`}
+                                    onClick={() => handleBuySubscription(plan.code)}
+                                >
+                                    Chọn gói này
+                                </button>
+                            )}
                         </div>
                     </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );

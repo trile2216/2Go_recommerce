@@ -36,15 +36,16 @@
 }
 
 .cmp-btn-clear {
-  padding: 8px 20px;
+  padding: 12px 32px;
   background: #ef4444;
   color: white;
   border: none;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  margin-left: 20px;
 }
 
 .cmp-btn-clear:hover {
@@ -262,7 +263,7 @@
 }
 
 .cmp-btn-primary {
-  background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 100%);
+  background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
   color: white;
   border: none;
 }
@@ -270,7 +271,7 @@
 .cmp-btn-primary:hover {
   opacity: 0.9;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 /* Comparison Table */

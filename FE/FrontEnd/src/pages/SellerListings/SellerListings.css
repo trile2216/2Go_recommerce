@@ -55,8 +55,7 @@
   gap: 0;
   border-bottom: 2px solid #e5e7eb;
   margin-bottom: 1.25rem;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+  margin-top: 20px;
 }
 
 .sl-tab {
@@ -94,6 +93,10 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  margin-top: 20px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Load More */

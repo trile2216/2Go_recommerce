@@ -356,7 +356,8 @@
 
 .reports-empty-icon {
     color: #d1d5db;
-    margin-bottom: 16px;
+    margin: 0 auto 16px;
+    display: block;
 }
 
 .reports-empty h3 {

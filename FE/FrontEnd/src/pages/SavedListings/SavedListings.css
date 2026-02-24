@@ -255,7 +255,7 @@
 
 .page-empty-btn {
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(to right, #ff6b35, #ff5722);
+  background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
   color: white;
   border: none;
   border-radius: 6px;
@@ -267,7 +267,7 @@
 
 .page-empty-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 @media (max-width: 480px) {

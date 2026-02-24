@@ -331,7 +331,11 @@ export default function Chat() {
                           size={48}
                           className="chat-avatar"
                         >
-                          {getInitials(item.otherUserId)}
+                          {item.otherUser?.avatarUrl ? (
+                            <img src={item.otherUser.avatarUrl} alt="avatar" />
+                          ) : (
+                            getInitials(item.otherUserId)
+                          )}
                         </Avatar>
                       }
                       title={
@@ -375,7 +379,7 @@ export default function Chat() {
                     size={40}
                     className="chat-avatar"
                   >
-                    {selectedConversation ? getInitials(selectedConversation.otherUserId) : '?'}
+                    {selectedConversation ? <img src={selectedConversation.otherUser?.avatarUrl} alt="avatar" /> : '?'}
                   </Avatar>
                   <div className="chat-header-info">
                     <Text strong className="chat-header-name">
