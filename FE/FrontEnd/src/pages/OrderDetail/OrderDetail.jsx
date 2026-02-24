@@ -300,20 +300,24 @@ export default function OrderDetail() {
     );
   }
 
-  const isBuyer = user?.userId === order.buyerId;
-  const isSeller = user?.userId === order.sellerId;
+  const isBuyer = String(user?.userId) === String(order.buyerId);
+  const isSeller = String(user?.userId) === String(order.sellerId);
 
   const buyerCanCancel = isBuyer && (order.status === "Pending" || order.status === "Paid");
   const sellerCanCancel = isSeller && (order.status === "Pending" || order.status === "Paid");
-
-  const sellerCanConfirm = isSeller && (order.status === "Pending" || order.status === "Paid");
   const buyerCanComplete = isBuyer && order.status === "Delivered";
+  const sellerCanConfirm = isSeller && (order.status === "Pending" || order.status === "Paid");
+  // The backend auto-creates a placeholder shipping record with only shipId and deliveryAddress.
+  // We consider it "has shipping" only when a provider, tracking code, or status is actually set.
+  const hasShipping = Boolean(shippingInfo && (shippingInfo.provider || shippingInfo.trackingCode || shippingInfo.status));
 
-  const sellerCanCreateShipping = isSeller && order.status === "Confirmed" && !shippingInfo;
-
-  // Deposit Actions logic
   const buyerNeedsToPayDeposit = isBuyer && order.depositRequired && !order.depositPaid && order.status === "Pending";
   const buyerNeedsToPayRemaining = isBuyer && order.depositRequired && order.depositPaid && order.status === "Confirmed" && order.escrowStatus !== "Funded";
+
+  const sellerCanCreateShipping = isSeller && !hasShipping && (
+    (order.depositRequired && order.escrowStatus === "Funded") ||
+    (!order.depositRequired && (order.status === "Confirmed" || order.status === "Paid"))
+  );
 
   return (
     <UserLayout>
@@ -429,66 +433,42 @@ export default function OrderDetail() {
                </div>
             </div>
 
-               {/* Shipping Info */}
-               {shippingInfo && (
+               {hasShipping && (
                  <div className="order-card">
                    <div className="od-card-header">
                      <h3 className="od-card-subtitle"><Truck size={18} /> Thông tin vận chuyển</h3>
                    </div>
-                   <div className="od-card-body">
-                     <div className="party-details">
-                       <div className="party-item">
-                         <Package size={18} className="party-icon" />
-                         <div className="party-info-text">
-                           <p className="party-label">Đơn vị vận chuyển</p>
-                           <p className="party-value">{shippingInfo.provider || "GHN"}</p>
-                         </div>
+                   <div className="od-card-body od-shipping-grid">
+                     <div className="od-ship-info">
+                       <div className="od-info-row">
+                         <span>Đơn vị vận chuyển:</span>
+                         <span className="info-value">{shippingInfo.provider || "GHN"}</span>
                        </div>
                        {shippingInfo.trackingCode && (
-                         <div className="party-item">
-                           <Truck size={18} className="party-icon" />
-                           <div className="party-info-text">
-                             <p className="party-label">Mã vận đơn</p>
-                             <p className="party-value" style={{ fontFamily: "monospace", fontWeight: 600 }}>{shippingInfo.trackingCode}</p>
-                           </div>
+                         <div className="od-info-row">
+                           <span>Mã vận đơn:</span>
+                           <span className="info-value">{shippingInfo.trackingCode}</span>
                          </div>
                        )}
-                       <div className="party-item">
-                         <Info size={18} className="party-icon" />
-                         <div className="party-info-text">
-                           <p className="party-label">Trạng thái vận chuyển</p>
-                           <p className="party-value">
-                             <span className={`shipping-status-badge shipping-status-${(shippingInfo.status || "").toLowerCase()}`}>
-                               {shippingInfo.status === "Requested" && "Đã yêu cầu"}
-                               {shippingInfo.status === "InTransit" && "Đang giao"}
-                               {shippingInfo.status === "Delivered" && "Đã giao"}
-                               {shippingInfo.status === "Failed" && "Thất bại"}
-                               {!["Requested", "InTransit", "Delivered", "Failed"].includes(shippingInfo.status) && (shippingInfo.status || "N/A")}
-                             </span>
-                           </p>
-                         </div>
+                       <div className="od-info-row">
+                         <span>Trạng thái:</span>
+                         <span className="info-value warning-text">
+                            {shippingInfo.status === "Requested" && "Đã yêu cầu"}
+                            {shippingInfo.status === "InTransit" && "Đang giao"}
+                            {shippingInfo.status === "Delivered" && "Đã giao"}
+                            {shippingInfo.status === "Failed" && "Giao thất bại"}
+                            {!["Requested", "InTransit", "Delivered", "Failed"].includes(shippingInfo.status) && (shippingInfo.status || "N/A")}
+                         </span>
                        </div>
-                       {shippingInfo.pickupAddress && (
-                         <div className="party-item">
-                           <MapPin size={18} className="party-icon" />
-                           <div className="party-info-text">
-                             <p className="party-label">Địa chỉ lấy hàng</p>
-                             <p className="party-value">{shippingInfo.pickupAddress}</p>
-                           </div>
-                         </div>
-                       )}
-                       {shippingInfo.deliveryAddress && (
-                         <div className="party-item">
-                           <MapPin size={18} className="party-icon" />
-                           <div className="party-info-text">
-                             <p className="party-label">Địa chỉ giao hàng</p>
-                             <p className="party-value">{shippingInfo.deliveryAddress}</p>
-                           </div>
+                       
+                       {shippingInfo.expectedDeliveryTime && (
+                         <div className="od-info-row">
+                           <span>Dự kiến giao:</span>
+                           <span className="info-value">{new Date(shippingInfo.expectedDeliveryTime).toLocaleDateString("vi-VN")}</span>
                          </div>
                        )}
                      </div>
 
-                     {/* Print labels - Seller only */}
                      {isSeller && shippingInfo.trackingCode && (
                        <div className="od-ship-labels">
                          <button className="od-action-button primary-button" onClick={handlePrintLabel} disabled={printLoading} style={{ marginTop: 12 }}>
@@ -530,7 +510,7 @@ export default function OrderDetail() {
                       <div className="payment-box-content">
                         {order.depositRequired && !order.depositPaid && order.depositDeadlineAt && new Date(order.depositDeadlineAt) < new Date() ? (
                           <div className="payment-alert error">
-                            <XCircle size={16} /> Quá hạn cọc – có thể bị tịch thu
+                            <XCircle size={16} /> Vui lòng hoàn tất thanh toán trong 72h kể từ khi đặt cọc.
                           </div>
                         ) : order.depositPaid && !["Completed", "Cancelled"].includes(order.status) && order.escrowStatus !== "Funded" ? (
                           <div className="payment-alert info">
@@ -602,7 +582,7 @@ export default function OrderDetail() {
                            </button>
                         )}
 
-                        {/* CREATE SHIPPING for Seller (Confirmed + PayOS) */}
+                        {/* CREATE SHIPPING for Seller (Confirmed or Funded) */}
                         {sellerCanCreateShipping && (
                            <button
                              className="od-action-button primary-button"

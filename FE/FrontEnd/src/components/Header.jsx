@@ -615,7 +615,7 @@ export default function Header() {
               }}
             >
               <div className="user-avatar">
-                <User size={20} />
+                {user.avatarUrl ? <img src={user.avatarUrl} className="w-full h-full object-cover" alt="" /> : <User size={20} className="w-full h-full object-cover" />}
               </div>
             </button>
             {showUserMenu && (

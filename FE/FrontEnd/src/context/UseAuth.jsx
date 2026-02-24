@@ -18,12 +18,13 @@ const useAuth = () => {
 
   const login = async (credentials) => {
     const response = await api.post("/Auth/login", credentials);
-    const { accessToken, refreshToken, userId, email, phone, role } = response.data;
+    const { accessToken, refreshToken, userId, email, phone, avatarUrl, role } = response.data;
 
     const userData = {
       userId,
       email,
       phone,
+      avatarUrl,
       role,
       fullName: email?.split("@")[0],
     };
@@ -59,12 +60,13 @@ const useAuth = () => {
 
   const loginWithOAuthAction = async (oauthData) => {
     const response = await api.post("/Auth/firebase-login", oauthData);
-    const { accessToken, refreshToken, userId, email, phone, role } = response.data;
+    const { accessToken, refreshToken, userId, email, phone, avatarUrl, role } = response.data;
 
     const userData = {
       userId,
       email: email || oauthData.email,
       phone,
+      avatarUrl,
       role,
       fullName: oauthData.displayName || email?.split("@")[0],
     };

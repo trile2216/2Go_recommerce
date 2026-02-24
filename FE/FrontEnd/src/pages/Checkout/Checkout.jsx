@@ -94,16 +94,11 @@ export default function Checkout() {
     setSubmitting(true);
 
     try {
-      // Use the free-text address as delivery address
       const deliveryAddress = buyerInfo.address;
-
-      // Create an order for each listing
       const orderResults = [];
       for (const item of displayItems) {
         const listingId = item.listingId || item.id;
         const result = await createOrder(listingId, paymentMethod, deliveryAddress);
-
-        // Determine payment stage based on escrow
         const itemTotal = result.totalAmount || (item.priceSnapshot || item.price || 0);
         const itemRequiresDeposit = itemTotal >= DEPOSIT_THRESHOLD;
         const paymentStage = itemRequiresDeposit ? "DEPOSIT" : null;
@@ -116,18 +111,15 @@ export default function Checkout() {
         });
       }
 
-      // If PayOS, redirect to checkout URL from the first order (or last) that has one
       if (paymentMethod === "PayOS") {
         const payosOrder = orderResults.find((r) => r.paymentRequest?.payUrl);
         if (payosOrder?.paymentRequest?.payUrl) {
-          // Clear cart after successful order creation
           if (!singleItem) await clearCart();
           window.location.href = payosOrder.paymentRequest.payUrl;
           return;
         }
       }
 
-      // COD flow — orders created, clear cart and go to orders page
       if (!singleItem) await clearCart();
       if (orderResults.some((r) => r.itemRequiresDeposit)) {
         toast.success("Đặt hàng thành công! Vui lòng thanh toán cọc để xác nhận đơn hàng.");
@@ -151,9 +143,7 @@ export default function Checkout() {
     <UserLayout>
       <div className="checkout-container">
         <div className="checkout-grid">
-          {/* Left Column - Buyer Info & Payment Method */}
           <div className="checkout-left">
-            {/* Buyer Information */}
             <div className="checkout-card">
               <div className="checkout-card-header">
                 <h2 className="checkout-card-title">
