@@ -42,6 +42,14 @@ public static partial class RequestValidator
         {
             result.Add("deliveryAddress", "Delivery address must be <= 255 chars.");
         }
+        if (string.IsNullOrWhiteSpace(request.DeliveryPhone))
+        {
+            result.Add("deliveryPhone", "Delivery phone is required.");
+        }
+        else if (!ValidationRules.IsValidPhone(request.DeliveryPhone))
+        {
+            result.Add("deliveryPhone", "Delivery phone must be exactly 10 digits.");
+        }
         return result;
     }
 

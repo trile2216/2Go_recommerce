@@ -68,6 +68,8 @@ export default function AdminCustomers() {
     switch (status) {
       case 'Active':
         return 'badge-success';
+      case 'Banned':
+        return 'badge-warning';
       case 'Deleted':
         return 'badge-danger';
       default:
@@ -217,6 +219,7 @@ export default function AdminCustomers() {
             >
               <option value="All">All Status</option>
               <option value="Active">Active</option>
+              <option value="Banned">Banned</option>
               <option value="Deleted">Deleted</option>
             </select>
           </div>
@@ -471,6 +474,7 @@ export default function AdminCustomers() {
                       className="admin-input"
                     >
                       <option value="Active">Active</option>
+                      <option value="Banned">Banned</option>
                       <option value="Deleted">Deleted</option>
                     </select>
                   </div>

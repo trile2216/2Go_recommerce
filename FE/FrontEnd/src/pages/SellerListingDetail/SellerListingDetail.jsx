@@ -23,8 +23,11 @@ const STATUS_COLORS = {
   Draft: 'default',
   PendingReview: 'warning',
   Active: 'success',
-  Archived: 'default',
+  Reserved: 'orange',
+  Sold: 'cyan',
   Rejected: 'error',
+  Archived: 'default',
+  Flagged: 'error',
   Deleted: 'error'
 };
 
@@ -32,8 +35,11 @@ const STATUS_LABELS = {
   Draft: 'Nháp',
   PendingReview: 'Chờ duyệt',
   Active: 'Đang bán',
-  Archived: 'Đã ẩn',
+  Reserved: 'Đã đặt cọc',
+  Sold: 'Đã bán',
   Rejected: 'Bị từ chối',
+  Archived: 'Đã ẩn',
+  Flagged: 'Bị báo cáo',
   Deleted: 'Đã xóa'
 };
 

@@ -36,6 +36,10 @@ public partial class Order
     [Unicode(false)]
     public string? Status { get; set; }
 
+    [StringLength(20)]
+    [Unicode(false)]
+    public string? DeliveryPhone { get; set; }
+
     public string? CheckoutUrl { get; set; }
 
     public string? QrCodeUrl { get; set; }

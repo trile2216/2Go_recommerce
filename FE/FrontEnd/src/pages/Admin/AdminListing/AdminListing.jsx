@@ -70,13 +70,53 @@ export default function AdminListing() {
   const getStatusBadgeClass = (status) => {
     switch (status) {
       case 'Active': return 'badge-success';
-      case 'Sold': return 'badge-secondary';
-      case 'Draft': return 'badge-warning';
+      case 'Reserved': return 'badge-warning';
+      case 'Sold': return 'badge-info';
+      case 'Draft': return 'badge-secondary';
       case 'PendingReview': return 'badge-info';
       case 'Rejected': return 'badge-danger';
+      case 'Archived': return 'badge-secondary';
+      case 'Flagged': return 'badge-danger';
       case 'Deleted': return 'badge-danger';
       default: return 'badge-secondary';
     }
+  };
+
+  // Get valid status transitions based on current status
+  const getValidStatusOptions = (currentStatus) => {
+    const allStatuses = [
+      { value: 'Draft', label: 'Draft' },
+      { value: 'PendingReview', label: 'Pending Review' },
+      { value: 'Active', label: 'Active' },
+      { value: 'Reserved', label: 'Reserved' },
+      { value: 'Sold', label: 'Sold' },
+      { value: 'Rejected', label: 'Rejected' },
+      { value: 'Archived', label: 'Archived' },
+      { value: 'Flagged', label: 'Flagged' }
+    ];
+
+    // Define valid transitions for each status
+    const validTransitions = {
+      'Draft': ['PendingReview', 'Archived'],
+      'PendingReview': ['Active', 'Rejected', 'Archived'],
+      'Active': ['Reserved', 'Sold', 'Archived', 'Flagged'],
+      'Reserved': ['Active', 'Sold', 'Archived'],
+      'Sold': ['Archived'],
+      'Rejected': ['Draft', 'Archived'],
+      'Flagged': ['Active', 'Archived', 'Rejected'],
+      'Archived': ['Active']
+    };
+
+    const allowedStatuses = validTransitions[currentStatus] || [];
+    return allStatuses.filter(s => allowedStatuses.includes(s.value));
+  };
+
+  // Check if a status transition is valid
+  const isValidTransition = (fromStatus, toStatus) => {
+    if (fromStatus === toStatus) return true; // Same status is always valid
+    
+    const validOptions = getValidStatusOptions(fromStatus);
+    return validOptions.some(option => option.value === toStatus);
   };
 
   // Filter by search term locally for now (since backend search is limited)
@@ -101,13 +141,35 @@ export default function AdminListing() {
 
   const handleUpdateStatus = async () => {
     try {
+      // Validate the transition before sending to backend
+      if (!isValidTransition(statusFormData.currentStatus, statusFormData.newStatus)) {
+        toast.error(`Invalid status transition: ${statusFormData.currentStatus} → ${statusFormData.newStatus}`);
+        return;
+      }
+
+      if (statusFormData.currentStatus === statusFormData.newStatus) {
+        toast.info('No changes made to status');
+        setShowStatusModal(false);
+        return;
+      }
+
+      console.log('Updating status:', {
+        listingId: statusFormData.listingId,
+        from: statusFormData.currentStatus,
+        to: statusFormData.newStatus
+      });
+
       await updateListingStatusById(statusFormData.listingId, statusFormData.newStatus);
       toast.success('Listing status updated successfully');
       setShowStatusModal(false);
       await loadListings();
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.message || 'Failed to update listing status');
+      // Extract specific error message from backend
+      const errorMessage = err.response?.data?.message || 
+                          err.response?.data || 
+                          'Failed to update listing status';
+      toast.error(errorMessage);
     }
   };
 
@@ -305,22 +367,37 @@ export default function AdminListing() {
               </div>
               <div className="admin-modal-body">
                 <p>Updating status for: <strong>{statusFormData.title}</strong></p>
+                <p style={{fontSize: '14px', color: '#6b7280', marginBottom: '10px'}}>Current Status: <strong>{statusFormData.currentStatus}</strong></p>
                 <div className="admin-form-group" style={{marginTop: '15px'}}>
                   <label>New Status</label>
                   <select 
                     value={statusFormData.newStatus}
-                    onChange={(e) => setStatusFormData({...statusFormData, newStatus: e.target.value})}
+                    onChange={(e) => {
+                      const newValue = e.target.value;
+                      console.log('Status selection:', {
+                        current: statusFormData.currentStatus,
+                        selected: newValue,
+                        isValid: isValidTransition(statusFormData.currentStatus, newValue)
+                      });
+                      setStatusFormData({...statusFormData, newStatus: newValue});
+                    }}
                     className="admin-input"
                   >
-                    <option value="Active">Active</option>
-                    <option value="PendingReview">Pending Review</option>
-                    <option value="Draft">Draft</option>
-                    <option value="Sold">Sold</option>
-                    <option value="Rejected">Rejected</option>
-                    <option value="Archived">Archived</option>
-                    <option value="Flagged">Flagged</option>
-                    {/* Add other statuses as needed */}
+                    <option value={statusFormData.currentStatus}>Keep Current ({statusFormData.currentStatus})</option>
+                    {getValidStatusOptions(statusFormData.currentStatus).map(option => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
                   </select>
+                  {getValidStatusOptions(statusFormData.currentStatus).length === 0 && (
+                    <p style={{fontSize: '12px', color: '#ef4444', marginTop: '5px'}}>
+                      No valid status transitions available from {statusFormData.currentStatus}
+                    </p>
+                  )}
+                  {statusFormData.newStatus !== statusFormData.currentStatus && (
+                    <p style={{fontSize: '12px', color: '#059669', marginTop: '5px'}}>
+                      Transition: {statusFormData.currentStatus} → {statusFormData.newStatus}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="admin-modal-footer">
@@ -333,6 +410,7 @@ export default function AdminListing() {
                 <button 
                   className="admin-btn admin-btn-primary"
                   onClick={handleUpdateStatus}
+                  disabled={statusFormData.newStatus === statusFormData.currentStatus || getValidStatusOptions(statusFormData.currentStatus).length === 0}
                 >
                   <Check size={20} />
                   Save Status

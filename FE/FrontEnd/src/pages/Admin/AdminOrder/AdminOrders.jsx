@@ -248,11 +248,11 @@ export default function AdminOrders() {
   const getStatusColor = (status) => {
     switch (status) {
       case 'Completed': return 'badge-success';
-      case 'Delivered': return 'badge-success';
+      case 'Delivered': return 'badge-info';
       case 'Pending': return 'badge-warning';
-      case 'Processing':
       case 'Confirmed': return 'badge-info';
       case 'Cancelled': return 'badge-danger';
+      case 'Disputed': return 'badge-danger';
       default: return 'badge-secondary';
     }
   };
@@ -260,10 +260,12 @@ export default function AdminOrders() {
   const getEscrowColor = (status) => {
     if (!status) return 'badge-secondary';
     switch (status) {
+      case 'Pending': return 'badge-warning';
+      case 'Funded': return 'badge-info';
       case 'Holding': return 'badge-warning';
       case 'Released': return 'badge-success';
-      case 'Refunded': return 'badge-info';
-      case 'Forfeited': return 'badge-danger';
+      case 'Cancelled': return 'badge-secondary';
+      case 'Refunded': return 'badge-danger';
       default: return 'badge-secondary';
     }
   };

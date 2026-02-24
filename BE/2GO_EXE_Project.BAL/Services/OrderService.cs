@@ -64,7 +64,12 @@ public class OrderService : IOrderService
 
         var hasActiveOrder = await _uow.Orders.Query()
             .AnyAsync(o => o.ListingId == listing.ListingId &&
-                           (o.Status == OrderStatuses.Pending || o.Status == OrderStatuses.Confirmed || o.Status == OrderStatuses.Delivered || o.Status == OrderStatuses.Completed || o.Status == OrderStatuses.Disputed),
+                           (o.Status == OrderStatuses.Pending ||
+                            o.Status == OrderStatuses.Confirmed ||
+                            o.Status == OrderStatuses.Delivering ||
+                            o.Status == OrderStatuses.Delivered ||
+                            o.Status == OrderStatuses.Completed ||
+                            o.Status == OrderStatuses.Disputed),
                 cancellationToken);
         if (hasActiveOrder)
         {
@@ -79,11 +84,19 @@ public class OrderService : IOrderService
             TotalAmount = listing.Price,
             PaymentMethod = method,
             Status = OrderStatuses.Pending,
+            DeliveryPhone = string.IsNullOrWhiteSpace(request.DeliveryPhone) ? null : request.DeliveryPhone.Trim(),
             CreatedAt = DateTime.UtcNow
         };
 
         await _uow.Orders.AddAsync(order, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
+
+        if (string.Equals(method, PaymentMethods.COD, StringComparison.OrdinalIgnoreCase))
+        {
+            order.OrderCode = order.OrderId;
+            _uow.Orders.Update(order);
+            await _uow.SaveChangesAsync(cancellationToken);
+        }
 
         var totalAmount = order.TotalAmount ?? 0m;
         var requiresDeposit = totalAmount >= EscrowRules.DepositThresholdAmount;
@@ -152,6 +165,7 @@ public class OrderService : IOrderService
             order.PaymentExpiredAt,
             order.CreatedAt,
             request.DeliveryAddress,
+            order.DeliveryPhone,
             escrow.DepositAmount,
             escrow.DepositDeadlineAt,
             requiresDeposit,
@@ -235,6 +249,7 @@ public class OrderService : IOrderService
             order.Seller?.Email,
             order.Seller?.Phone,
             order.ShippingRequests.Select(s => s.DeliveryAddress).FirstOrDefault(),
+            order.DeliveryPhone,
             order.Escrow?.DepositAmount,
             order.Escrow?.DepositDeadlineAt,
             depositRequired,
@@ -577,6 +592,7 @@ public class OrderService : IOrderService
             order.Seller?.Email,
             order.Seller?.Phone,
             order.ShippingRequests.Select(s => s.DeliveryAddress).FirstOrDefault(),
+            order.DeliveryPhone,
             order.Escrow?.DepositAmount,
             order.Escrow?.DepositDeadlineAt,
             depositRequired,
@@ -594,3 +610,4 @@ public class OrderService : IOrderService
             .FirstOrDefaultAsync(o => o.OrderCode == orderCode, cancellationToken);
     }
 }
+

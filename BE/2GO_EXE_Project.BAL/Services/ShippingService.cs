@@ -89,6 +89,7 @@ public class ShippingService : IShippingService
                 await _uow.SaveChangesAsync(cancellationToken);
                 if (notify)
                 {
+                    await UpdateOrderStatusForShippingAsync(existing, ShippingStatuses.Requested, cancellationToken);
                     await NotifyShippingStatusAsync(order, ShippingStatuses.Requested, cancellationToken);
                 }
             }
@@ -132,6 +133,7 @@ public class ShippingService : IShippingService
             }
             throw;
         }
+        await UpdateOrderStatusForShippingAsync(ship, ShippingStatuses.Requested, cancellationToken);
         await NotifyShippingStatusAsync(order, ShippingStatuses.Requested, cancellationToken);
 
         return MapShippingResponse(ship);
@@ -150,6 +152,13 @@ public class ShippingService : IShippingService
             .FirstOrDefaultAsync(s => s.OrderId == request.OrderId, cancellationToken);
         if (existing != null && !string.IsNullOrWhiteSpace(existing.TrackingCode))
         {
+            if (!string.IsNullOrWhiteSpace(request.ToPhone) &&
+                !string.Equals(order.DeliveryPhone, request.ToPhone, StringComparison.Ordinal))
+            {
+                order.DeliveryPhone = request.ToPhone.Trim();
+                _uow.Orders.Update(order);
+                await _uow.SaveChangesAsync(cancellationToken);
+            }
             return MapShippingResponse(existing);
         }
 
@@ -191,8 +200,22 @@ public class ShippingService : IShippingService
             if (updated)
             {
                 _uow.ShippingRequests.Update(existing);
+                if (!string.IsNullOrWhiteSpace(request.ToPhone) &&
+                    !string.Equals(order.DeliveryPhone, request.ToPhone, StringComparison.Ordinal))
+                {
+                    order.DeliveryPhone = request.ToPhone.Trim();
+                    _uow.Orders.Update(order);
+                }
                 await _uow.SaveChangesAsync(cancellationToken);
             }
+            else if (!string.IsNullOrWhiteSpace(request.ToPhone) &&
+                     !string.Equals(order.DeliveryPhone, request.ToPhone, StringComparison.Ordinal))
+            {
+                order.DeliveryPhone = request.ToPhone.Trim();
+                _uow.Orders.Update(order);
+                await _uow.SaveChangesAsync(cancellationToken);
+            }
+            await UpdateOrderStatusForShippingAsync(existing, ShippingStatuses.Requested, cancellationToken);
             await NotifyShippingStatusAsync(order, ShippingStatuses.Requested, cancellationToken);
             return MapShippingResponse(existing);
         }
@@ -225,6 +248,13 @@ public class ShippingService : IShippingService
             }
             throw;
         }
+        if (!string.IsNullOrWhiteSpace(request.ToPhone))
+        {
+            order.DeliveryPhone = request.ToPhone.Trim();
+            _uow.Orders.Update(order);
+            await _uow.SaveChangesAsync(cancellationToken);
+        }
+        await UpdateOrderStatusForShippingAsync(ship, ShippingStatuses.Requested, cancellationToken);
         await NotifyShippingStatusAsync(order, ShippingStatuses.Requested, cancellationToken);
 
         return MapShippingResponse(ship);
@@ -551,11 +581,6 @@ public class ShippingService : IShippingService
 
     private async Task UpdateOrderStatusForShippingAsync(ShippingRequest ship, string status, CancellationToken cancellationToken)
     {
-        if (!string.Equals(status, ShippingStatuses.Delivered, StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
-
         if (ship.OrderId == null || ship.OrderId <= 0) return;
         var order = await _uow.Orders.GetByIdAsync(ship.OrderId.Value);
         if (order == null) return;
@@ -565,7 +590,33 @@ public class ShippingService : IShippingService
             return;
         }
 
-        if (!string.Equals(order.Status, OrderStatuses.Confirmed, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(status, ShippingStatuses.Requested, StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.Equals(order.Status, OrderStatuses.Confirmed, StringComparison.OrdinalIgnoreCase))
+            {
+                order.Status = OrderStatuses.Delivering;
+                _uow.Orders.Update(order);
+            }
+            return;
+        }
+
+        if (string.Equals(status, ShippingStatuses.InTransit, StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.Equals(order.Status, OrderStatuses.Confirmed, StringComparison.OrdinalIgnoreCase))
+            {
+                order.Status = OrderStatuses.Delivering;
+                _uow.Orders.Update(order);
+            }
+            return;
+        }
+
+        if (!string.Equals(status, ShippingStatuses.Delivered, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (!string.Equals(order.Status, OrderStatuses.Confirmed, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(order.Status, OrderStatuses.Delivering, StringComparison.OrdinalIgnoreCase))
         {
             return;
         }

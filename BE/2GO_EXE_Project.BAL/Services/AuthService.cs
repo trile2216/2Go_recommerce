@@ -131,9 +131,13 @@ public class AuthService : IAuthService
 
         var (accessToken, expiresAt) = _tokenService.GenerateAccessToken(user);
         var refreshToken = await IssueRefreshTokenAsync(user.UserId, cancellationToken);
+        var avatarUrl = await _uow.UserProfiles.Query()
+            .Where(p => p.UserId == user.UserId)
+            .Select(p => p.AvatarUrl)
+            .FirstOrDefaultAsync(cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
 
-        return new AuthResponse(user.UserId, user.Email, user.Phone, user.Role, accessToken, refreshToken, expiresAt);
+        return new AuthResponse(user.UserId, user.Email, user.Phone, user.Role, avatarUrl, accessToken, refreshToken, expiresAt);
     }
 
     public async Task<BasicResponse> LogoutAsync(RefreshTokenRequest request, CancellationToken cancellationToken = default)
@@ -181,13 +185,17 @@ public class AuthService : IAuthService
 
         var (accessToken, expiresAt) = _tokenService.GenerateAccessToken(user);
         var newRefreshToken = await IssueRefreshTokenAsync(user.UserId, cancellationToken);
+        var avatarUrl = await _uow.UserProfiles.Query()
+            .Where(p => p.UserId == user.UserId)
+            .Select(p => p.AvatarUrl)
+            .FirstOrDefaultAsync(cancellationToken);
 
         token.RevokedAt = DateTime.UtcNow;
         token.ReplacedByToken = newRefreshToken;
         _uow.RefreshTokens.Update(token);
 
         await _uow.SaveChangesAsync(cancellationToken);
-        return new AuthResponse(user.UserId, user.Email, user.Phone, user.Role, accessToken, newRefreshToken, expiresAt);
+        return new AuthResponse(user.UserId, user.Email, user.Phone, user.Role, avatarUrl, accessToken, newRefreshToken, expiresAt);
     }
 
     public async Task<BasicResponse> VerifyEmailAsync(VerifyEmailRequest request, CancellationToken cancellationToken = default)
@@ -368,9 +376,13 @@ public class AuthService : IAuthService
 
         var (accessToken, expiresAt) = _tokenService.GenerateAccessToken(user);
         var refreshToken = await IssueRefreshTokenAsync(user.UserId, cancellationToken);
+        var avatarUrl = await _uow.UserProfiles.Query()
+            .Where(p => p.UserId == user.UserId)
+            .Select(p => p.AvatarUrl)
+            .FirstOrDefaultAsync(cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
 
-        return new AuthResponse(user.UserId, user.Email, user.Phone, user.Role, accessToken, refreshToken, expiresAt);
+        return new AuthResponse(user.UserId, user.Email, user.Phone, user.Role, avatarUrl, accessToken, refreshToken, expiresAt);
     }
 
     public async Task<BasicResponse> VerifyPhoneFirebaseAsync(ClaimsPrincipal userPrincipal, VerifyPhoneFirebaseRequest request, CancellationToken cancellationToken = default)
