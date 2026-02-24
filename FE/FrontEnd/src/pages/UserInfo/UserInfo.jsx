@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Mail, Phone, MapPin, Calendar, Shield, Eye, EyeOff, Upload, Loader2 } from 'lucide-react';
 import { useDispatch } from 'react-redux';
+import { useTitle } from '../../hooks/useTitle';
 import UserLayout from '../../layouts/UserLayout';
 import { useToast } from '../../context/ToastContext';
 import { updateUser } from '../../context/UserSlice';
@@ -18,6 +19,7 @@ import '../../styles/loader.css';
 import './userinfo.css';
 
 export default function UserInfo() {
+  useTitle('My Profile');
   const toast = useToast();
   const dispatch = useDispatch();
   const avatarInputRef = useRef(null);

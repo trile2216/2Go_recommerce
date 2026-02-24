@@ -33,12 +33,14 @@ import { listingPrecheck } from "../../service/ai/api.analyze";
 import useAuth from "../../hooks/useAuth";
 import { useToast } from "../../context/ToastContext";
 import { getAttributesForCategory, getBrandForCategory } from "../../data/categoryAttributes";
+import { useTitle } from "../../hooks/useTitle";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 
 export default function PostListing() {
+    useTitle('Post Listing');
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const editId = searchParams.get('edit');

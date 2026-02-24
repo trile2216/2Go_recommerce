@@ -4,6 +4,7 @@ import UserLayout from "../../layouts/UserLayout";
 import { useCart } from "../../context/CartContext";
 import { useToast } from "../../context/ToastContext";
 import { createOrder } from "../../service/home/api.order";
+import { useTitle } from "../../hooks/useTitle";
 import {
   Banknote,
   QrCode,
@@ -24,6 +25,7 @@ const DEPOSIT_THRESHOLD = 2_000_000;
 const DEPOSIT_RATE = 0.1;
 
 export default function Checkout() {
+  useTitle('Checkout');
   const navigate = useNavigate();
   const location = useLocation();
   const { cartItems, removeFromCart, getTotalPrice, clearCart, fetchCartData } = useCart();

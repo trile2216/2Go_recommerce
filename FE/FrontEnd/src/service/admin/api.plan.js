@@ -37,6 +37,24 @@ export const updatePlanById = async (id, data) => {
         throw error;
     }
 };
+export const updatePlanStatusById = async (id, status) => {
+    try {
+        const response = await api.put(`/admin/subscription-plans/${id}/status`, { status });
+        return response.data;
+    } catch (error) {
+        console.error(`Error updating plan status with id ${id}:`, error);
+        throw error;
+    }
+};
+export const updatePlanPriceById = async (id, price) => {
+    try {
+        const response = await api.put(`/admin/subscription-plans/${id}/price`, { price });
+        return response.data;
+    } catch (error) {
+        console.error(`Error updating plan price with id ${id}:`, error);
+        throw error;
+    }
+};
 export const createPlan = async (data) => {
     try {
         const response = await api.post('/admin/subscription-plans', data);

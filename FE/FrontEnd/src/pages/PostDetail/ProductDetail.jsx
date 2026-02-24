@@ -7,12 +7,14 @@ import ProductInfo from '../../components/ProductInfo';
 import ProductDescription from '../../components/ProductDescription';
 import RelatedProducts from '../../components/RelatedProducts';
 import ErrorPage from '../ErrorPage/ErrorPage';
+import { useTitle } from '../../hooks/useTitle';
 import '../../styles/loader.css';
 import './ProductDetail.css';
 import { fetchProductById, fetchProducts } from '../../service/home/api.product';
 
 export default function ProductDetail() {
   const { id } = useParams();
+  useTitle('Product Details');
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(true);

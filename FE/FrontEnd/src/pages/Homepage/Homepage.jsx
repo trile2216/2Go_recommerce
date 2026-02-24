@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { Navigate } from 'react-router-dom';
+import { useTitle } from '../../hooks/useTitle';
 import './Homepage.css';
 import '../../styles/loader.css';
 import Header from '../../components/Header';
@@ -13,6 +14,7 @@ import { fetchProducts } from '../../service/home/api.product';
 const PAGE_SIZE = 20;
 
 export default function Homepage() {
+  useTitle('Home');
   const role = useSelector((state) => state.user.role);
   const [products, setProducts] = useState([]);
   const [totalCount, setTotalCount] = useState(0);

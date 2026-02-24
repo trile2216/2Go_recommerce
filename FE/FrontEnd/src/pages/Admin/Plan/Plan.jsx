@@ -3,9 +3,11 @@ import { Plus, Edit2, Trash2, Eye, Search, Filter, X, Check } from 'lucide-react
 import AdminLayout from '../../../layouts/AdminLayout';
 import { fetchPlans, fetchPlanById, deletePlanById, updatePlanById, createPlan } from '../../../service/admin/api.plan';
 import { useToast } from '../../../context/ToastContext';
+import { useTitle } from '../../../hooks/useTitle';
 import './Plan.css';
 
 export default function Plan() {
+  useTitle('Admin - Subscription Plans');
   const toast = useToast();
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -398,16 +400,6 @@ export default function Plan() {
                 </button>
               </div>
               <div className="admin-modal-body">
-                <div className="admin-form-group">
-                  <label>Code *</label>
-                  <input
-                    type="text"
-                    value={editFormData.code || ''}
-                    onChange={(e) => setEditFormData({...editFormData, code: e.target.value.toUpperCase()})}
-                    className="admin-input"
-                    placeholder="e.g., BASIC, PREMIUM"
-                  />
-                </div>
                 <div className="admin-form-group">
                   <label>Name *</label>
                   <input

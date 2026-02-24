@@ -35,6 +35,7 @@ import { fetchMyChats, fetchMessages, sendMessage } from '../../service/home/api
 import { uploadImageAndGetUrl, uploadVideoAndGetUrl } from '../../service/upload/api.upload';
 import useAuth from '../../context/UseAuth';
 import { formatTimeAgo, formatMessageTime, formatDateLabel } from '../../utils/utils';
+import { useTitle } from '../../hooks/useTitle';
 import './Chat.css';
 
 const { Sider, Content } = Layout;
@@ -48,6 +49,7 @@ const QUICK_REPLIES = [
 ];
 
 export default function Chat() {
+  useTitle('Messages');
   const { chatId: chatIdParam } = useParams();
   const { user } = useAuth();
   const currentUserId = user?.userId;

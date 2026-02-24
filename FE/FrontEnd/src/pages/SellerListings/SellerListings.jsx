@@ -4,6 +4,7 @@ import UserLayout from '../../layouts/UserLayout';
 import ListingCard from '../../components/ListingCard';
 import PageEmptyState from '../../components/PageEmptyState';
 import { useToast } from '../../context/ToastContext';
+import { useTitle } from '../../hooks/useTitle';
 import {
   getMyListings,
   publishListing,
@@ -44,6 +45,7 @@ const STATUS_CLASS = {
 const REVIEW_NOTE_KEY = 'listingReviewNotes';
 
 export default function SellerListings() {
+  useTitle('My Listings');
   const navigate = useNavigate();
   const toast = useToast();
 
