@@ -615,7 +615,7 @@ export default function Header() {
               }}
             >
               <div className="user-avatar">
-                {user.avatarUrl ? <img src={user.avatarUrl}  alt="" /> : <User size={20} className="w-full h-full object-cover" />}
+                {user?.avatarUrl ? <img src={user.avatarUrl}  alt="" /> : <User size={20} className="w-full h-full object-cover" />}
               </div>
             </button>
             {showUserMenu && (
@@ -625,7 +625,7 @@ export default function Header() {
                     <div className="dropdown-header user-header">
                       <div className="user-menu-header">
                         <div className="user-avatar-lg">
-                          {user.avatarUrl ? <img src={user.avatarUrl}  alt="" /> : <User size={20} className="w-full h-full object-cover" />}
+                          {user?.avatarUrl ? <img src={user.avatarUrl}  alt="" /> : <User size={20} className="w-full h-full object-cover" />}
                         </div>
                         <div className="user-info">
                           <div className="user-name">{user.profile?.fullName || user.fullName || user.email}</div>
