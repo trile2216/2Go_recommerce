@@ -113,6 +113,11 @@ public static class EscrowRules
     public const int DepositHoldHours = 72;
 }
 
+public static class OrderRules
+{
+    public const int SellerConfirmHoldHours = 48;
+}
+
 public static class EscrowStatuses
 {
     public const string Pending = "Pending";

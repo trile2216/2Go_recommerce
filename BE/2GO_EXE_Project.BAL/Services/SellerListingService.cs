@@ -282,18 +282,9 @@ public class SellerListingService : ISellerListingService
             status = ListingStatuses.Draft;
         }
 
-        if (!string.Equals(status, ListingStatuses.Draft, StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(status, ListingStatuses.PendingReview, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(status, ListingStatuses.Draft, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("Invalid status for creation. Allowed: Draft, PendingReview.");
-        }
-
-        if (string.Equals(status, ListingStatuses.PendingReview, StringComparison.OrdinalIgnoreCase))
-        {
-            if (!request.Price.HasValue || request.Price.Value < 0)
-            {
-                throw new InvalidOperationException("Price must be >= 0 for listings.");
-            }
+            throw new InvalidOperationException("Listings can only be created as Draft. Use the publish endpoint to submit.");
         }
 
         var mediaRequests = request.Media?.ToList() ?? new List<ListingMediaRequest>();
