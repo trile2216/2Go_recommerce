@@ -1,6 +1,19 @@
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { fetchCart, addCartItem, removeCartItem, updateCartItem, clearCart as clearCartAPI } from "../service/home/api.cart";
-import { fetchProductById } from "../service/home/api.product";
+import React, { createContext, useContext, useEffect, useCallback } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  fetchCartThunk,
+  addToCartThunk,
+  removeFromCartThunk,
+  updateCartThunk,
+  clearCartThunk,
+  optimisticAddItem,
+  revertOptimisticAdd,
+  resetCartState,
+  selectCartItems,
+  selectCartLoading,
+  selectCartCount,
+} from "../store/cartSlice";
 
 const CartContext = createContext();
 
@@ -13,110 +26,126 @@ export const useCart = () => {
 };
 
 export const CartProvider = ({ children }) => {
-  const [cart, setCart] = useState(null);
-  const [cartItems, setCartItems] = useState([]);
-  const [cartCount, setCartCount] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
 
-  const flattenCart = (cartData) => {
-    if (!cartData?.groups) return [];
-    return cartData.groups.flatMap((group) => group.items || []);
-  };
+  const cartItems = useSelector(selectCartItems);
+  const loading = useSelector(selectCartLoading);
+  const cartCount = useSelector(selectCartCount);
 
-  const enrichCartItems = async (items) => {
-    const enriched = await Promise.all(
-      items.map(async (item) => {
-        try {
-          const listing = await fetchProductById(item.listingId);
-          return {
-            ...item,
-            title: listing.title || `Product #${item.listingId}`,
-            imageUrl: listing.primaryImageUrl || listing.images?.[0]?.imageUrl || null,
-            sellerName: listing.sellerName || null,
-            price: listing.price || 0,
-          };
-        } catch {
-          return {
-            ...item,
-            title: `Product #${item.listingId}`,
-            imageUrl: null,
-            sellerName: null,
-            price: 0,
-          };
-        }
-      })
-    );
-    return enriched;
-  };
-
-  const fetchCartData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await fetchCart();
-      setCart(data);
-      const items = flattenCart(data);
-      const enrichedItems = await enrichCartItems(items);
-      setCartItems(enrichedItems);
-    } catch (error) {
-      console.error("Error fetching cart:", error);
-      setCart(null);
-      setCartItems([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const addToCart = async (listingId, quantity = 1) => {
-    try {
-      await addCartItem(listingId, quantity);
-      await fetchCartData();
-      return { success: true };
-    } catch (error) {
-      console.error("Error adding to cart:", error);
-      return { success: false, error };
-    }
-  };
-
-  const removeFromCart = async (cartItemId) => {
-    try {
-      await removeCartItem(cartItemId);
-      await fetchCartData();
-      return { success: true };
-    } catch (error) {
-      console.error("Error removing from cart:", error);
-      return { success: false, error };
-    }
-  };
-
-  const updateCart = async (cartItemId, data) => {
-    try {
-      await updateCartItem(cartItemId, data);
-      await fetchCartData();
-      return { success: true };
-    } catch (error) {
-      console.error("Error updating cart:", error);
-      return { success: false, error };
-    }
-  };
-
-  const clearCartData = async () => {
-    try {
-      await clearCartAPI();
-      setCart(null);
-      setCartItems([]);
-      return { success: true };
-    } catch (error) {
-      console.error("Error clearing cart:", error);
-      return { success: false, error };
-    }
-  };
-
+  // Fetch cart on mount if user is logged in
   useEffect(() => {
-    setCartCount(cartItems.reduce((total, item) => total + (item.quantity || 1), 0));
-  }, [cartItems]);
+    const init = async () => {
+      const token = await AsyncStorage.getItem("token");
+      if (token) {
+        dispatch(fetchCartThunk());
+      }
+    };
+    init();
+  }, [dispatch]);
+
+  /** Re-fetch cart data from API */
+  const fetchCartData = useCallback(() => {
+    return dispatch(fetchCartThunk()).unwrap();
+  }, [dispatch]);
+
+  /**
+   * Add product to cart (optimistic update + API call)
+   * @param {number} listingId
+   * @param {number} quantity
+   * @param {object} [product] - optional product for optimistic UI
+   * @returns {{ success: boolean, error?: any }}
+   */
+  const addToCart = useCallback(
+    async (listingId, quantity = 1, product = null) => {
+      // Optimistic update for instant UI feedback
+      let tempId = null;
+      if (product) {
+        tempId = `temp-${Date.now()}`;
+        dispatch(
+          optimisticAddItem({
+            ...product,
+            listingId,
+            cartItemId: tempId,
+          })
+        );
+      }
+
+      try {
+        await dispatch(
+          addToCartThunk({ listingId, quantity, product })
+        ).unwrap();
+        return { success: true };
+      } catch (error) {
+        // Revert optimistic add
+        if (tempId) {
+          dispatch(revertOptimisticAdd(tempId));
+        }
+        const message =
+          typeof error === "string" ? error : "Thêm vào giỏ hàng thất bại";
+        return { success: false, error: { response: { data: { message } } } };
+      }
+    },
+    [dispatch]
+  );
+
+  /**
+   * Remove item from cart
+   * @param {number|string} cartItemId
+   */
+  const removeFromCart = useCallback(
+    async (cartItemId) => {
+      try {
+        await dispatch(removeFromCartThunk(cartItemId)).unwrap();
+        return { success: true };
+      } catch (error) {
+        return { success: false, error };
+      }
+    },
+    [dispatch]
+  );
+
+  /**
+   * Update cart item (quantity, etc.)
+   * @param {number|string} cartItemId
+   * @param {{ quantity?: number }} data
+   */
+  const updateCart = useCallback(
+    async (cartItemId, data) => {
+      try {
+        await dispatch(updateCartThunk({ cartItemId, data })).unwrap();
+        return { success: true };
+      } catch (error) {
+        return { success: false, error };
+      }
+    },
+    [dispatch]
+  );
+
+  /** Clear entire cart */
+  const clearCartData = useCallback(async () => {
+    try {
+      await dispatch(clearCartThunk()).unwrap();
+      return { success: true };
+    } catch (error) {
+      return { success: false, error };
+    }
+  }, [dispatch]);
+
+  /** Reset cart state (e.g. on logout) */
+  const resetCart = useCallback(() => {
+    dispatch(resetCartState());
+  }, [dispatch]);
+
+  /** Check if a listing is already in cart */
+  const isInCart = useCallback(
+    (listingId) => {
+      return cartItems.some((item) => item.listingId === listingId);
+    },
+    [cartItems]
+  );
 
   const value = {
-    cart,
+    cart: null,
     cartItems,
     cartCount,
     loading,
@@ -125,7 +154,10 @@ export const CartProvider = ({ children }) => {
     removeFromCart,
     updateCart,
     clearCartData,
+    resetCart,
+    isInCart,
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+};
 };
