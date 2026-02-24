@@ -231,11 +231,11 @@ const Home = () => {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.logoContainer}>
-            <MaterialCommunityIcons name="shopping" size={24} color="#359EFF" />
+            <Image uri={require("../../assets/logo.jpg")} style={{ width: 20, height: 20 }} />
           </View>
           <View>
-            <Text style={styles.appTitle}>2Go ReCommerce</Text>
-            <Text style={styles.locationLabel}>Việt Nam</Text>
+            <Text style={styles.appTitle}>2Go </Text>
+            <Text style={styles.locationLabel}>Thủ Đức</Text>
           </View>
         </View>
 

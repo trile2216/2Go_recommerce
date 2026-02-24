@@ -107,7 +107,7 @@ const MainStack = () => {
           if (route.name === "Home") {
             iconName = "home";
           } else if (route.name === "Favorites") {
-            iconName = "heart";
+            iconName = "post";
           } else if (route.name === "Chat") {
             iconName = "chat";
           } else if (route.name === "Profile") {
@@ -137,21 +137,21 @@ const MainStack = () => {
         headerShown: false,
       })}
     >
-      <Tabs.Screen name="Home" component={Home} options={{ title: "Home" }} />
+      <Tabs.Screen name="Home" component={Home} options={{ title: "Trang chủ" }} />
       <Tabs.Screen
         name="Favorites"
         component={Favorites}
-        options={{ title: "Wishlist" }}
+        options={{ title: "Bài đăng" }}
       />
       <Tabs.Screen
         name="Chat"
         component={ChatStackNavigator}
-        options={{ title: "Messages", headerShown: false }}
+        options={{ title: "Tin nhắn", headerShown: false }}
       />
       <Tabs.Screen
         name="Profile"
         component={Profile}
-        options={{ title: "Profile" }}
+        options={{ title: "Hồ sơ" }}
       />
     </Tabs.Navigator>
   );
