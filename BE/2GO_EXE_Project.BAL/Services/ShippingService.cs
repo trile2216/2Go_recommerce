@@ -152,6 +152,13 @@ public class ShippingService : IShippingService
             .FirstOrDefaultAsync(s => s.OrderId == request.OrderId, cancellationToken);
         if (existing != null && !string.IsNullOrWhiteSpace(existing.TrackingCode))
         {
+            if (!string.IsNullOrWhiteSpace(request.ToPhone) &&
+                !string.Equals(order.DeliveryPhone, request.ToPhone, StringComparison.Ordinal))
+            {
+                order.DeliveryPhone = request.ToPhone.Trim();
+                _uow.Orders.Update(order);
+                await _uow.SaveChangesAsync(cancellationToken);
+            }
             return MapShippingResponse(existing);
         }
 
@@ -193,6 +200,19 @@ public class ShippingService : IShippingService
             if (updated)
             {
                 _uow.ShippingRequests.Update(existing);
+                if (!string.IsNullOrWhiteSpace(request.ToPhone) &&
+                    !string.Equals(order.DeliveryPhone, request.ToPhone, StringComparison.Ordinal))
+                {
+                    order.DeliveryPhone = request.ToPhone.Trim();
+                    _uow.Orders.Update(order);
+                }
+                await _uow.SaveChangesAsync(cancellationToken);
+            }
+            else if (!string.IsNullOrWhiteSpace(request.ToPhone) &&
+                     !string.Equals(order.DeliveryPhone, request.ToPhone, StringComparison.Ordinal))
+            {
+                order.DeliveryPhone = request.ToPhone.Trim();
+                _uow.Orders.Update(order);
                 await _uow.SaveChangesAsync(cancellationToken);
             }
             await UpdateOrderStatusForShippingAsync(existing, ShippingStatuses.Requested, cancellationToken);
@@ -227,6 +247,12 @@ public class ShippingService : IShippingService
                 return MapShippingResponse(concurrent);
             }
             throw;
+        }
+        if (!string.IsNullOrWhiteSpace(request.ToPhone))
+        {
+            order.DeliveryPhone = request.ToPhone.Trim();
+            _uow.Orders.Update(order);
+            await _uow.SaveChangesAsync(cancellationToken);
         }
         await UpdateOrderStatusForShippingAsync(ship, ShippingStatuses.Requested, cancellationToken);
         await NotifyShippingStatusAsync(order, ShippingStatuses.Requested, cancellationToken);

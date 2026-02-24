@@ -1,6 +1,6 @@
 namespace _2GO_EXE_Project.BAL.DTOs.Orders;
 
-public record CreateOrderRequest(long ListingId, string PaymentMethod, string DeliveryAddress);
+public record CreateOrderRequest(long ListingId, string PaymentMethod, string DeliveryAddress, string? DeliveryPhone = null);
 
 public record OrderResponse(
     long OrderId,
@@ -18,6 +18,7 @@ public record OrderResponse(
     DateTime? PaymentExpiredAt,
     DateTime? CreatedAt,
     string? DeliveryAddress,
+    string? DeliveryPhone,
     decimal? DepositAmount,
     DateTime? DepositDeadlineAt,
     bool DepositRequired,
@@ -66,6 +67,7 @@ public record OrderDetailResponse(
     string? SellerEmail,
     string? SellerPhone,
     string? DeliveryAddress,
+    string? DeliveryPhone,
     decimal? DepositAmount,
     DateTime? DepositDeadlineAt,
     bool DepositRequired,

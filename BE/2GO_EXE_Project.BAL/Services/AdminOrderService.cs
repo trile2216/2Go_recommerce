@@ -145,6 +145,7 @@ public class AdminOrderService : IAdminOrderService
             order.Seller?.Email,
             order.Seller?.Phone,
             order.ShippingRequests.Select(s => s.DeliveryAddress).FirstOrDefault(),
+            order.DeliveryPhone,
             order.Escrow?.DepositAmount,
             order.Escrow?.DepositDeadlineAt,
             depositRequired,
