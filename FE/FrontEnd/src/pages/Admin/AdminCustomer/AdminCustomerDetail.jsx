@@ -44,18 +44,19 @@ export default function AdminCustomerDetail() {
   const startEditing = () => {
     const profile = customer.profile || {};
     let birthday = '';
-    if (profile.birthday) {
-      birthday = new Date(profile.birthday).toISOString().split('T')[0];
+    const rawBirthday = profile.birthday || customer.birthday;
+    if (rawBirthday) {
+      birthday = new Date(rawBirthday).toISOString().split('T')[0];
     }
     setEditForm({
       email: customer.email || '',
       phone: customer.phone || '',
       fullName: profile.fullName || customer.fullName || '',
       birthday,
-      gender: profile.gender || '',
-      address: profile.address || '',
-      bio: profile.bio || '',
-      avatarUrl: profile.avatarUrl || '',
+      gender: profile.gender || customer.gender || '',
+      address: profile.address || customer.address || '',
+      bio: profile.bio || customer.bio || '',
+      avatarUrl: profile.avatarUrl || customer.avatarUrl || '',
       status: customer.status,
       role: customer.role,
     });
@@ -72,15 +73,12 @@ export default function AdminCustomerDetail() {
         email: editForm.email.trim(),
         phone: editForm.phone.trim(),
         status: editForm.status,
-        role: editForm.role,
-        profile: {
-          fullName: editForm.fullName.trim(),
-          birthday: editForm.birthday ? new Date(editForm.birthday).toISOString().split('T')[0] : '',
-          gender: editForm.gender,
-          address: editForm.address.trim(),
-          bio: editForm.bio.trim(),
-          avatarUrl: editForm.avatarUrl.trim(),
-        },
+        fullName: editForm.fullName.trim(),
+        birthday: editForm.birthday || '',
+        gender: editForm.gender || '',
+        address: editForm.address.trim(),
+        bio: editForm.bio.trim(),
+        avatarUrl: editForm.avatarUrl.trim(),
       };
       await updateCustomerById(customer.userId, updateData);
       toast.success('Customer updated successfully');

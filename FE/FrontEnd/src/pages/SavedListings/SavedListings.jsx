@@ -5,11 +5,13 @@ import ListingCard from '../../components/ListingCard';
 import PageEmptyState from '../../components/PageEmptyState';
 import { useToast } from '../../context/ToastContext';
 import { getMySavedListings, removeSavedListing } from '../../service/home/api.savedListing';
+import { useTitle } from '../../hooks/useTitle';
 import { formatDate } from '../../utils/utils';
 import { Bookmark, Loader2, Trash2 } from 'lucide-react';
 import './SavedListings.css';
 
 export default function SavedListings() {
+  useTitle('Saved Items');
   const navigate = useNavigate();
   const toast = useToast();
 

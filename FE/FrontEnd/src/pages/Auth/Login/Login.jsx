@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { loginWithOAuth } from '../../../service/auth/api.auth';
 import useAuth from '../../../context/UseAuth';
+import { useTitle } from '../../../hooks/useTitle';
 import './Login.css';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../../../config/firebase';
 
 const Login = () => {
+  useTitle('Login');
 
   const [credentials, setCredentials] = useState({
     identifier: '',

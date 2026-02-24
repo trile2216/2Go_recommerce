@@ -5,9 +5,11 @@ import AdminLayout from '../../../layouts/AdminLayout';
 import { fetchCustomers, fetchCustomerById, deleteCustomerById, updateCustomerById } from '../../../service/admin/api.customer';
 import { useToast } from '../../../context/ToastContext';
 import SendNotificationModal from '../../../components/Admin/SendNotificationModal';
+import { useTitle } from '../../../hooks/useTitle';
 import './admin-customers.css';
 
 export default function AdminCustomers() {
+  useTitle('Admin - Customers');
   const toast = useToast();
   const navigate = useNavigate();
   const [customers, setCustomers] = useState([]);
@@ -97,32 +99,39 @@ export default function AdminCustomers() {
   });
 
 
-  const handleEditClick = (customer) => {
-    // Handle both flat structure (from list) and nested profile structure (from detail)
-    const profile = customer.profile || {};
-    const fullName = profile.fullName || customer.fullName || '';
-    
-    // Convert birthday to YYYY-MM-DD format for date input
-    let birthday = '';
-    if (profile.birthday) {
-      const birthdayDate = new Date(profile.birthday);
-      birthday = birthdayDate.toISOString().split('T')[0];
+  const handleEditClick = async (customer) => {
+    try {
+      // Fetch full customer detail to populate modal
+      const detail = await fetchCustomerById(customer.userId);
+      const profile = detail.profile || {};
+      const fullName = profile.fullName || detail.fullName || '';
+      
+      // Convert birthday to YYYY-MM-DD format for date input
+      let birthday = '';
+      const rawBirthday = profile.birthday || detail.birthday;
+      if (rawBirthday) {
+        const birthdayDate = new Date(rawBirthday);
+        birthday = birthdayDate.toISOString().split('T')[0];
+      }
+      
+      setEditFormData({
+        userId: detail.userId,
+        email: detail.email || '',
+        phone: detail.phone || '',
+        fullName: fullName,
+        birthday: birthday,
+        gender: profile.gender || detail.gender || '',
+        address: profile.address || detail.address || '',
+        bio: profile.bio || detail.bio || '',
+        avatarUrl: profile.avatarUrl || detail.avatarUrl || '',
+        status: detail.status,
+        role: detail.role
+      });
+      setShowEditModal(true);
+    } catch (err) {
+      toast.error('Failed to load customer details');
+      console.error(err);
     }
-    
-    setEditFormData({
-      userId: customer.userId,
-      email: customer.email || '',
-      phone: customer.phone || '',
-      fullName: fullName,
-      birthday: birthday,
-      gender: profile.gender || '',
-      address: profile.address || '',
-      bio: profile.bio || '',
-      avatarUrl: profile.avatarUrl || '',
-      status: customer.status,
-      role: customer.role
-    });
-    setShowEditModal(true);
   };
 
   const handleUpdateCustomer = async () => {
@@ -133,20 +142,17 @@ export default function AdminCustomers() {
         return;
       }
 
-      // Send data with nested profile structure to match API expectations
+      // Send flat data structure to match API expectations
       const updateData = {
         email: editFormData.email.trim(),
         phone: editFormData.phone.trim() || '',
         status: editFormData.status,
-        role: editFormData.role,
-        profile: {
-          fullName: editFormData.fullName.trim() || '',
-          birthday: editFormData.birthday ? new Date(editFormData.birthday).toISOString().split('T')[0] : '',
-          gender: editFormData.gender || '',
-          address: editFormData.address.trim() || '',
-          bio: editFormData.bio.trim() || '',
-          avatarUrl: editFormData.avatarUrl.trim() || ''
-        }
+        fullName: editFormData.fullName.trim() || '',
+        birthday: editFormData.birthday || '',
+        gender: editFormData.gender || '',
+        address: editFormData.address.trim() || '',
+        bio: editFormData.bio.trim() || '',
+        avatarUrl: editFormData.avatarUrl.trim() || ''
       };
       
       console.log('Sending update data:', updateData);
