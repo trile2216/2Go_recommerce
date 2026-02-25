@@ -126,7 +126,7 @@ export default function Header() {
     const fetchCategories = async () => {
       try {
         const data = await fetchAllCategories();
-        setCategories([{ id: 0, name: "Tất cả" }, ...data.items.map(cat => ({ id: cat.categoryId, name: cat.name }))]);
+        setCategories([{ id: 0, name: "Tất cả" }, ...data.items.map(cat => ({ id: cat.categoryId, name: cat.name })).filter(cat => cat.isActive === true)]);
       } catch (error) {
         console.error('Error fetching categories:', error);
       }

@@ -17,7 +17,7 @@ export default function HeroBanner() {
     const loadCategories = async () => {
       try {
         const data = await fetchAllCategories();
-        setCategories(data.items || []);
+        setCategories(data.items.filter(cat => cat.isActive === true) || []);
       } catch (error) {
         console.error('Error fetching categories:', error);
       } finally {
