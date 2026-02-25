@@ -4,10 +4,11 @@ import api from '../../config/axios';
  * Tạo thanh toán cho đơn hàng
  * @param {number} orderId - ID đơn hàng
  * @param {string} method - "COD" | "PayOS"
+ * @param {string|null} paymentStage - "DEPOSIT" | "REMAINING" | null
  * @returns {Promise<PaymentResponse>} - includes payUrl for PayOS redirect
  */
-export const createPayment = async (orderId, method) => {
-    const response = await api.post('/payments', { orderId, method });
+export const createPayment = async (orderId, method, paymentStage = null) => {
+    const response = await api.post('/payments', { orderId, method, paymentStage });
     return response.data;
 };
 
