@@ -988,6 +988,43 @@ public class AuthService : IAuthService
             remainingDays);
     }
 
+    public async Task<UserSubscriptionUsageResponse> GetMySubscriptionUsageAsync(ClaimsPrincipal userPrincipal, CancellationToken cancellationToken = default)
+    {
+        var sub = userPrincipal.FindFirst("sub")?.Value
+                  ?? userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                  ?? userPrincipal.FindFirst(ClaimTypes.Name)?.Value;
+
+        if (!long.TryParse(sub, out var userId))
+        {
+            throw new UnauthorizedAccessException("Invalid user id in token.");
+        }
+
+        var now = DateTime.UtcNow;
+        var plan = await ResolveCurrentPlanAsync(userId, now, cancellationToken);
+        var limit = plan?.MonthlyListingLimit;
+
+        var usedCount = 0;
+        if (plan != null)
+        {
+            var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var nextMonthStart = monthStart.AddMonths(1);
+            usedCount = await _uow.Listings.Query()
+                .Where(l => l.SellerId == userId &&
+                            l.PublishedAt.HasValue &&
+                            l.PublishedAt.Value >= monthStart &&
+                            l.PublishedAt.Value < nextMonthStart)
+                .CountAsync(cancellationToken);
+        }
+
+        int? remaining = null;
+        if (limit.HasValue)
+        {
+            remaining = Math.Max(0, limit.Value - usedCount);
+        }
+
+        return new UserSubscriptionUsageResponse(limit, usedCount, remaining);
+    }
+
     public async Task<BasicResponse> UpdateAvatarAsync(ClaimsPrincipal userPrincipal, UpdateAvatarRequest request, CancellationToken cancellationToken = default)
     {
         ValidationGuard.ThrowIfInvalid(UserValidator.ValidateUpdateAvatar(request));
@@ -1185,5 +1222,78 @@ public class AuthService : IAuthService
         {
             _uow.VerificationCodes.RemoveRange(expiredCodes);
         }
+    }
+
+    private async Task<SubscriptionPlan?> ResolveCurrentPlanAsync(long userId, DateTime now, CancellationToken cancellationToken)
+    {
+        var userSub = await _uow.Users.Query()
+            .AsNoTracking()
+            .Where(u => u.UserId == userId)
+            .Select(u => new { u.SubscriptionPlanCode, u.SubscriptionValidUntil, u.SubscriptionUntil })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (userSub != null)
+        {
+            var validUntil = userSub.SubscriptionValidUntil ?? userSub.SubscriptionUntil;
+            if (validUntil.HasValue &&
+                validUntil.Value > now &&
+                !string.IsNullOrWhiteSpace(userSub.SubscriptionPlanCode))
+            {
+                var code = userSub.SubscriptionPlanCode.Trim().ToUpperInvariant();
+                var planByCode = await _uow.SubscriptionPlans.Query()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.Code == code, cancellationToken);
+                if (planByCode != null) return planByCode;
+            }
+        }
+
+        var hasActiveSubscription = userSub != null &&
+                                    (userSub.SubscriptionValidUntil ?? userSub.SubscriptionUntil).HasValue &&
+                                    (userSub.SubscriptionValidUntil ?? userSub.SubscriptionUntil)!.Value > now;
+
+        if (hasActiveSubscription)
+        {
+            var payment = await _uow.Payments.Query()
+                .Where(p => p.UserId == userId &&
+                            p.PaymentType == PaymentTypes.Subscription &&
+                            p.Status == PaymentStatuses.Paid &&
+                            p.SubscriptionValidUntil.HasValue &&
+                            p.SubscriptionValidUntil.Value > now)
+                .OrderByDescending(p => p.SubscriptionValidUntil)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var plan = await ResolvePlanForPaymentAsync(payment, cancellationToken);
+            if (plan != null) return plan;
+            return null;
+        }
+
+        var freePlan = await _uow.SubscriptionPlans.Query()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.IsActive && p.Price <= 0, cancellationToken);
+        return freePlan;
+    }
+
+    private async Task<SubscriptionPlan?> ResolvePlanForPaymentAsync(Payment? payment, CancellationToken cancellationToken)
+    {
+        if (payment == null) return null;
+
+        if (!string.IsNullOrWhiteSpace(payment.SubscriptionPlanCode))
+        {
+            var code = payment.SubscriptionPlanCode.Trim().ToUpperInvariant();
+            return await _uow.SubscriptionPlans.Query()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Code == code, cancellationToken);
+        }
+
+        if (payment.Amount.HasValue && payment.SubscriptionDays.HasValue)
+        {
+            return await _uow.SubscriptionPlans.Query()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p =>
+                    p.DurationDays == payment.SubscriptionDays.Value &&
+                    p.Price == payment.Amount.Value, cancellationToken);
+        }
+
+        return null;
     }
 }

@@ -23,6 +23,7 @@ public interface IAuthService
     Task<BasicResponse> RemoveMyDeviceAsync(ClaimsPrincipal userPrincipal, long deviceId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ActivityResponse>> GetMyActivityAsync(ClaimsPrincipal userPrincipal, CancellationToken cancellationToken = default);
     Task<_2GO_EXE_Project.BAL.DTOs.Subscriptions.UserSubscriptionResponse> GetMySubscriptionAsync(ClaimsPrincipal userPrincipal, CancellationToken cancellationToken = default);
+    Task<_2GO_EXE_Project.BAL.DTOs.Subscriptions.UserSubscriptionUsageResponse> GetMySubscriptionUsageAsync(ClaimsPrincipal userPrincipal, CancellationToken cancellationToken = default);
     Task<BasicResponse> UpdateAvatarAsync(ClaimsPrincipal userPrincipal, UpdateAvatarRequest request, CancellationToken cancellationToken = default);
     Task<BasicResponse> UpdateAddressAsync(ClaimsPrincipal userPrincipal, UpdateAddressRequest request, CancellationToken cancellationToken = default);
 }

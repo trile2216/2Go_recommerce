@@ -32,4 +32,12 @@ public class SubscriptionPlansController : ControllerBase
         var result = await _authService.GetMySubscriptionAsync(User, cancellationToken);
         return Ok(result);
     }
+
+    [HttpGet("me/usage")]
+    [Authorize]
+    public async Task<IActionResult> GetMySubscriptionUsage(CancellationToken cancellationToken = default)
+    {
+        var result = await _authService.GetMySubscriptionUsageAsync(User, cancellationToken);
+        return Ok(result);
+    }
 }

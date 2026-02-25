@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using _2GO_EXE_Project.BAL.Constants;
 using _2GO_EXE_Project.BAL.DTOs.Comments;
+using _2GO_EXE_Project.BAL.DTOs.Notifications;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.BAL.Validation;
 using _2GO_EXE_Project.DAL.Entities;
@@ -12,10 +13,12 @@ namespace _2GO_EXE_Project.BAL.Services;
 public class CommentService : ICommentService
 {
     private readonly IUnitOfWork _uow;
+    private readonly INotificationService _notificationService;
 
-    public CommentService(IUnitOfWork uow)
+    public CommentService(IUnitOfWork uow, INotificationService notificationService)
     {
         _uow = uow;
+        _notificationService = notificationService;
     }
 
     private static long GetUserId(ClaimsPrincipal principal)
@@ -43,10 +46,11 @@ public class CommentService : ICommentService
             throw new InvalidOperationException(ErrorMessages.LISTING_NOT_FOUND);
         }
 
+        ListingComment? parentComment = null;
         // Validate parent comment if provided
         if (request.ParentId.HasValue)
         {
-            var parentComment = await _uow.ListingComments.GetByIdAsync(request.ParentId.Value);
+            parentComment = await _uow.ListingComments.GetByIdAsync(request.ParentId.Value);
             if (parentComment == null)
             {
                 throw new InvalidOperationException(ErrorMessages.PARENT_COMMENT_NOT_FOUND);
@@ -69,6 +73,33 @@ public class CommentService : ICommentService
 
         await _uow.ListingComments.AddAsync(comment);
         await _uow.SaveChangesAsync(cancellationToken);
+
+        var listingOwnerId = listing.SellerId;
+        if (listingOwnerId.HasValue && listingOwnerId.Value != userId)
+        {
+            await NotifyAsync(
+                listingOwnerId.Value,
+                "LISTING",
+                "New comment",
+                "Your listing has a new comment.",
+                $"/listings/{request.ListingId}",
+                cancellationToken);
+        }
+
+        if (parentComment != null)
+        {
+            var replyToUserId = parentComment.UserId;
+            if (replyToUserId != userId && (!listingOwnerId.HasValue || replyToUserId != listingOwnerId.Value))
+            {
+                await NotifyAsync(
+                    replyToUserId,
+                    "LISTING",
+                    "New reply",
+                    "Someone replied to your comment.",
+                    $"/listings/{request.ListingId}",
+                    cancellationToken);
+            }
+        }
 
         // Reload with user details
         var created = await _uow.ListingComments.GetByIdWithDetailsAsync(comment.CommentId, cancellationToken);
@@ -174,5 +205,22 @@ public class CommentService : ICommentService
             comment.CreatedAt,
             comment.UpdatedAt,
             comment.Replies.Count);
+    }
+
+    private async Task NotifyAsync(long userId, string type, string title, string message, string? link, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _notificationService.CreateAsync(new CreateNotificationRequest(
+                userId,
+                title,
+                message,
+                type,
+                link), cancellationToken);
+        }
+        catch
+        {
+            // ignore notification failures
+        }
     }
 }   
