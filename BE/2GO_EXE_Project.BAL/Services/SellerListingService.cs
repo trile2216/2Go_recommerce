@@ -525,17 +525,31 @@ public class SellerListingService : ISellerListingService
         var plan = await ResolveCurrentPlanAsync(user.UserId, now, cancellationToken);
         if (plan?.MonthlyListingLimit is int limit)
         {
-            var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-            var nextMonthStart = monthStart.AddMonths(1);
-            var publishedCount = await _uow.Listings.Query()
-                .Where(l => l.SellerId == sellerId &&
-                            l.PublishedAt.HasValue &&
-                            l.PublishedAt.Value >= monthStart &&
-                            l.PublishedAt.Value < nextMonthStart)
-                .CountAsync(cancellationToken);
-            if (publishedCount >= limit)
+            if (plan.Price <= 0)
             {
-                return new BasicResponse(false, "Publish limit reached for your current plan. Please upgrade to continue.");
+                var activeCount = await _uow.Listings.Query()
+                    .Where(l => l.SellerId == sellerId &&
+                                l.Status == ListingStatuses.Active)
+                    .CountAsync(cancellationToken);
+                if (activeCount >= limit)
+                {
+                    return new BasicResponse(false, "Active listing limit reached for your current plan. Please upgrade to continue.");
+                }
+            }
+            else
+            {
+                var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                var nextMonthStart = monthStart.AddMonths(1);
+                var publishedCount = await _uow.Listings.Query()
+                    .Where(l => l.SellerId == sellerId &&
+                                l.PublishedAt.HasValue &&
+                                l.PublishedAt.Value >= monthStart &&
+                                l.PublishedAt.Value < nextMonthStart)
+                    .CountAsync(cancellationToken);
+                if (publishedCount >= limit)
+                {
+                    return new BasicResponse(false, "Publish limit reached for your current plan. Please upgrade to continue.");
+                }
             }
         }
 
@@ -759,8 +773,30 @@ public class SellerListingService : ISellerListingService
 
     private async Task<SubscriptionPlan?> ResolveCurrentPlanAsync(long userId, DateTime now, CancellationToken cancellationToken)
     {
-        var hasActiveSubscription = await _uow.Users.Query()
-            .AnyAsync(u => u.UserId == userId && u.SubscriptionUntil.HasValue && u.SubscriptionUntil.Value > now, cancellationToken);
+        var userSub = await _uow.Users.Query()
+            .AsNoTracking()
+            .Where(u => u.UserId == userId)
+            .Select(u => new { u.SubscriptionPlanCode, u.SubscriptionValidUntil, u.SubscriptionUntil })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (userSub != null)
+        {
+            var validUntil = userSub.SubscriptionValidUntil ?? userSub.SubscriptionUntil;
+            if (validUntil.HasValue &&
+                validUntil.Value > now &&
+                !string.IsNullOrWhiteSpace(userSub.SubscriptionPlanCode))
+            {
+                var code = userSub.SubscriptionPlanCode.Trim().ToUpperInvariant();
+                var planByCode = await _uow.SubscriptionPlans.Query()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.Code == code, cancellationToken);
+                if (planByCode != null) return planByCode;
+            }
+        }
+
+        var hasActiveSubscription = userSub != null &&
+                                    (userSub.SubscriptionValidUntil ?? userSub.SubscriptionUntil).HasValue &&
+                                    (userSub.SubscriptionValidUntil ?? userSub.SubscriptionUntil)!.Value > now;
 
         if (hasActiveSubscription)
         {

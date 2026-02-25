@@ -45,6 +45,14 @@ public partial class User
 
     public DateTime? SubscriptionUntil { get; set; }
 
+    [StringLength(50)]
+    [Unicode(false)]
+    public string? SubscriptionPlanCode { get; set; }
+
+    public DateTime? SubscriptionValidFrom { get; set; }
+
+    public DateTime? SubscriptionValidUntil { get; set; }
+
     [InverseProperty("User")]
     public virtual ICollection<ActivityLog> ActivityLogs { get; set; } = new List<ActivityLog>();
 

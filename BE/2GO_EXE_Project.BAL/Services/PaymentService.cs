@@ -659,6 +659,10 @@ public class PaymentService : IPaymentService
         {
             return;
         }
+        if (payment.Amount.HasValue && payment.Amount.Value <= 0)
+        {
+            return;
+        }
         if (payment.SubscriptionValidUntil.HasValue)
         {
             return;
@@ -669,6 +673,10 @@ public class PaymentService : IPaymentService
         if (user == null) return;
 
         var plan = await ResolvePlanForPaymentAsync(payment, cancellationToken);
+        if (plan != null && plan.Price <= 0)
+        {
+            return;
+        }
         var now = DateTime.UtcNow;
         var start = user.SubscriptionUntil.HasValue && user.SubscriptionUntil.Value > now
             ? user.SubscriptionUntil.Value
@@ -678,7 +686,13 @@ public class PaymentService : IPaymentService
 
         payment.SubscriptionValidFrom = start;
         payment.SubscriptionValidUntil = until;
+        user.SubscriptionValidFrom = start;
+        user.SubscriptionValidUntil = until;
         user.SubscriptionUntil = until;
+        if (plan != null)
+        {
+            user.SubscriptionPlanCode = plan.Code;
+        }
 
         _uow.Payments.Update(payment);
         _uow.Users.Update(user);
