@@ -26,7 +26,7 @@ const Home = () => {
   const navigation = useNavigation();
   const { isFavorited, addToFavorites, removeFromFavorites } = useFavorites();
   const { user } = useAuth();
-  const { cartCount, fetchCartData } = useCart();
+  const { cartCount, fetchCartData, addToCart } = useCart();
 
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -153,6 +153,42 @@ const Home = () => {
     }
   };
 
+  const handleAddToCart = async (product) => {
+    if (!user) {
+      navigation.navigate("Login");
+      return;
+    }
+    
+    // Validate productId
+    const productId = product.listingId || product.id;
+    if (!productId) {
+      console.error('Product ID not found:', product);
+      return;
+    }
+    
+    try {
+      console.log('Adding to cart:', {
+        listingId: productId,
+        quantity: 1,
+        product: product
+      });
+      
+      const result = await addToCart(Number(productId), 1, product);
+      
+      if (result.success) {
+        console.log('Successfully added to cart');
+        // Show success feedback - you could add an alert here
+      } else {
+        console.error('Error adding to cart:', result.error);
+        // Handle error - you could show an alert here
+      }
+      
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      console.error('Error details:', error?.response?.data || error?.data);
+    }
+  };
+
   const handleCategoryPress = (categoryId) => {
     if (selectedCategory === categoryId) {
       setSelectedCategory(null);
@@ -187,6 +223,18 @@ const Home = () => {
               name={isFav ? "heart" : "heart-outline"}
               size={18}
               color={isFav ? "#ef4444" : "#9ca3af"}
+            />
+          </Pressable>
+
+          {/* Add to Cart Button */}
+          <Pressable
+            style={[styles.favoriteButton, styles.cartButton]}
+            onPress={() => handleAddToCart(product)}
+          >
+            <MaterialCommunityIcons
+              name="cart-plus"
+              size={18}
+              color="#359EFF"
             />
           </Pressable>
 
@@ -225,90 +273,8 @@ const Home = () => {
     );
   };
 
-  const renderHeader = () => (
+  const renderListHeader = () => (
     <>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View style={styles.logoContainer}>
-            <Image uri={require("../../assets/logo.jpg")} style={{ width: 20, height: 20 }} />
-          </View>
-          <View>
-            <Text style={styles.appTitle}>2Go </Text>
-            <Text style={styles.locationLabel}>Thủ Đức</Text>
-          </View>
-        </View>
-
-        <View style={styles.headerRight}>
-          <Pressable style={styles.cartBtn} onPress={() => {
-            if (!user) {
-              navigation.navigate("Login");
-              return;
-            }
-            navigation.navigate("Cart");
-          }}>
-            <MaterialCommunityIcons name="cart-outline" size={24} color="#374151" />
-            {cartCount > 0 && (
-              <View style={styles.cartBadge}>
-                <Text style={styles.cartBadgeText}>
-                  {cartCount > 9 ? "9+" : cartCount}
-                </Text>
-              </View>
-            )}
-          </Pressable>
-
-          <Pressable 
-            style={styles.notificationBtn}
-            onPress={() => {
-              if (!user) {
-                navigation.navigate("Login");
-                return;
-              }
-              navigation.navigate("Notifications");
-            }}
-          >
-            <MaterialCommunityIcons name="bell-outline" size={24} color="#374151" />
-            {unreadCount > 0 && (
-               <View style={styles.cartBadge}>
-                 <Text style={styles.cartBadgeText}>
-                   {unreadCount > 9 ? "9+" : unreadCount}
-                 </Text>
-               </View>
-            )}
-          </Pressable>
-
-          <Pressable
-            style={styles.addBtn}
-            onPress={() => {
-              if (!user) {
-                navigation.navigate("Login");
-                return;
-              }
-              navigation.navigate("AddListing");
-            }}
-          >
-            <MaterialCommunityIcons name="plus" size={24} color="#fff" />
-          </Pressable>
-        </View>
-      </View>
-
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchInputWrapper}>
-          <MaterialCommunityIcons name="magnify" size={20} color="#9ca3af" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Tìm kiếm sản phẩm..."
-            placeholderTextColor="#9ca3af"
-            value={searchText}
-            onChangeText={setSearchText}
-          />
-          <Pressable style={styles.filterBtn}>
-            <MaterialCommunityIcons name="tune-variant" size={20} color="#9ca3af" />
-          </Pressable>
-        </View>
-      </View>
-
       {/* Categories */}
       <ScrollView
         horizontal
@@ -385,15 +351,115 @@ const Home = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <View style={styles.logoContainer}>
+            <Image source={require("../../assets/logo.jpg")} style={{ width: 20, height: 20 }} />
+          </View>
+          <View>
+            <Text style={styles.appTitle}>2Go </Text>
+            <Text style={styles.locationLabel}>Thủ Đức</Text>
+          </View>
+        </View>
+
+        <View style={styles.headerRight}>
+          <Pressable style={styles.cartBtn} onPress={() => {
+            if (!user) {
+              navigation.navigate("Login");
+              return;
+            }
+            navigation.navigate("Cart");
+          }}>
+            <MaterialCommunityIcons name="cart-outline" size={24} color="#374151" />
+            {cartCount > 0 && (
+              <View style={styles.cartBadge}>
+                <Text style={styles.cartBadgeText}>
+                  {cartCount > 9 ? "9+" : cartCount}
+                </Text>
+              </View>
+            )}
+          </Pressable>
+
+          <Pressable 
+            style={styles.notificationBtn}
+            onPress={() => {
+              if (!user) {
+                navigation.navigate("Login");
+                return;
+              }
+              navigation.navigate("Notifications");
+            }}
+          >
+            <MaterialCommunityIcons name="bell-outline" size={24} color="#374151" />
+            {unreadCount > 0 && (
+               <View style={styles.cartBadge}>
+                 <Text style={styles.cartBadgeText}>
+                   {unreadCount > 9 ? "9+" : unreadCount}
+                 </Text>
+               </View>
+            )}
+          </Pressable>
+
+          <Pressable
+            style={styles.addBtn}
+            onPress={() => {
+              if (!user) {
+                navigation.navigate("Login");
+                return;
+              }
+              navigation.navigate("AddListing");
+            }}
+          >
+            <MaterialCommunityIcons name="plus" size={24} color="#fff" />
+          </Pressable>
+        </View>
+      </View>
+
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchInputWrapper}>
+          <MaterialCommunityIcons name="magnify" size={20} color="#9ca3af" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Tìm kiếm sản phẩm..."
+            placeholderTextColor="#9ca3af"
+            value={searchText}
+            onChangeText={setSearchText}
+            returnKeyType="search"
+            blurOnSubmit={false}
+            autoCorrect={false}
+            autoCapitalize="none"
+            clearButtonMode="while-editing"
+            selectTextOnFocus={false}
+            textContentType="none"
+            keyboardType="default"
+          />
+          {searchText.length > 0 && (
+            <Pressable 
+              style={styles.clearBtn} 
+              onPress={() => setSearchText("")}
+            >
+              <MaterialCommunityIcons name="close-circle" size={18} color="#9ca3af" />
+            </Pressable>
+          )}
+          <Pressable style={styles.filterBtn}>
+            <MaterialCommunityIcons name="tune-variant" size={20} color="#9ca3af" />
+          </Pressable>
+        </View>
+      </View>
 
       <FlatList
         data={filteredProducts}
-        keyExtractor={(item) => (item.listingId || item.id)?.toString() || Math.random().toString()}
+        keyExtractor={(item, index) => `product-${item.listingId || item.id || index}`}
         numColumns={2}
         columnWrapperStyle={styles.columnWrapper}
         renderItem={({ item }) => <ProductCard product={item} />}
-        ListHeaderComponent={renderHeader}
+        ListHeaderComponent={renderListHeader}
         scrollIndicatorInsets={{ right: 1 }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -545,6 +611,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#111827",
   },
+  clearBtn: {
+    padding: 4,
+    marginHorizontal: 4,
+  },
   filterBtn: {
     padding: 4,
   },
@@ -668,6 +738,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+  },
+  cartButton: {
+    top: 48,
+    backgroundColor: "rgba(255,255,255,0.95)",
   },
   priceBadge: {
     position: "absolute",
