@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Mail, Phone, MapPin, Calendar, Shield, Eye, EyeOff, Upload, Loader2 } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, Shield, Eye, EyeOff, Upload, Loader2, Award } from 'lucide-react';
 import { useDispatch } from 'react-redux';
 import { useTitle } from '../../hooks/useTitle';
 import UserLayout from '../../layouts/UserLayout';
@@ -650,6 +650,22 @@ export default function UserInfo() {
                     <p>{userInfo.profile?.birthday || 'Chưa cập nhật'}</p>
                   </div>
                 </div>
+
+                <div className="info-card">
+                  <div className="info-icon" style={{ backgroundColor: '#ebf4ff', color: '#3182ce' }}>
+                    <Award size={24} />
+                  </div>
+                  <div className="info-details">
+                    <h6>Gói hội viên</h6>
+                    <p>
+                        {userInfo.subscriptionPlanName ? (
+                            <span style={{ fontWeight: 600, color: userInfo.subscriptionActive ? '#3182ce' : '#718096' }}>
+                                {userInfo.subscriptionPlanName}
+                            </span>
+                        ) : 'Chưa đăng ký'}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="bio-section">
@@ -725,6 +741,34 @@ export default function UserInfo() {
                         <span className={`ui-badge ${userInfo.status?.toLowerCase()}`}>
                           {userInfo.status === 'Active' ? 'Hoạt động' : userInfo.status}
                         </span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="label">Gói hội viên</td>
+                      <td className="value">
+                        {userInfo.subscriptionPlanName ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <div>                                
+                                  <span style={{ fontWeight: 600, color: '#3182ce', marginRight: 10 }}>{userInfo.subscriptionPlanName}</span> 
+                                  <span className={`ui-badge ${userInfo.subscriptionActive ? 'verified' : 'unverified'}`} style={{ width: 'fit-content', marginTop: '4px' }}>
+                                    {userInfo.subscriptionActive ? 'Đang hoạt động' : 'Hết hạn'}
+                                </span>
+                              </div>
+                                {userInfo.subscriptionValidFrom && userInfo.subscriptionValidUntil && (
+                                    <span style={{ fontSize: '0.85rem', color: '#718096' }}>
+                                        {formatDate(userInfo.subscriptionValidFrom)} - {formatDate(userInfo.subscriptionValidUntil)}
+                                        {userInfo.subscriptionRemainingDays !== null && ` (${userInfo.subscriptionRemainingDays} ngày còn lại)`}
+                                    </span>
+                                )}
+                               
+                            </div>
+                        ) : 'Chưa đăng ký'}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="label">Giới hạn đăng tin</td>
+                      <td className="value">
+                        {userInfo.monthlyListingLimit !== undefined && userInfo.monthlyListingLimit !== null ? `${userInfo.monthlyListingLimit} tin/tháng` : 'Không giới hạn'}
                       </td>
                     </tr>
                     <tr>

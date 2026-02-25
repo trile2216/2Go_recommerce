@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import './SubscriptionPlans.css';
 import { fetchSubscriptionPlans, fetchMySubscription } from '../../service/home/api.subscription';
 import { createSubscriptionPayment } from '../../service/home/api.payment';
-import { Check, Package } from 'lucide-react';
+import { Check, Package, Loader2 } from 'lucide-react';
 import PageEmptyState from '../../components/PageEmptyState';
 import { useToast } from '../../context/ToastContext';
 
@@ -10,7 +10,8 @@ const SubscriptionPlans = () => {
     const [plans, setPlans] = useState([]);
     const [currentPlan, setCurrentPlan] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState(null)
+    const [processingPlan, setProcessingPlan] = useState(null);
     const toast = useToast();
 
     useEffect(() => {
@@ -36,6 +37,8 @@ const SubscriptionPlans = () => {
     }, []);
 
     const handleBuySubscription = async (code) => {
+        if (processingPlan) return;
+        setProcessingPlan(code);
         try {
             const response = await createSubscriptionPayment('PAYOS', code);
             
@@ -46,13 +49,27 @@ const SubscriptionPlans = () => {
                 window.location.href = response.payUrl;
             } else {
                 toast.error('Không thể tạo thanh toán. Vui lòng thử lại.');
+                setProcessingPlan(null);
             }
         } catch (error) {
             console.error('Payment creation failed:', error);
             const errMs = error?.response?.data || 'Đã có lỗi xảy ra khi tạo thanh toán.';
             toast.error(errMs);
+            setProcessingPlan(null);
         }
     };
+
+    if (loading) {
+        return (
+            <div className="subscription-plans-container">
+                <PageEmptyState
+                    icon={<Loader2 size={64} className="text-gray-300 animate-spin" />}
+                    title="Đang tải các gói dịch vụ..."
+                    description="Vui lòng đợi trong giây lát."
+                />
+            </div>
+        );
+    }
 
     if (!loading && plans.length === 0) {
         return (
@@ -90,9 +107,14 @@ const SubscriptionPlans = () => {
 
             <div className="subscription-plans-grid">
                 {plans.map((plan) => {
-                    // Match current plan by code or name
+                    // Match current plan by code or name using the new API fields (subscriptionPlanCode) or fallback to standard ones
                     const isCurrentPlan = currentPlan && 
-                        (currentPlan.code === plan.code || currentPlan.name === plan.name || currentPlan.planCode === plan.code);
+                        (   currentPlan.subscriptionPlanCode === plan.code || 
+                            currentPlan.subscriptionPlanName === plan.name || 
+                            currentPlan.code === plan.code || 
+                            currentPlan.name === plan.name || 
+                            currentPlan.planCode === plan.code
+                        );
 
                     return (
                     <div key={plan.planId} className={`plan-card ${plan.isFeatured ? 'featured' : ''} ${isCurrentPlan ? 'current-plan-card' : ''}`}>
@@ -136,10 +158,21 @@ const SubscriptionPlans = () => {
                                 </button>
                             ) : (
                                 <button 
-                                    className={`plan-btn ${plan.isFeatured ? '' : 'outline'}`}
+                                    className={`plan-btn ${plan.isFeatured ? '' : 'outline'} ${processingPlan === plan.code ? 'processing' : ''}`}
                                     onClick={() => handleBuySubscription(plan.code)}
+                                    disabled={processingPlan !== null || plan.price <= 0}
+                                    style={plan.price <= 0 ? { opacity: 0.5 } : {}}
                                 >
-                                    Chọn gói này
+                                    {processingPlan === plan.code ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                            <span className="spinner-small" style={{ borderTopColor: plan.isFeatured ? '#fff' : '#3182ce' }}></span>
+                                            Đang xử lý...
+                                        </div>
+                                    ) : plan.price <= 0 ? (
+                                        'Gói mặc định'
+                                    ) : (
+                                        'Chọn gói này'
+                                    )}
                                 </button>
                             )}
                         </div>
