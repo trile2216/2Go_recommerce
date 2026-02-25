@@ -953,6 +953,19 @@ public class AuthService : IAuthService
         }
 
         var now = DateTime.UtcNow;
+        SubscriptionPlan? plan = null;
+        var planCode = string.IsNullOrWhiteSpace(user.SubscriptionPlanCode)
+            ? null
+            : user.SubscriptionPlanCode.Trim().ToUpperInvariant();
+        if (!string.IsNullOrWhiteSpace(planCode))
+        {
+            plan = await _uow.SubscriptionPlans.Query()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Code == planCode, cancellationToken);
+        }
+        plan ??= await _uow.SubscriptionPlans.Query()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.IsActive && p.Price <= 0, cancellationToken);
         var until = user.SubscriptionUntil;
         var isActive = until.HasValue && until.Value > now;
         int? remainingDays = null;
@@ -961,8 +974,18 @@ public class AuthService : IAuthService
             var remaining = until.Value - now;
             remainingDays = remaining.TotalDays <= 0 ? 0 : (int)Math.Ceiling(remaining.TotalDays);
         }
+        else if (plan?.Price <= 0)
+        {
+            isActive = true;
+        }
 
-        return new UserSubscriptionResponse(user.UserId, until, isActive, remainingDays);
+        return new UserSubscriptionResponse(
+            user.UserId,
+            planCode ?? plan?.Code,
+            plan?.Name,
+            until,
+            isActive,
+            remainingDays);
     }
 
     public async Task<BasicResponse> UpdateAvatarAsync(ClaimsPrincipal userPrincipal, UpdateAvatarRequest request, CancellationToken cancellationToken = default)
