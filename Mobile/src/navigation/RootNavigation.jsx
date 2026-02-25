@@ -107,7 +107,7 @@ const MainStack = () => {
           if (route.name === "Home") {
             iconName = "home";
           } else if (route.name === "Favorites") {
-            iconName = "post";
+            iconName = "heart";
           } else if (route.name === "Chat") {
             iconName = "chat";
           } else if (route.name === "Profile") {
@@ -141,7 +141,7 @@ const MainStack = () => {
       <Tabs.Screen
         name="Favorites"
         component={Favorites}
-        options={{ title: "Bài đăng" }}
+        options={{ title: "Yêu thích" }}
       />
       <Tabs.Screen
         name="Chat"
