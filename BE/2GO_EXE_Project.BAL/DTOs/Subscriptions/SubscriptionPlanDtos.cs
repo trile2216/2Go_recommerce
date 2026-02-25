@@ -39,6 +39,8 @@ public record UpdateSubscriptionPlanPriceRequest(decimal Price);
 
 public record UserSubscriptionResponse(
     long UserId,
+    string? SubscriptionPlanCode,
+    string? SubscriptionPlanName,
     DateTime? SubscriptionUntil,
     bool IsActive,
     int? RemainingDays);
