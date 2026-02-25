@@ -13,7 +13,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { fetchSubscriptionPlans } from "../service/home/api.subscription";
+import { fetchSubscriptionPlans, fetchMySubscription } from "../service/home/api.subscription";
 import { createSubscriptionPayment } from "../service/home/api.payment";
 
 const Subscription = ({ navigation }) => {
@@ -21,6 +21,7 @@ const Subscription = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [processingPlanId, setProcessingPlanId] = useState(null);
+  const [currentPlan, setCurrentPlan] = useState(null);
 
   useEffect(() => {
     loadPlans();
@@ -30,8 +31,14 @@ const Subscription = ({ navigation }) => {
     try {
       setLoading(true);
       setError(null);
-      const data = await fetchSubscriptionPlans();
+      const [data, mySub] = await Promise.all([
+          fetchSubscriptionPlans(),
+          fetchMySubscription().catch(() => null)
+      ]);
       setPlans(data.items || []);
+      if (mySub && mySub.isActive) {
+          setCurrentPlan(mySub);
+      }
     } catch (err) {
       setError("Không thể tải gói dịch vụ. Vui lòng thử lại sau.");
       console.error("Error loading plans:", err);
@@ -157,15 +164,28 @@ const Subscription = ({ navigation }) => {
         </View>
 
         {/* Plans */}
-        {plans.map((plan) => (
+        {plans.map((plan) => {
+            const isCurrentPlan = currentPlan && 
+                (   currentPlan.subscriptionPlanCode === plan.code || 
+                    currentPlan.subscriptionPlanName === plan.name || 
+                    currentPlan.code === plan.code || 
+                    currentPlan.name === plan.name || 
+                    currentPlan.planCode === plan.code
+                );
+            return (
           <View
             key={plan.planId}
-            style={[styles.planCard, plan.isFeatured && styles.planCardFeatured]}
+            style={[styles.planCard, plan.isFeatured ? styles.planCardFeatured : null, isCurrentPlan ? styles.planCardCurrent : null]}
           >
             {/* Featured Badge */}
-            {plan.isFeatured && (
+            {plan.isFeatured && !isCurrentPlan && (
               <View style={styles.featuredBadge}>
                 <Text style={styles.featuredBadgeText}>PHỔ BIẾN NHẤT</Text>
+              </View>
+            )}
+            {isCurrentPlan && (
+              <View style={[styles.featuredBadge, styles.currentBadge]}>
+                <Text style={styles.featuredBadgeText}>GÓI HIỆN TẠI</Text>
               </View>
             )}
 
@@ -209,10 +229,11 @@ const Subscription = ({ navigation }) => {
               style={[
                 styles.planButton,
                 plan.isFeatured ? styles.planButtonPrimary : styles.planButtonOutline,
-                processingPlanId === plan.planId && styles.planButtonDisabled,
+                isCurrentPlan ? styles.planButtonCurrent : null,
+                processingPlanId === plan.planId || plan.price <= 0 ? styles.planButtonDisabled : null,
               ]}
               onPress={() => handleBuySubscription(plan)}
-              disabled={processingPlanId === plan.planId}
+              disabled={processingPlanId === plan.planId || plan.price <= 0 || isCurrentPlan}
             >
               {processingPlanId === plan.planId ? (
                 <ActivityIndicator
@@ -224,14 +245,15 @@ const Subscription = ({ navigation }) => {
                   style={[
                     styles.planButtonText,
                     plan.isFeatured ? styles.planButtonTextPrimary : styles.planButtonTextOutline,
+                    isCurrentPlan ? styles.planButtonTextCurrent : null,
                   ]}
                 >
-                  Chọn gói này
+                  {isCurrentPlan ? "Đang sử dụng" : plan.price <= 0 ? "Gói mặc định" : "Chọn gói này"}
                 </Text>
               )}
             </Pressable>
           </View>
-        ))}
+        )})}
 
         {/* Bottom padding */}
         <View style={{ height: 40 }} />
@@ -464,6 +486,21 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 15,
     fontWeight: "600",
+  },
+  planCardCurrent: {
+    borderColor: "#22c55e",
+    borderWidth: 2,
+  },
+  currentBadge: {
+    backgroundColor: "#22c55e",
+  },
+  planButtonCurrent: {
+    backgroundColor: "#f0fdf4",
+    borderColor: "#22c55e",
+    borderWidth: 2,
+  },
+  planButtonTextCurrent: {
+    color: "#15803d",
   },
 });
 
