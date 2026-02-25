@@ -20,6 +20,9 @@ import { useCart } from "../context/CartContext";
 import { createOrder } from "../service/home/api.order";
 import { createPayment } from "../service/home/api.payment";
 
+const DEPOSIT_THRESHOLD = 2_000_000;
+const DEPOSIT_RATE = 0.1;
+
 const PAYMENT_METHODS = [
   {
     id: "COD",
@@ -91,6 +94,19 @@ const Checkout = () => {
     }, 0);
   };
 
+  // Escrow logic
+  const total = getTotalPrice();
+  const requiresDeposit = total >= DEPOSIT_THRESHOLD;
+  const depositAmount = requiresDeposit ? Math.round(total * DEPOSIT_RATE) : 0;
+  const remainingAmount = requiresDeposit ? total - depositAmount : 0;
+
+  // Auto-switch to PayOS when deposit is required (COD not allowed)
+  useEffect(() => {
+    if (requiresDeposit && paymentMethod === "COD") {
+      setPaymentMethod("PayOS");
+    }
+  }, [requiresDeposit, paymentMethod]);
+
   const handleSubmit = async () => {
     if (!buyerInfo.fullName.trim()) {
       Alert.alert("Thông báo", "Vui lòng nhập họ và tên");
@@ -113,18 +129,23 @@ const Checkout = () => {
 
     try {
       const deliveryAddress = buyerInfo.address;
+      const deliveryPhone = buyerInfo.phone;
       const orderResults = [];
 
       // Create order for each item
       for (const item of displayItems) {
         const listingId = item.listingId || item.id;
-        const result = await createOrder(listingId, paymentMethod, deliveryAddress);
+        const result = await createOrder(listingId, paymentMethod, deliveryAddress, deliveryPhone);
+        const itemTotal = result.totalAmount || (item.priceSnapshot || item.price || 0);
+        const itemRequiresDeposit = itemTotal >= DEPOSIT_THRESHOLD;
+        const paymentStage = itemRequiresDeposit ? "DEPOSIT" : null;
         
         // Create payment
-        const paymentRequest = await createPayment(result.orderId, result.paymentMethod);
+        const paymentRequest = await createPayment(result.orderId, result.paymentMethod, paymentStage);
         orderResults.push({
           ...result,
           paymentRequest,
+          itemRequiresDeposit,
         });
       }
 
@@ -151,17 +172,31 @@ const Checkout = () => {
 
       // COD flow
       if (!singleItem) await clearCartData();
-      Alert.alert("Thành công", "Đặt hàng thành công!", [
-        {
-          text: "Xem đơn hàng",
-          onPress: () => {
-            navigation.reset({
-              index: 1,
-              routes: [{ name: "Main" }, { name: "Orders" }],
-            });
+      if (orderResults.some((r) => r.itemRequiresDeposit)) {
+        Alert.alert("Thành công", "Đặt hàng thành công! Vui lòng thanh toán cọc để xác nhận đơn hàng.", [
+          {
+            text: "Xem đơn hàng",
+            onPress: () => {
+              navigation.reset({
+                index: 1,
+                routes: [{ name: "Main" }, { name: "Orders" }],
+              });
+            },
           },
-        },
-      ]);
+        ]);
+      } else {
+        Alert.alert("Thành công", "Đặt hàng thành công!", [
+          {
+            text: "Xem đơn hàng",
+            onPress: () => {
+              navigation.reset({
+                index: 1,
+                routes: [{ name: "Main" }, { name: "Orders" }],
+              });
+            },
+          },
+        ]);
+      }
     } catch (error) {
       console.error("Checkout error:", error);
       const message =
@@ -199,6 +234,19 @@ const Checkout = () => {
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        {/* Deposit Warning Banner */}
+        {requiresDeposit && (
+          <View style={styles.depositBanner}>
+            <MaterialCommunityIcons name="shield-alert" size={20} color="#F97316" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.depositBannerTitle}>Đơn hàng có giá trị cao</Text>
+              <Text style={styles.depositBannerText}>
+                Đơn hàng trên {formatPrice(DEPOSIT_THRESHOLD)} cần đặt cọc {Math.round(DEPOSIT_RATE * 100)}% để bảo vệ quyền lợi của cả hai bên.
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Buyer Info */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
@@ -253,50 +301,70 @@ const Checkout = () => {
             <Text style={styles.cardTitle}>Phương thức thanh toán</Text>
           </View>
 
-          {PAYMENT_METHODS.map((method) => (
-            <Pressable
-              key={method.id}
-              style={[
-                styles.paymentOption,
-                paymentMethod === method.id && styles.paymentOptionSelected,
-              ]}
-              onPress={() => setPaymentMethod(method.id)}
-            >
-              <View style={styles.paymentOptionLeft}>
-                <View
-                  style={[
-                    styles.paymentIcon,
-                    paymentMethod === method.id && styles.paymentIconSelected,
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name={method.icon}
-                    size={20}
-                    color={paymentMethod === method.id ? "#359EFF" : "#6b7280"}
-                  />
-                </View>
-                <View>
-                  <Text
+          {PAYMENT_METHODS.map((method) => {
+            const isDisabled = method.id === "COD" && requiresDeposit;
+            return (
+              <Pressable
+                key={method.id}
+                style={[
+                  styles.paymentOption,
+                  paymentMethod === method.id && styles.paymentOptionSelected,
+                  isDisabled && styles.paymentOptionDisabled,
+                ]}
+                onPress={() => !isDisabled && setPaymentMethod(method.id)}
+                disabled={isDisabled}
+              >
+                <View style={styles.paymentOptionLeft}>
+                  <View
                     style={[
-                      styles.paymentName,
-                      paymentMethod === method.id && styles.paymentNameSelected,
+                      styles.paymentIcon,
+                      paymentMethod === method.id && styles.paymentIconSelected,
+                      isDisabled && styles.paymentIconDisabled,
                     ]}
                   >
-                    {method.name}
-                  </Text>
-                  <Text style={styles.paymentDescription}>{method.description}</Text>
+                    <MaterialCommunityIcons
+                      name={method.icon}
+                      size={20}
+                      color={
+                        isDisabled 
+                          ? "#9ca3af" 
+                          : paymentMethod === method.id 
+                          ? "#359EFF" 
+                          : "#6b7280"
+                      }
+                    />
+                  </View>
+                  <View>
+                    <Text
+                      style={[
+                        styles.paymentName,
+                        paymentMethod === method.id && styles.paymentNameSelected,
+                        isDisabled && styles.paymentNameDisabled,
+                      ]}
+                    >
+                      {method.name}
+                      {isDisabled && " (Không khả dụng)"}
+                    </Text>
+                    <Text style={[styles.paymentDescription, isDisabled && { color: "#9ca3af" }]}>
+                      {isDisabled 
+                        ? "Đơn hàng cần đặt cọc phải thanh toán online" 
+                        : method.description
+                      }
+                    </Text>
+                  </View>
                 </View>
-              </View>
-              <View
-                style={[
-                  styles.radioOuter,
-                  paymentMethod === method.id && styles.radioOuterSelected,
-                ]}
-              >
-                {paymentMethod === method.id && <View style={styles.radioInner} />}
-              </View>
-            </Pressable>
-          ))}
+                <View
+                  style={[
+                    styles.radioOuter,
+                    paymentMethod === method.id && styles.radioOuterSelected,
+                    isDisabled && styles.radioOuterDisabled,
+                  ]}
+                >
+                  {paymentMethod === method.id && !isDisabled && <View style={styles.radioInner} />}
+                </View>
+              </Pressable>
+            );
+          })}
         </View>
 
         {/* Order Summary */}
@@ -342,9 +410,34 @@ const Checkout = () => {
             <Text style={styles.summaryLabel}>Phí giao hàng</Text>
             <Text style={styles.summaryValue}>Miễn phí</Text>
           </View>
+          
+          {/* Deposit Information */}
+          {requiresDeposit && (
+            <>
+              <View style={styles.divider} />
+              <View style={styles.depositInfo}>
+                <View style={styles.depositHeader}>
+                  <MaterialCommunityIcons name="shield-check" size={16} color="#F97316" />
+                  <Text style={styles.depositTitle}>Thanh toán ký quỹ</Text>
+                </View>
+                <Text style={styles.depositDescription}>
+                  Đơn hàng trên {formatPrice(DEPOSIT_THRESHOLD)} cần đặt cọc {Math.round(DEPOSIT_RATE * 100)}% để bảo vệ cả hai bên.
+                </Text>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Số tiền đặt cọc</Text>
+                  <Text style={[styles.summaryValue, { color: "#F97316" }]}>{formatPrice(depositAmount)}</Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Thanh toán còn lại</Text>
+                  <Text style={styles.summaryValue}>{formatPrice(remainingAmount)}</Text>
+                </View>
+              </View>
+            </>
+          )}
+          
           <View style={[styles.summaryRow, styles.totalRow]}>
-            <Text style={styles.totalLabel}>Tổng cộng</Text>
-            <Text style={styles.totalValue}>{formatPrice(getTotalPrice())}</Text>
+            <Text style={styles.totalLabel}>{requiresDeposit ? "Cần thanh toán ngay" : "Tổng cộng"}</Text>
+            <Text style={styles.totalValue}>{formatPrice(requiresDeposit ? depositAmount : getTotalPrice())}</Text>
           </View>
         </View>
       </ScrollView>
@@ -353,8 +446,8 @@ const Checkout = () => {
       <View style={styles.bottomContainer}>
         <View style={styles.bottomRow}>
           <View>
-            <Text style={styles.bottomLabel}>Tổng thanh toán</Text>
-            <Text style={styles.bottomPrice}>{formatPrice(getTotalPrice())}</Text>
+            <Text style={styles.bottomLabel}>{requiresDeposit ? "Cần thanh toán ngay" : "Tổng thanh toán"}</Text>
+            <Text style={styles.bottomPrice}>{formatPrice(requiresDeposit ? depositAmount : getTotalPrice())}</Text>
           </View>
           <Pressable
             style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
@@ -365,7 +458,9 @@ const Checkout = () => {
               <ActivityIndicator size="small" color="#fff" />
             ) : (
               <>
-                <Text style={styles.submitButtonText}>Đặt hàng</Text>
+                <Text style={styles.submitButtonText}>
+                  {requiresDeposit ? "Đặt cọc" : "Đặt hàng"}
+                </Text>
                 <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" />
               </>
             )}
@@ -414,6 +509,28 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 140,
+  },
+  depositBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#FFF7ED",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "#FED7AA",
+  },
+  depositBannerTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#F97316",
+    marginBottom: 2,
+  },
+  depositBannerText: {
+    fontSize: 12,
+    color: "#9A3412",
+    lineHeight: 16,
   },
   card: {
     backgroundColor: "#fff",
@@ -473,6 +590,10 @@ const styles = StyleSheet.create({
     borderColor: "#359EFF",
     backgroundColor: "rgba(53, 158, 255, 0.05)",
   },
+  paymentOptionDisabled: {
+    backgroundColor: "#f9fafb",
+    opacity: 0.7,
+  },
   paymentOptionLeft: {
     flexDirection: "row",
     alignItems: "center",
@@ -490,6 +611,9 @@ const styles = StyleSheet.create({
   paymentIconSelected: {
     backgroundColor: "rgba(53, 158, 255, 0.1)",
   },
+  paymentIconDisabled: {
+    backgroundColor: "#f3f4f6",
+  },
   paymentName: {
     fontSize: 14,
     fontWeight: "600",
@@ -497,6 +621,9 @@ const styles = StyleSheet.create({
   },
   paymentNameSelected: {
     color: "#359EFF",
+  },
+  paymentNameDisabled: {
+    color: "#9ca3af",
   },
   paymentDescription: {
     fontSize: 11,
@@ -515,11 +642,37 @@ const styles = StyleSheet.create({
   radioOuterSelected: {
     borderColor: "#359EFF",
   },
+  radioOuterDisabled: {
+    borderColor: "#d1d5db",
+  },
   radioInner: {
     width: 12,
     height: 12,
     borderRadius: 6,
     backgroundColor: "#359EFF",
+  },
+  depositInfo: {
+    backgroundColor: "#FFF7ED",
+    borderRadius: 8,
+    padding: 12,
+    marginVertical: 8,
+  },
+  depositHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 6,
+  },
+  depositTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#F97316",
+  },
+  depositDescription: {
+    fontSize: 12,
+    color: "#9A3412",
+    marginBottom: 8,
+    lineHeight: 16,
   },
   orderItem: {
     flexDirection: "row",
