@@ -44,3 +44,8 @@ public record UserSubscriptionResponse(
     DateTime? SubscriptionUntil,
     bool IsActive,
     int? RemainingDays);
+
+public record UserSubscriptionUsageResponse(
+    int? MonthlyListingLimit,
+    int UsedCount,
+    int? RemainingCount);

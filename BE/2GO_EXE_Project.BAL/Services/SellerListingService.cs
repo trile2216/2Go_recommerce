@@ -525,31 +525,17 @@ public class SellerListingService : ISellerListingService
         var plan = await ResolveCurrentPlanAsync(user.UserId, now, cancellationToken);
         if (plan?.MonthlyListingLimit is int limit)
         {
-            if (plan.Price <= 0)
+            var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var nextMonthStart = monthStart.AddMonths(1);
+            var publishedCount = await _uow.Listings.Query()
+                .Where(l => l.SellerId == sellerId &&
+                            l.PublishedAt.HasValue &&
+                            l.PublishedAt.Value >= monthStart &&
+                            l.PublishedAt.Value < nextMonthStart)
+                .CountAsync(cancellationToken);
+            if (publishedCount >= limit)
             {
-                var activeCount = await _uow.Listings.Query()
-                    .Where(l => l.SellerId == sellerId &&
-                                l.Status == ListingStatuses.Active)
-                    .CountAsync(cancellationToken);
-                if (activeCount >= limit)
-                {
-                    return new BasicResponse(false, "Active listing limit reached for your current plan. Please upgrade to continue.");
-                }
-            }
-            else
-            {
-                var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-                var nextMonthStart = monthStart.AddMonths(1);
-                var publishedCount = await _uow.Listings.Query()
-                    .Where(l => l.SellerId == sellerId &&
-                                l.PublishedAt.HasValue &&
-                                l.PublishedAt.Value >= monthStart &&
-                                l.PublishedAt.Value < nextMonthStart)
-                    .CountAsync(cancellationToken);
-                if (publishedCount >= limit)
-                {
-                    return new BasicResponse(false, "Publish limit reached for your current plan. Please upgrade to continue.");
-                }
+                return new BasicResponse(false, "Publish limit reached for your current plan. Please upgrade to continue.");
             }
         }
 
