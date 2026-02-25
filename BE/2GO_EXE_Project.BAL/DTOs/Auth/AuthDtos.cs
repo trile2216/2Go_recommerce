@@ -25,7 +25,14 @@ public record UserInfoResponse(
     DateTime? LastLoginAt,
     bool EmailVerified,
     bool PhoneVerified,
-    UserProfileInfo? Profile);
+    UserProfileInfo? Profile,
+    string? SubscriptionPlanCode,
+    string? SubscriptionPlanName,
+    DateTime? SubscriptionValidFrom,
+    DateTime? SubscriptionValidUntil,
+    bool SubscriptionActive,
+    int? SubscriptionRemainingDays,
+    int? MonthlyListingLimit);
 
 public record UpdateProfileRequest(string? Phone, string? FullName, DateOnly? Birthday, string? Gender, string? Address, string? Bio, string? AvatarUrl, string? BankAccountNumber, string? BankBin, string? BankAccountName);
 public record ChangePasswordRequest(string CurrentPassword, string NewPassword);

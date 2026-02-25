@@ -63,6 +63,13 @@ public class AuthService : IAuthService
         }
 
         var hash = _passwordHasher.HashPassword(request.Password, out var salt);
+        var now = DateTime.UtcNow;
+        var freePlan = await _uow.SubscriptionPlans.Query()
+            .AsNoTracking()
+            .Where(p => p.IsActive && p.Price <= 0)
+            .OrderBy(p => p.SortOrder)
+            .ThenBy(p => p.PlanId)
+            .FirstOrDefaultAsync(cancellationToken);
         var user = new User
         {
             Email = request.Email,
@@ -71,7 +78,11 @@ public class AuthService : IAuthService
             Salt = salt,
             Role = UserRoles.User,
             Status = UserStatuses.Active,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = now,
+            SubscriptionPlanCode = freePlan?.Code,
+            SubscriptionValidFrom = freePlan == null ? null : now,
+            SubscriptionValidUntil = freePlan == null || freePlan.DurationDays <= 0 ? null : now.AddDays(freePlan.DurationDays),
+            SubscriptionUntil = freePlan == null || freePlan.DurationDays <= 0 ? null : now.AddDays(freePlan.DurationDays)
         };
 
         await _uow.Users.AddAsync(user, cancellationToken);
@@ -579,10 +590,12 @@ public class AuthService : IAuthService
             throw new UnauthorizedAccessException("User not found.");
         }
 
+        var now = DateTime.UtcNow;
+
         // auto unban if expired
         if (string.Equals(user.Status, UserStatuses.Banned, StringComparison.OrdinalIgnoreCase) &&
             user.BanUntil != null &&
-            user.BanUntil <= DateTime.UtcNow)
+            user.BanUntil <= now)
         {
             user.Status = UserStatuses.Active;
             user.BanUntil = null;
@@ -607,6 +620,33 @@ public class AuthService : IAuthService
                 profile.BankBin,
                 profile.BankAccountName);
 
+        SubscriptionPlan? plan = null;
+        var planCode = string.IsNullOrWhiteSpace(user.SubscriptionPlanCode)
+            ? null
+            : user.SubscriptionPlanCode.Trim().ToUpperInvariant();
+        if (!string.IsNullOrWhiteSpace(planCode))
+        {
+            plan = await _uow.SubscriptionPlans.Query()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Code == planCode, cancellationToken);
+        }
+        plan ??= await _uow.SubscriptionPlans.Query()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.IsActive && p.Price <= 0, cancellationToken);
+
+        var subscriptionUntil = user.SubscriptionValidUntil ?? user.SubscriptionUntil;
+        var subscriptionActive = subscriptionUntil.HasValue && subscriptionUntil.Value > now;
+        int? remainingDays = null;
+        if (subscriptionUntil.HasValue)
+        {
+            var remaining = subscriptionUntil.Value - now;
+            remainingDays = remaining.TotalDays <= 0 ? 0 : (int)Math.Ceiling(remaining.TotalDays);
+        }
+        else if (plan?.Price <= 0)
+        {
+            subscriptionActive = true;
+        }
+
         return new UserInfoResponse(
             user.UserId,
             user.Email,
@@ -617,7 +657,14 @@ public class AuthService : IAuthService
             user.LastLoginAt,
             emailVerified,
             phoneVerified,
-            profileInfo);
+            profileInfo,
+            planCode ?? plan?.Code,
+            plan?.Name,
+            user.SubscriptionValidFrom,
+            subscriptionUntil,
+            subscriptionActive,
+            remainingDays,
+            plan?.MonthlyListingLimit);
     }
 
     public async Task<UserInfoResponse> UpdateCurrentUserProfileAsync(ClaimsPrincipal userPrincipal, UpdateProfileRequest request, CancellationToken cancellationToken = default)
@@ -729,6 +776,34 @@ public class AuthService : IAuthService
             profile.BankBin,
             profile.BankAccountName);
 
+        var now = DateTime.UtcNow;
+        SubscriptionPlan? plan = null;
+        var planCode = string.IsNullOrWhiteSpace(user.SubscriptionPlanCode)
+            ? null
+            : user.SubscriptionPlanCode.Trim().ToUpperInvariant();
+        if (!string.IsNullOrWhiteSpace(planCode))
+        {
+            plan = await _uow.SubscriptionPlans.Query()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Code == planCode, cancellationToken);
+        }
+        plan ??= await _uow.SubscriptionPlans.Query()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.IsActive && p.Price <= 0, cancellationToken);
+
+        var subscriptionUntil = user.SubscriptionValidUntil ?? user.SubscriptionUntil;
+        var subscriptionActive = subscriptionUntil.HasValue && subscriptionUntil.Value > now;
+        int? remainingDays = null;
+        if (subscriptionUntil.HasValue)
+        {
+            var remaining = subscriptionUntil.Value - now;
+            remainingDays = remaining.TotalDays <= 0 ? 0 : (int)Math.Ceiling(remaining.TotalDays);
+        }
+        else if (plan?.Price <= 0)
+        {
+            subscriptionActive = true;
+        }
+
         return new UserInfoResponse(
             user.UserId,
             user.Email,
@@ -739,7 +814,14 @@ public class AuthService : IAuthService
             user.LastLoginAt,
             emailVerified,
             phoneVerified,
-            profileInfo);
+            profileInfo,
+            planCode ?? plan?.Code,
+            plan?.Name,
+            user.SubscriptionValidFrom,
+            subscriptionUntil,
+            subscriptionActive,
+            remainingDays,
+            plan?.MonthlyListingLimit);
     }
 
     public async Task<BasicResponse> ChangePasswordAsync(ClaimsPrincipal userPrincipal, ChangePasswordRequest request, CancellationToken cancellationToken = default)
