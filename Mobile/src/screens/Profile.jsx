@@ -19,9 +19,9 @@ import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 
 import { useAuth } from "../context/AuthContext";
-import { getUserInfo, updateUserProfile, changePassword } from "../service/home/api.user";
+import { updateUserProfile, changePassword } from "../service/home/api.user";
+import { resendVerifyEmail, verifyEmail, getCurrentUser } from "../service/auth/api.auth";
 import { getBanks } from "../service/payment/api.bank";
-import { resendVerifyEmail, verifyEmail } from "../service/auth/api.auth";
 import { uploadImageAndGetUrl } from "../service/upload/api.upload";
 
 const GENDERS = [
@@ -82,7 +82,7 @@ const Profile = () => {
   // Load user info
   const loadUserInfo = useCallback(async () => {
     try {
-      const data = await getUserInfo();
+      const data = await getCurrentUser();
       setUserInfo(data);
       setProfileForm({
         fullName: data.profile?.fullName || "",
@@ -548,6 +548,22 @@ const Profile = () => {
                 </Text>
               </View>
             </View>
+
+            <View style={styles.infoCard}>
+              <View style={[styles.infoIcon, { backgroundColor: "#ebf4ff" }]}>
+                <MaterialCommunityIcons name="shield-star" size={24} color="#3182ce" />
+              </View>
+              <View style={styles.infoDetails}>
+                <Text style={styles.infoLabel}>Gói hội viên</Text>
+                {userInfo?.subscriptionPlanName ? (
+                    <Text style={[styles.infoValue, { fontWeight: "600", color: userInfo?.subscriptionActive ? "#3182ce" : "#718096" }]}>
+                        {userInfo.subscriptionPlanName}
+                    </Text>
+                ) : (
+                    <Text style={styles.infoValue}>Chưa đăng ký</Text>
+                )}
+              </View>
+            </View>
           </View>
         )}
 
@@ -589,6 +605,35 @@ const Profile = () => {
                         return `${bank ? bank.shortName : userInfo?.profile?.bankAccountName} ${userInfo?.profile?.bankAccountNumber ? `- ${userInfo?.profile?.bankAccountNumber}` : ""}`;
                     })()
                  ) : "Chưa cập nhật"}
+              </Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Gói hội viên</Text>
+              <View style={{ flex: 2, alignItems: 'flex-end' }}>
+                {userInfo?.subscriptionPlanName ? (
+                    <View style={{ alignItems: 'flex-end' }}>
+                        <Text style={[styles.detailValue, { fontWeight: "600", color: "#3182ce" }]}>{userInfo.subscriptionPlanName}</Text>
+                        {userInfo.subscriptionValidFrom && userInfo.subscriptionValidUntil && (
+                            <Text style={{ fontSize: 12, color: "#718096", marginTop: 4, textAlign: 'right' }}>
+                                {formatDate(userInfo.subscriptionValidFrom)} - {formatDate(userInfo.subscriptionValidUntil)}
+                                {userInfo.subscriptionRemainingDays !== null && ` (${userInfo.subscriptionRemainingDays} ngày còn lại)`}
+                            </Text>
+                        )}
+                        <View style={{ backgroundColor: userInfo.subscriptionActive ? "#d1fae5" : "#fee2e2", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, marginTop: 4 }}>
+                           <Text style={{ color: userInfo.subscriptionActive ? "#047857" : "#b91c1c", fontSize: 12, fontWeight: "600" }}>
+                               {userInfo.subscriptionActive ? "Đang hoạt động" : "Hết hạn"}
+                           </Text>
+                        </View>
+                    </View>
+                ) : (
+                    <Text style={styles.detailValue}>Chưa đăng ký</Text>
+                )}
+              </View>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Giới hạn đăng tin</Text>
+              <Text style={styles.detailValue}>
+                {userInfo?.monthlyListingLimit !== undefined && userInfo?.monthlyListingLimit !== null ? `${userInfo.monthlyListingLimit} tin/tháng` : "Không giới hạn"}
               </Text>
             </View>
             <View style={styles.detailRow}>

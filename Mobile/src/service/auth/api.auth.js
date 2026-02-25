@@ -85,3 +85,13 @@ export const resendVerifyEmail = async (data) => {
         throw error;
     }
 };
+
+export const getCurrentUser = async () => {
+    try {
+        const response = await api.get('/Auth/me');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching current user:', error);
+        throw error;
+    }
+};
