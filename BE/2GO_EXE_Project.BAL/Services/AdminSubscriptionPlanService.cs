@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using _2GO_EXE_Project.BAL.DTOs.Subscriptions;
 using _2GO_EXE_Project.BAL.Interfaces;
@@ -107,7 +107,7 @@ public class AdminSubscriptionPlanService : IAdminSubscriptionPlanService
         var exists = await _uow.SubscriptionPlans.Query().AnyAsync(x => x.Code == code, cancellationToken);
         if (exists)
         {
-            throw new InvalidOperationException("Plan code already exists.");
+            throw new InvalidOperationException("Mã gói đã tồn tại.");
         }
 
         var plan = new SubscriptionPlan
@@ -219,3 +219,6 @@ public class AdminSubscriptionPlanService : IAdminSubscriptionPlanService
     }
 
 }
+
+
+

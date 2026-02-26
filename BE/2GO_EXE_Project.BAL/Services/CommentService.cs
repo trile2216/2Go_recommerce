@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using _2GO_EXE_Project.BAL.Constants;
 using _2GO_EXE_Project.BAL.DTOs.Comments;
@@ -28,7 +28,7 @@ public class CommentService : ICommentService
                   ?? principal.FindFirst(ClaimTypes.Name)?.Value;
         if (!long.TryParse(sub, out var id))
         {
-            throw new UnauthorizedAccessException("Invalid user id in token.");
+            throw new UnauthorizedAccessException("User id trong token không hợp lệ.");
         }
         return id;
     }
@@ -80,8 +80,8 @@ public class CommentService : ICommentService
             await NotifyAsync(
                 listingOwnerId.Value,
                 "LISTING",
-                "New comment",
-                "Your listing has a new comment.",
+                "Bình luận mới",
+                "Bài đăng của bạn có bình luận mới.",
                 $"/listings/{request.ListingId}",
                 cancellationToken);
         }
@@ -94,8 +94,8 @@ public class CommentService : ICommentService
                 await NotifyAsync(
                     replyToUserId,
                     "LISTING",
-                    "New reply",
-                    "Someone replied to your comment.",
+                    "Trả lời mới",
+                    "Bình luận của bạn có phản hồi mới.",
                     $"/listings/{request.ListingId}",
                     cancellationToken);
             }
@@ -224,3 +224,5 @@ public class CommentService : ICommentService
         }
     }
 }   
+
+

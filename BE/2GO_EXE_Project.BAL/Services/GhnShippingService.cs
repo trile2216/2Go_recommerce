@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -25,7 +25,7 @@ public class GhnShippingService : IGhnShippingService
     {
         if (string.IsNullOrWhiteSpace(_settings.Token) || _settings.ShopId <= 0)
         {
-            throw new InvalidOperationException("GHN settings are not configured.");
+            throw new InvalidOperationException("Chưa cấu hình GHN.");
         }
 
         var payload = new Dictionary<string, object?>
@@ -77,7 +77,7 @@ public class GhnShippingService : IGhnShippingService
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError("GHN create order failed: {Status} {Body}", response.StatusCode, raw);
-            throw new InvalidOperationException("GHN create order failed.");
+            throw new InvalidOperationException("Tạo đơn GHN thất bại.");
         }
 
         try
@@ -96,7 +96,7 @@ public class GhnShippingService : IGhnShippingService
             // ignore parse error, handle below
         }
 
-        throw new InvalidOperationException("GHN response missing order_code.");
+        throw new InvalidOperationException("Phản hồi GHN thiếu order_code.");
     }
 
     public async Task<IReadOnlyList<GhnProvinceResponse>> GetProvincesAsync(CancellationToken cancellationToken = default)
@@ -111,7 +111,7 @@ public class GhnShippingService : IGhnShippingService
         if (!resp.IsSuccessStatusCode)
         {
             _logger.LogError("GHN provinces failed: {Status} {Body}", resp.StatusCode, raw);
-            throw new InvalidOperationException("GHN provinces request failed.");
+            throw new InvalidOperationException("Lấy danh sách tỉnh GHN thất bại.");
         }
 
         using var doc = JsonDocument.Parse(raw);
@@ -145,7 +145,7 @@ public class GhnShippingService : IGhnShippingService
         if (!resp.IsSuccessStatusCode)
         {
             _logger.LogError("GHN districts failed: {Status} {Body}", resp.StatusCode, raw);
-            throw new InvalidOperationException("GHN districts request failed.");
+            throw new InvalidOperationException("Lấy danh sách quận/huyện GHN thất bại.");
         }
 
         using var doc = JsonDocument.Parse(raw);
@@ -180,7 +180,7 @@ public class GhnShippingService : IGhnShippingService
         if (!resp.IsSuccessStatusCode)
         {
             _logger.LogError("GHN wards failed: {Status} {Body}", resp.StatusCode, raw);
-            throw new InvalidOperationException("GHN wards request failed.");
+            throw new InvalidOperationException("Lấy danh sách phường/xã GHN thất bại.");
         }
 
         using var doc = JsonDocument.Parse(raw);
@@ -207,7 +207,7 @@ public class GhnShippingService : IGhnShippingService
     {
         if (string.IsNullOrWhiteSpace(_settings.Token) || _settings.ShopId <= 0)
         {
-            throw new InvalidOperationException("GHN settings are not configured.");
+            throw new InvalidOperationException("Chưa cấu hình GHN.");
         }
 
         var url = $"{_settings.BaseUrl.TrimEnd('/')}/v2/shipping-order/fee";
@@ -239,14 +239,14 @@ public class GhnShippingService : IGhnShippingService
         if (!resp.IsSuccessStatusCode)
         {
             _logger.LogError("GHN fee failed: {Status} {Body}", resp.StatusCode, raw);
-            throw new InvalidOperationException("GHN fee request failed.");
+            throw new InvalidOperationException("Tính phí GHN thất bại.");
         }
 
         using var doc = JsonDocument.Parse(raw);
         var data = doc.RootElement.TryGetProperty("data", out var dataProp) ? dataProp : default;
         if (data.ValueKind != JsonValueKind.Object)
         {
-            throw new InvalidOperationException("GHN fee response missing data.");
+            throw new InvalidOperationException("Phản hồi phí GHN thiếu dữ liệu.");
         }
 
         long GetLong(string name)
@@ -267,7 +267,7 @@ public class GhnShippingService : IGhnShippingService
     {
         if (string.IsNullOrWhiteSpace(_settings.Token) || _settings.ShopId <= 0)
         {
-            throw new InvalidOperationException("GHN settings are not configured.");
+            throw new InvalidOperationException("Chưa cấu hình GHN.");
         }
 
         var url = $"{_settings.BaseUrl.TrimEnd('/')}/v2/switch-status/cancel";
@@ -288,7 +288,7 @@ public class GhnShippingService : IGhnShippingService
         if (!resp.IsSuccessStatusCode)
         {
             _logger.LogError("GHN cancel failed: {Status} {Body}", resp.StatusCode, raw);
-            throw new InvalidOperationException("GHN cancel request failed.");
+            throw new InvalidOperationException("Hủy đơn GHN thất bại.");
         }
 
         var results = new List<GhnCancelResult>();
@@ -322,7 +322,7 @@ public class GhnShippingService : IGhnShippingService
     {
         if (string.IsNullOrWhiteSpace(_settings.Token) || _settings.ShopId <= 0)
         {
-            throw new InvalidOperationException("GHN settings are not configured.");
+            throw new InvalidOperationException("Chưa cấu hình GHN.");
         }
 
         var url = $"{_settings.BaseUrl.TrimEnd('/')}/v2/a5/gen-token";
@@ -344,7 +344,7 @@ public class GhnShippingService : IGhnShippingService
         if (!resp.IsSuccessStatusCode)
         {
             _logger.LogError("GHN print token failed: {Status} {Body}", resp.StatusCode, raw);
-            throw new InvalidOperationException("GHN print token request failed.");
+            throw new InvalidOperationException("Lấy token in GHN thất bại.");
         }
 
         try
@@ -371,7 +371,7 @@ public class GhnShippingService : IGhnShippingService
     {
         if (string.IsNullOrWhiteSpace(_settings.Token) || _settings.ShopId <= 0)
         {
-            throw new InvalidOperationException("GHN settings are not configured.");
+            throw new InvalidOperationException("Chưa cấu hình GHN.");
         }
 
         var url = $"{_settings.BaseUrl.TrimEnd('/')}/v2/shipping-order/detail";
@@ -392,7 +392,7 @@ public class GhnShippingService : IGhnShippingService
         if (!resp.IsSuccessStatusCode)
         {
             _logger.LogError("GHN order detail failed: {Status} {Body}", resp.StatusCode, raw);
-            throw new InvalidOperationException("GHN order detail request failed.");
+            throw new InvalidOperationException("Lấy chi tiết đơn GHN thất bại.");
         }
 
         try
@@ -444,3 +444,4 @@ public class GhnShippingService : IGhnShippingService
         return new GhnCancelResult(orderCode, result, message);
     }
 }
+

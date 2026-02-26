@@ -28,12 +28,12 @@ public class UploadsController : ControllerBase
     {
         if (file == null || file.Length == 0)
         {
-            return BadRequest("File is required.");
+            return BadRequest("File là b?t bu?c.");
         }
 
         if (!file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
         {
-            return BadRequest("Only image files are allowed.");
+            return BadRequest("Ch? cho phép file ?nh.");
         }
 
         try
@@ -60,12 +60,12 @@ public class UploadsController : ControllerBase
     {
         if (file == null || file.Length == 0)
         {
-            return BadRequest("File is required.");
+            return BadRequest("File là b?t bu?c.");
         }
 
         if (!file.ContentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase))
         {
-            return BadRequest("Only video files are allowed.");
+            return BadRequest("Ch? cho phép file video.");
         }
 
         try
@@ -82,3 +82,4 @@ public class UploadsController : ControllerBase
         }
     }
 }
+

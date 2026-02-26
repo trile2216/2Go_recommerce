@@ -30,7 +30,7 @@ public class ChatbotService : IChatbotService
     {
         if (string.IsNullOrWhiteSpace(request.Question))
         {
-            return new ChatbotAskResponse("Vui lÃ²ng nháº­p cÃ¢u há»i.", "LOW", "FAQ_JSON", null);
+            return new ChatbotAskResponse("Vui lòng nhập câu hỏi.", "LOW", "FAQ_JSON", null);
         }
 
         var faq = LoadFaq();
@@ -42,12 +42,12 @@ public class ChatbotService : IChatbotService
             var suggestions = await FindListingsAsync(productQuery, cancellationToken);
             if (suggestions.Count > 0)
             {
-                var productSearchAnswer = $"MÃ¬nh tÃ¬m tháº¥y {suggestions.Count} sáº£n pháº©m liÃªn quan Ä‘áº¿n \"{productQuery}\".";
+                var productSearchAnswer = $"Mình tìm thấy {suggestions.Count} sản phẩm liên quan đến \"{productQuery}\".";
                 await LogAsync(userId, request.Question, productSearchAnswer, "product_search", "MEDIUM", cancellationToken);
                 return new ChatbotAskResponse(productSearchAnswer, "MEDIUM", "LISTINGS", "product_search", suggestions);
             }
 
-            var noResultAnswer = $"Hiá»‡n chÆ°a tháº¥y sáº£n pháº©m phÃ¹ há»£p vá»›i \"{productQuery}\". Báº¡n cÃ³ thá»ƒ cho mÃ¬nh thÃªm thÃ´ng tin (hÃ£ng, model, giÃ¡, tÃ¬nh tráº¡ng) khÃ´ng?";
+            var noResultAnswer = $"Hiện chưa thấy sản phẩm phù hợp với \"{productQuery}\". Bạn có thể cho mình thêm thông tin (hãng, model, giá, tình trạng) không?";
             await LogAsync(userId, request.Question, noResultAnswer, "product_search", "LOW", cancellationToken);
             return new ChatbotAskResponse(noResultAnswer, "LOW", "LISTINGS", "product_search");
         }
@@ -122,16 +122,16 @@ public class ChatbotService : IChatbotService
     {
         var triggers = new[]
         {
-            "tÃ´i cáº§n",
+            "tôi cần",
             "toi can",
-            "cáº§n mua",
+            "cần mua",
             "can mua",
             "muá»‘n mua",
             "muon mua",
-            "tÃ¬m",
+            "tìm",
             "tim",
             "mua",
-            "cáº§n"
+            "cần"
         };
 
         foreach (var trigger in triggers)
@@ -140,9 +140,9 @@ public class ChatbotService : IChatbotService
             if (idx < 0) continue;
 
             var after = normalized[(idx + trigger.Length)..].Trim();
-            if (after.StartsWith("sáº£n pháº©m "))
+            if (after.StartsWith("sản phẩm "))
             {
-                after = after["sáº£n pháº©m ".Length..].Trim();
+                after = after["sản phẩm ".Length..].Trim();
             }
             else if (after.StartsWith("san pham "))
             {
@@ -173,7 +173,7 @@ public class ChatbotService : IChatbotService
             .OrderByDescending(l => l.CreatedAt)
             .Select(l => new ChatbotListingSuggestion(
                 l.ListingId,
-                l.Title ?? "Sáº£n pháº©m",
+                l.Title ?? "Sản phẩm",
                 l.Price,
                 l.Condition,
                 l.Brand))
@@ -248,3 +248,8 @@ public class ChatbotService : IChatbotService
         public List<string> Keywords { get; set; } = new();
     }
 }
+
+
+
+
+

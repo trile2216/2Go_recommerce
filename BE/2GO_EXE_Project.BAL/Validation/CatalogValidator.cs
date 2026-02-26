@@ -1,4 +1,4 @@
-using _2GO_EXE_Project.BAL.DTOs.Categories;
+﻿using _2GO_EXE_Project.BAL.DTOs.Categories;
 using _2GO_EXE_Project.BAL.DTOs.SubCategories;
 using _2GO_EXE_Project.BAL.DTOs.Districts;
 using _2GO_EXE_Project.BAL.DTOs.Wards;
@@ -15,16 +15,16 @@ public static class CatalogValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            result.Add("name", "Name is required.");
+            result.Add("name", "Tên là bắt buộc.");
         }
         else if (request.Name.Trim().Length > NameMaxLength)
         {
-            result.Add("name", "Name must be <= 255 chars.");
+            result.Add("name", "Tên không được vượt quá 255 ký tự.");
         }
 
         if (!string.IsNullOrWhiteSpace(request.IconUrl) && request.IconUrl.Trim().Length > IconUrlMaxLength)
         {
-            result.Add("iconUrl", "IconUrl must be <= 255 chars.");
+            result.Add("iconUrl", "IconUrl không được vượt quá 255 ký tự.");
         }
 
         return result;
@@ -35,11 +35,11 @@ public static class CatalogValidator
         var result = new ValidationResult();
         if (!string.IsNullOrWhiteSpace(request.Name) && request.Name.Trim().Length > NameMaxLength)
         {
-            result.Add("name", "Name must be <= 255 chars.");
+            result.Add("name", "Tên không được vượt quá 255 ký tự.");
         }
         if (!string.IsNullOrWhiteSpace(request.IconUrl) && request.IconUrl.Trim().Length > IconUrlMaxLength)
         {
-            result.Add("iconUrl", "IconUrl must be <= 255 chars.");
+            result.Add("iconUrl", "IconUrl không được vượt quá 255 ký tự.");
         }
         return result;
     }
@@ -49,11 +49,11 @@ public static class CatalogValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            result.Add("name", "Name is required.");
+            result.Add("name", "Tên là bắt buộc.");
         }
         else if (request.Name.Trim().Length > NameMaxLength)
         {
-            result.Add("name", "Name must be <= 255 chars.");
+            result.Add("name", "Tên không được vượt quá 255 ký tự.");
         }
         return result;
     }
@@ -63,7 +63,7 @@ public static class CatalogValidator
         var result = new ValidationResult();
         if (!string.IsNullOrWhiteSpace(request.Name) && request.Name.Trim().Length > NameMaxLength)
         {
-            result.Add("name", "Name must be <= 255 chars.");
+            result.Add("name", "Tên không được vượt quá 255 ký tự.");
         }
         return result;
     }
@@ -73,15 +73,15 @@ public static class CatalogValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            result.Add("name", "Name is required.");
+            result.Add("name", "Tên là bắt buộc.");
         }
         else if (request.Name.Trim().Length > NameMaxLength)
         {
-            result.Add("name", "Name must be <= 255 chars.");
+            result.Add("name", "Tên không được vượt quá 255 ký tự.");
         }
         if (request.CityId <= 0)
         {
-            result.Add("cityId", "CityId must be > 0.");
+            result.Add("cityId", "CityId phải lớn hơn 0.");
         }
         return result;
     }
@@ -91,11 +91,11 @@ public static class CatalogValidator
         var result = new ValidationResult();
         if (!string.IsNullOrWhiteSpace(request.Name) && request.Name.Trim().Length > NameMaxLength)
         {
-            result.Add("name", "Name must be <= 255 chars.");
+            result.Add("name", "Tên không được vượt quá 255 ký tự.");
         }
         if (request.CityId.HasValue && request.CityId.Value <= 0)
         {
-            result.Add("cityId", "CityId must be > 0.");
+            result.Add("cityId", "CityId phải lớn hơn 0.");
         }
         return result;
     }
@@ -105,15 +105,15 @@ public static class CatalogValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            result.Add("name", "Name is required.");
+            result.Add("name", "Tên là bắt buộc.");
         }
         else if (request.Name.Trim().Length > NameMaxLength)
         {
-            result.Add("name", "Name must be <= 255 chars.");
+            result.Add("name", "Tên không được vượt quá 255 ký tự.");
         }
         if (request.DistrictId <= 0)
         {
-            result.Add("districtId", "DistrictId must be > 0.");
+            result.Add("districtId", "DistrictId phải lớn hơn 0.");
         }
         return result;
     }
@@ -123,12 +123,13 @@ public static class CatalogValidator
         var result = new ValidationResult();
         if (!string.IsNullOrWhiteSpace(request.Name) && request.Name.Trim().Length > NameMaxLength)
         {
-            result.Add("name", "Name must be <= 255 chars.");
+            result.Add("name", "Tên không được vượt quá 255 ký tự.");
         }
         if (request.DistrictId.HasValue && request.DistrictId.Value <= 0)
         {
-            result.Add("districtId", "DistrictId must be > 0.");
+            result.Add("districtId", "DistrictId phải lớn hơn 0.");
         }
         return result;
     }
 }
+

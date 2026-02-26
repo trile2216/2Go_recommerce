@@ -1,4 +1,4 @@
-namespace _2GO_EXE_Project.BAL.Constants;
+﻿namespace _2GO_EXE_Project.BAL.Constants;
 
 public static class UserProfileRules
 {
@@ -16,20 +16,21 @@ public static class UserProfileRules
         if (birthday.HasValue)
         {
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
-            if (birthday.Value > today) return "Birthday cannot be in the future.";
-            if (birthday.Value < today.AddYears(-120)) return "Birthday is too far in the past.";
+            if (birthday.Value > today) return "Ngày sinh không thể ở tương lai.";
+            if (birthday.Value < today.AddYears(-120)) return "Ngày sinh quá xa trong quá khứ.";
         }
 
         if (!string.IsNullOrWhiteSpace(gender))
         {
             var trimmed = gender.Trim();
-            if (trimmed.Length > GenderMaxLength) return "Gender must be <= 50 chars.";
+            if (trimmed.Length > GenderMaxLength) return "Giới tính không được vượt quá 50 ký tự.";
             if (!AllowedGenders.Any(g => string.Equals(g, trimmed, StringComparison.OrdinalIgnoreCase)))
             {
-                return $"Invalid gender. Allowed: {string.Join(", ", AllowedGenders)}.";
+                return $"Giới tính không hợp lệ. Cho phép: {string.Join(", ", AllowedGenders)}.";
             }
         }
 
         return null;
     }
 }
+

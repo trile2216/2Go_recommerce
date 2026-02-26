@@ -1,4 +1,4 @@
-using _2GO_EXE_Project.BAL.Constants;
+﻿using _2GO_EXE_Project.BAL.Constants;
 using _2GO_EXE_Project.BAL.DTOs.Auth;
 using _2GO_EXE_Project.BAL.DTOs.Carts;
 using _2GO_EXE_Project.BAL.DTOs.Chat;
@@ -28,27 +28,27 @@ public static partial class RequestValidator
         var result = new ValidationResult();
         if (request.ListingId <= 0)
         {
-            result.Add("listingId", "ListingId must be > 0.");
+            result.Add("listingId", "ListingId ph?i l?n hon 0.");
         }
         if (string.IsNullOrWhiteSpace(request.PaymentMethod))
         {
-            result.Add("paymentMethod", "Payment method is required.");
+            result.Add("paymentMethod", "Phuong th?c thanh toán là b?t bu?c.");
         }
         if (string.IsNullOrWhiteSpace(request.DeliveryAddress))
         {
-            result.Add("deliveryAddress", "Delivery address is required.");
+            result.Add("deliveryAddress", "Địa chỉ giao hàng là bắt buộc.");
         }
         else if (request.DeliveryAddress.Trim().Length > AddressMaxLength)
         {
-            result.Add("deliveryAddress", "Delivery address must be <= 255 chars.");
+            result.Add("deliveryAddress", "Địa chỉ giao hàng không được vượt quá 255 ký tự.");
         }
         if (string.IsNullOrWhiteSpace(request.DeliveryPhone))
         {
-            result.Add("deliveryPhone", "Delivery phone is required.");
+            result.Add("deliveryPhone", "S? di?n tho?i nh?n hàng là b?t bu?c.");
         }
         else if (!ValidationRules.IsValidPhone(request.DeliveryPhone))
         {
-            result.Add("deliveryPhone", "Delivery phone must be exactly 10 digits.");
+            result.Add("deliveryPhone", "S? di?n tho?i nh?n hàng ph?i g?m dúng 10 ch? s?.");
         }
         return result;
     }
@@ -58,16 +58,16 @@ public static partial class RequestValidator
         var result = new ValidationResult();
         if (request.OrderId <= 0)
         {
-            result.Add("orderId", "OrderId must be > 0.");
+            result.Add("orderId", "OrderId ph?i l?n hon 0.");
         }
         if (string.IsNullOrWhiteSpace(request.Method))
         {
-            result.Add("method", "Payment method is required.");
+            result.Add("method", "Phuong th?c thanh toán là b?t bu?c.");
         }
         if (!string.IsNullOrWhiteSpace(request.PaymentStage) &&
             !PaymentStages.All.Contains(request.PaymentStage, StringComparer.OrdinalIgnoreCase))
         {
-            result.Add("paymentStage", $"Invalid payment stage. Allowed: {string.Join(", ", PaymentStages.All)}.");
+            result.Add("paymentStage", $"Giai do?n thanh toán không h?p l?. Cho phép: {string.Join(", ", PaymentStages.All)}.");
         }
         return result;
     }
@@ -77,11 +77,11 @@ public static partial class RequestValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.Method))
         {
-            result.Add("method", "Payment method is required.");
+            result.Add("method", "Phuong th?c thanh toán là b?t bu?c.");
         }
         if (string.IsNullOrWhiteSpace(request.PlanCode))
         {
-            result.Add("planCode", "Plan code is required.");
+            result.Add("planCode", "Mã gói là bắt buộc.");
         }
         return result;
     }
@@ -91,11 +91,11 @@ public static partial class RequestValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.Status))
         {
-            result.Add("status", "Status is required.");
+            result.Add("status", "Tr?ng thái là b?t bu?c.");
         }
         if (!string.IsNullOrWhiteSpace(request.Status) && request.Status.Trim().Length > StatusMaxLength)
         {
-            result.Add("status", "Status must be <= 50 chars.");
+            result.Add("status", "Tr?ng thái không du?c vu?t quá 50 ký t?.");
         }
         return result;
     }
@@ -105,27 +105,27 @@ public static partial class RequestValidator
         var result = new ValidationResult();
         if (request.OrderId <= 0)
         {
-            result.Add("orderId", "OrderId must be > 0.");
+            result.Add("orderId", "OrderId ph?i l?n hon 0.");
         }
         if (string.IsNullOrWhiteSpace(request.Provider))
         {
-            result.Add("provider", "Provider is required.");
+            result.Add("provider", "Nhà v?n chuy?n là b?t bu?c.");
         }
         else if (request.Provider.Trim().Length > ProviderMaxLength)
         {
-            result.Add("provider", "Provider must be <= 50 chars.");
+            result.Add("provider", "Nhà v?n chuy?n không du?c vu?t quá 50 ký t?.");
         }
         if (string.IsNullOrWhiteSpace(request.PickupAddress))
         {
-            result.Add("pickupAddress", "Pickup address is required.");
+            result.Add("pickupAddress", "Địa chỉ lấy hàng là bắt buộc.");
         }
         else if (request.PickupAddress.Trim().Length > AddressMaxLength)
         {
-            result.Add("pickupAddress", "Pickup address must be <= 255 chars.");
+            result.Add("pickupAddress", "Địa chỉ lấy hàng không được vượt quá 255 ký tự.");
         }
         if (!string.IsNullOrWhiteSpace(request.DeliveryAddress) && request.DeliveryAddress.Trim().Length > AddressMaxLength)
         {
-            result.Add("deliveryAddress", "Delivery address must be <= 255 chars.");
+            result.Add("deliveryAddress", "Địa chỉ giao hàng không được vượt quá 255 ký tự.");
         }
         return result;
     }
@@ -133,29 +133,29 @@ public static partial class RequestValidator
     public static ValidationResult ValidateCreateGhnShipping(CreateGhnShippingRequest request)
     {
         var result = new ValidationResult();
-        if (request.OrderId <= 0) result.Add("orderId", "OrderId must be > 0.");
-        if (string.IsNullOrWhiteSpace(request.ToName)) result.Add("toName", "ToName is required.");
+        if (request.OrderId <= 0) result.Add("orderId", "OrderId ph?i l?n hon 0.");
+        if (string.IsNullOrWhiteSpace(request.ToName)) result.Add("toName", "Tên ngu?i nh?n là b?t bu?c.");
         if (string.IsNullOrWhiteSpace(request.ToPhone))
         {
-            result.Add("toPhone", "ToPhone is required.");
+            result.Add("toPhone", "S? di?n tho?i ngu?i nh?n là b?t bu?c.");
         }
         else if (!ValidationRules.IsValidPhone(request.ToPhone))
         {
-            result.Add("toPhone", "ToPhone must be exactly 10 digits.");
+            result.Add("toPhone", "S? di?n tho?i ngu?i nh?n ph?i g?m dúng 10 ch? s?.");
         }
-        if (string.IsNullOrWhiteSpace(request.ToAddress)) result.Add("toAddress", "ToAddress is required.");
-        if (string.IsNullOrWhiteSpace(request.ToWardCode)) result.Add("toWardCode", "ToWardCode is required.");
-        if (request.ToDistrictId <= 0) result.Add("toDistrictId", "ToDistrictId must be > 0.");
-        if (request.Weight <= 0) result.Add("weight", "Weight must be > 0.");
-        if (request.Length <= 0) result.Add("length", "Length must be > 0.");
-        if (request.Width <= 0) result.Add("width", "Width must be > 0.");
-        if (request.Height <= 0) result.Add("height", "Height must be > 0.");
-        if (request.ServiceTypeId <= 0) result.Add("serviceTypeId", "ServiceTypeId must be > 0.");
-        if (request.PaymentTypeId <= 0) result.Add("paymentTypeId", "PaymentTypeId must be > 0.");
-        if (string.IsNullOrWhiteSpace(request.RequiredNote)) result.Add("requiredNote", "RequiredNote is required.");
+        if (string.IsNullOrWhiteSpace(request.ToAddress)) result.Add("toAddress", "Địa chỉ người nhận là bắt buộc.");
+        if (string.IsNullOrWhiteSpace(request.ToWardCode)) result.Add("toWardCode", "Mã phường/xã là bắt buộc.");
+        if (request.ToDistrictId <= 0) result.Add("toDistrictId", "ToDistrictId ph?i l?n hon 0.");
+        if (request.Weight <= 0) result.Add("weight", "Kh?i lu?ng ph?i l?n hon 0.");
+        if (request.Length <= 0) result.Add("length", "Chi?u dài ph?i l?n hon 0.");
+        if (request.Width <= 0) result.Add("width", "Chi?u r?ng ph?i l?n hon 0.");
+        if (request.Height <= 0) result.Add("height", "Chi?u cao ph?i l?n hon 0.");
+        if (request.ServiceTypeId <= 0) result.Add("serviceTypeId", "ServiceTypeId ph?i l?n hon 0.");
+        if (request.PaymentTypeId <= 0) result.Add("paymentTypeId", "PaymentTypeId ph?i l?n hon 0.");
+        if (string.IsNullOrWhiteSpace(request.RequiredNote)) result.Add("requiredNote", "RequiredNote là b?t bu?c.");
         if (request.Items == null || request.Items.Count == 0)
         {
-            result.Add("items", "At least one item is required.");
+            result.Add("items", "C?n ít nh?t m?t s?n ph?m.");
             return result;
         }
         for (var i = 0; i < request.Items.Count; i++)
@@ -163,10 +163,10 @@ public static partial class RequestValidator
             var item = request.Items[i];
             if (string.IsNullOrWhiteSpace(item.Name))
             {
-                result.Add($"items[{i}].name", "Item name is required.");
+                result.Add($"items[{i}].name", "Tên s?n ph?m là b?t bu?c.");
             }
-            if (item.Quantity <= 0) result.Add($"items[{i}].quantity", "Quantity must be > 0.");
-            if (item.Weight <= 0) result.Add($"items[{i}].weight", "Weight must be > 0.");
+            if (item.Quantity <= 0) result.Add($"items[{i}].quantity", "S? lu?ng ph?i l?n hon 0.");
+            if (item.Weight <= 0) result.Add($"items[{i}].weight", "Kh?i lu?ng ph?i l?n hon 0.");
         }
         return result;
     }
@@ -174,11 +174,11 @@ public static partial class RequestValidator
     public static ValidationResult ValidateGhnFee(GhnFeeRequest request)
     {
         var result = new ValidationResult();
-        if (request.ToDistrictId <= 0) result.Add("toDistrictId", "ToDistrictId must be > 0.");
-        if (string.IsNullOrWhiteSpace(request.ToWardCode)) result.Add("toWardCode", "ToWardCode is required.");
-        if (request.Weight <= 0) result.Add("weight", "Weight must be > 0.");
-        if (request.FromDistrictId <= 0) result.Add("fromDistrictId", "FromDistrictId must be > 0.");
-        if (string.IsNullOrWhiteSpace(request.FromWardCode)) result.Add("fromWardCode", "FromWardCode is required.");
+        if (request.ToDistrictId <= 0) result.Add("toDistrictId", "ToDistrictId ph?i l?n hon 0.");
+        if (string.IsNullOrWhiteSpace(request.ToWardCode)) result.Add("toWardCode", "Mã phường/xã là bắt buộc.");
+        if (request.Weight <= 0) result.Add("weight", "Kh?i lu?ng ph?i l?n hon 0.");
+        if (request.FromDistrictId <= 0) result.Add("fromDistrictId", "FromDistrictId ph?i l?n hon 0.");
+        if (string.IsNullOrWhiteSpace(request.FromWardCode)) result.Add("fromWardCode", "FromWardCode là b?t bu?c.");
         return result;
     }
 
@@ -187,7 +187,7 @@ public static partial class RequestValidator
         var result = new ValidationResult();
         if (request.OrderCodes == null || request.OrderCodes.Count == 0)
         {
-            result.Add("orderCodes", "At least one order code is required.");
+            result.Add("orderCodes", "Cần ít nhất một mã đơn hàng.");
         }
         return result;
     }
@@ -197,7 +197,7 @@ public static partial class RequestValidator
         var result = new ValidationResult();
         if (request.OrderCodes == null || request.OrderCodes.Count == 0)
         {
-            result.Add("orderCodes", "At least one order code is required.");
+            result.Add("orderCodes", "Cần ít nhất một mã đơn hàng.");
         }
         return result;
     }
@@ -207,15 +207,15 @@ public static partial class RequestValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.Status))
         {
-            result.Add("status", "Status is required.");
+            result.Add("status", "Tr?ng thái là b?t bu?c.");
         }
         if (!string.IsNullOrWhiteSpace(request.Status) && request.Status.Trim().Length > StatusMaxLength)
         {
-            result.Add("status", "Status must be <= 50 chars.");
+            result.Add("status", "Tr?ng thái không du?c vu?t quá 50 ký t?.");
         }
         if (!string.IsNullOrWhiteSpace(request.TrackingCode) && request.TrackingCode.Trim().Length > TrackingCodeMaxLength)
         {
-            result.Add("trackingCode", "TrackingCode must be <= 100 chars.");
+            result.Add("trackingCode", "TrackingCode không du?c vu?t quá 100 ký t?.");
         }
         return result;
     }
@@ -223,15 +223,15 @@ public static partial class RequestValidator
     public static ValidationResult ValidateAddCartItem(AddCartItemRequest request)
     {
         var result = new ValidationResult();
-        if (request.ListingId <= 0) result.Add("listingId", "ListingId must be > 0.");
-        if (request.Quantity <= 0) result.Add("quantity", "Quantity must be > 0.");
+        if (request.ListingId <= 0) result.Add("listingId", "ListingId ph?i l?n hon 0.");
+        if (request.Quantity <= 0) result.Add("quantity", "S? lu?ng ph?i l?n hon 0.");
         return result;
     }
 
     public static ValidationResult ValidateUpdateCartItem(UpdateCartItemRequest request)
     {
         var result = new ValidationResult();
-        if (request.Quantity <= 0) result.Add("quantity", "Quantity must be > 0.");
+        if (request.Quantity <= 0) result.Add("quantity", "S? lu?ng ph?i l?n hon 0.");
         return result;
     }
 
@@ -240,7 +240,7 @@ public static partial class RequestValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.PaymentMethod))
         {
-            result.Add("paymentMethod", "Payment method is required.");
+            result.Add("paymentMethod", "Phuong th?c thanh toán là b?t bu?c.");
         }
         return result;
     }
@@ -250,7 +250,7 @@ public static partial class RequestValidator
         var result = new ValidationResult();
         if (request.OtherUserId <= 0)
         {
-            result.Add("otherUserId", "OtherUserId must be > 0.");
+            result.Add("otherUserId", "OtherUserId ph?i l?n hon 0.");
         }
         return result;
     }
@@ -260,12 +260,12 @@ public static partial class RequestValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.Content) && string.IsNullOrWhiteSpace(request.ImageUrl))
         {
-            result.Add("content", "Content or imageUrl is required.");
-            result.Add("imageUrl", "Content or imageUrl is required.");
+            result.Add("content", "N?i dung ho?c ?nh là b?t bu?c.");
+            result.Add("imageUrl", "N?i dung ho?c ?nh là b?t bu?c.");
         }
         if (!string.IsNullOrWhiteSpace(request.Content) && request.Content.Trim().Length > MessageMaxLength)
         {
-            result.Add("content", "Content must be <= 1000 chars.");
+            result.Add("content", "N?i dung không du?c vu?t quá 1000 ký t?.");
         }
         return result;
     }
@@ -275,7 +275,7 @@ public static partial class RequestValidator
         var result = new ValidationResult();
         if (request.ListingId <= 0)
         {
-            result.Add("listingId", "ListingId must be > 0.");
+            result.Add("listingId", "ListingId ph?i l?n hon 0.");
         }
         return result;
     }
@@ -283,32 +283,32 @@ public static partial class RequestValidator
     public static ValidationResult ValidateCreateReport(CreateReportRequest request)
     {
         var result = new ValidationResult();
-        if (request.OrderId <= 0) result.Add("orderId", "OrderId must be > 0.");
+        if (request.OrderId <= 0) result.Add("orderId", "OrderId ph?i l?n hon 0.");
         if (string.IsNullOrWhiteSpace(request.Reason))
         {
-            result.Add("reason", "Reason is required.");
+            result.Add("reason", "Lý do là b?t bu?c.");
         }
         else if (request.Reason.Trim().Length > ReasonMaxLength)
         {
-            result.Add("reason", "Reason must be <= 500 chars.");
+            result.Add("reason", "Lý do không du?c vu?t quá 500 ký t?.");
         }
         if (request.EvidenceUrls != null)
         {
             if (request.EvidenceUrls.Count > EvidenceMaxCount)
             {
-                result.Add("evidenceUrls", $"EvidenceUrls must be <= {EvidenceMaxCount} items.");
+                result.Add("evidenceUrls", $"EvidenceUrls không được vượt quá {EvidenceMaxCount} mục.");
             }
             for (var i = 0; i < request.EvidenceUrls.Count; i++)
             {
                 var url = request.EvidenceUrls[i];
                 if (string.IsNullOrWhiteSpace(url))
                 {
-                    result.Add($"evidenceUrls[{i}]", "Evidence url is required.");
+                    result.Add($"evidenceUrls[{i}]", "Evidence url là b?t bu?c.");
                     continue;
                 }
                 if (url.Trim().Length > EvidenceUrlMaxLength)
                 {
-                    result.Add($"evidenceUrls[{i}]", "Evidence url must be <= 500 chars.");
+                    result.Add($"evidenceUrls[{i}]", "Evidence url không du?c vu?t quá 500 ký t?.");
                 }
             }
         }
@@ -320,11 +320,11 @@ public static partial class RequestValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.Message))
         {
-            result.Add("message", "Message is required.");
+            result.Add("message", "N?i dung là b?t bu?c.");
         }
         else if (request.Message.Trim().Length > MessageMaxLength)
         {
-            result.Add("message", "Message must be <= 1000 chars.");
+            result.Add("message", "N?i dung không du?c vu?t quá 1000 ký t?.");
         }
         return result;
     }
@@ -334,11 +334,11 @@ public static partial class RequestValidator
         var result = new ValidationResult();
         if (!string.IsNullOrWhiteSpace(request.Status) && request.Status.Trim().Length > StatusMaxLength)
         {
-            result.Add("status", "Status must be <= 50 chars.");
+            result.Add("status", "Tr?ng thái không du?c vu?t quá 50 ký t?.");
         }
         if (!string.IsNullOrWhiteSpace(request.Decision) && request.Decision.Trim().Length > StatusMaxLength)
         {
-            result.Add("decision", "Decision must be <= 50 chars.");
+            result.Add("decision", "Decision không du?c vu?t quá 50 ký t?.");
         }
         return result;
     }
@@ -348,11 +348,11 @@ public static partial class RequestValidator
         var result = new ValidationResult();
         if (request.OrderId <= 0)
         {
-            result.Add("orderId", "OrderId must be > 0.");
+            result.Add("orderId", "OrderId ph?i l?n hon 0.");
         }
         if (request.Score < 1 || request.Score > 5)
         {
-            result.Add("score", "Score must be between 1 and 5.");
+            result.Add("score", "Điểm phải từ 1 đến 5.");
         }
         return result;
     }
@@ -362,11 +362,11 @@ public static partial class RequestValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.Status))
         {
-            result.Add("status", "Status is required.");
+            result.Add("status", "Tr?ng thái là b?t bu?c.");
         }
         else if (!ListingStatuses.All.Contains(request.Status, StringComparer.OrdinalIgnoreCase))
         {
-            result.Add("status", $"Invalid listing status. Allowed: {string.Join(", ", ListingStatuses.All)}.");
+            result.Add("status", $"Tr?ng thái bài dang không h?p l?. Cho phép: {string.Join(", ", ListingStatuses.All)}.");
         }
         return result;
     }
@@ -376,15 +376,15 @@ public static partial class RequestValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.Status))
         {
-            result.Add("status", "Status is required.");
+            result.Add("status", "Tr?ng thái là b?t bu?c.");
         }
         else if (!OrderStatuses.All.Contains(request.Status, StringComparer.OrdinalIgnoreCase))
         {
-            result.Add("status", $"Invalid order status. Allowed: {string.Join(", ", OrderStatuses.All)}.");
+            result.Add("status", $"Tr?ng thái don hàng không h?p l?. Cho phép: {string.Join(", ", OrderStatuses.All)}.");
         }
         if (!string.IsNullOrWhiteSpace(request.Reason) && request.Reason.Trim().Length > ReasonMaxLength)
         {
-            result.Add("reason", $"Reason must be <= {ReasonMaxLength} chars.");
+            result.Add("reason", $"Lý do không được vượt quá {ReasonMaxLength} ký tự.");
         }
         return result;
     }
@@ -394,7 +394,7 @@ public static partial class RequestValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.Reason))
         {
-            result.Add("reason", "Reason is required.");
+            result.Add("reason", "Lý do là b?t bu?c.");
         }
         return result;
     }
@@ -404,7 +404,7 @@ public static partial class RequestValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.Reason))
         {
-            result.Add("reason", "Reason is required.");
+            result.Add("reason", "Lý do là b?t bu?c.");
         }
         return result;
     }
@@ -414,15 +414,15 @@ public static partial class RequestValidator
         var result = new ValidationResult();
 
         if (request.ListingId <= 0)
-            result.Add("listingId", "ListingId must be greater than 0.");
+            result.Add("listingId", "ListingId ph?i l?n hon 0.");
 
         if (string.IsNullOrWhiteSpace(request.Content))
-            result.Add("content", "Content is required.");
+            result.Add("content", "N?i dung là b?t bu?c.");
         else if (request.Content.Length > 2000)
-            result.Add("content", "Content must not exceed 2000 characters.");
+            result.Add("content", "N?i dung không du?c vu?t quá 2000 ký t?.");
 
         if (request.ParentId.HasValue && request.ParentId.Value <= 0)
-            result.Add("parentId", "ParentId must be greater than 0 when provided.");
+            result.Add("parentId", "ParentId ph?i l?n hon 0 khi có cung c?p.");
 
         return result;
     }
@@ -432,10 +432,15 @@ public static partial class RequestValidator
         var result = new ValidationResult();
 
         if (string.IsNullOrWhiteSpace(request.Content))
-            result.Add("content", "Content is required.");
+            result.Add("content", "N?i dung là b?t bu?c.");
         else if (request.Content.Length > 2000)
-            result.Add("content", "Content must not exceed 2000 characters.");
+            result.Add("content", "N?i dung không du?c vu?t quá 2000 ký t?.");
 
         return result;
     }
 }
+
+
+
+
+

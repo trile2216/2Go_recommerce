@@ -1,4 +1,4 @@
-namespace _2GO_EXE_Project.BAL.Constants;
+﻿namespace _2GO_EXE_Project.BAL.Constants;
 
 public static class ListingNotificationText
 {
@@ -20,3 +20,6 @@ public static class ListingNotificationText
         };
     }
 }
+
+
+

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using PayOS.Models.Webhooks;
@@ -24,7 +24,7 @@ public class PayOSWebhookController : ControllerBase
     {
         if (webhook == null)
         {
-            return BadRequest("Webhook data is required");
+            return BadRequest("D? li?u webhook l� b?t bu?c");
         }
 
         try
@@ -42,7 +42,7 @@ public class PayOSWebhookController : ControllerBase
             
             if (!result.Success)
             {
-                return Ok(new { error = result.Message, message = "Webhook received but processing failed" });
+                return Ok(new { error = result.Message, message = "Đã nhận webhook nhưng xử lý thất bại" });
             }
 
             return Ok(new { message = "Webhook processed successfully", orderCode = webhookData.OrderCode });
@@ -54,3 +54,4 @@ public class PayOSWebhookController : ControllerBase
         }
     }
 }
+

@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using _2GO_EXE_Project.BAL.Constants;
@@ -45,7 +45,7 @@ public class ModeratorListingService : IModeratorListingService
         {
             if (!ListingStatuses.All.Contains(status, StringComparer.OrdinalIgnoreCase))
             {
-                throw new InvalidOperationException($"Invalid listing status. Allowed: {string.Join(", ", ListingStatuses.All)}.");
+                throw new InvalidOperationException($"Trạng thái bài đăng không hợp lệ. Cho phép: {string.Join(", ", ListingStatuses.All)}.");
             }
             query = query.Where(l => l.Status == status);
         }
@@ -148,11 +148,11 @@ public class ModeratorListingService : IModeratorListingService
     public async Task<BasicResponse> ApproveAsync(ClaimsPrincipal modPrincipal, long listingId, CancellationToken cancellationToken = default)
     {
         var listing = await _uow.Listings.GetByIdAsync(listingId);
-        if (listing == null) return new BasicResponse(false, "Listing not found.");
+        if (listing == null) return new BasicResponse(false, "Không tìm thấy bài đăng.");
 
         if (!string.Equals(listing.Status, ListingStatuses.PendingReview, StringComparison.OrdinalIgnoreCase))
         {
-            return new BasicResponse(false, "Listing can only be approved when status is PendingReview.");
+            return new BasicResponse(false, "Bài đăng chỉ có thể được duyệt khi trạng thái là PendingReview.");
         }
 
         listing.Status = ListingStatuses.Active;
@@ -166,18 +166,18 @@ public class ModeratorListingService : IModeratorListingService
             await NotifyAsync(listing.SellerId.Value, "LISTING", text.Title, text.Message, $"/listings/{listingId}", cancellationToken);
         }
         await LogModActionAsync(modPrincipal, "ApproveListing", new { ListingId = listingId }, cancellationToken);
-        return new BasicResponse(true, "Listing approved.");
+        return new BasicResponse(true, "Bài đăng đã được duyệt.");
     }
 
     public async Task<BasicResponse> RejectAsync(ClaimsPrincipal modPrincipal, long listingId, RejectListingRequest request, CancellationToken cancellationToken = default)
     {
         ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateRejectListing(request));
         var listing = await _uow.Listings.GetByIdAsync(listingId);
-        if (listing == null) return new BasicResponse(false, "Listing not found.");
+        if (listing == null) return new BasicResponse(false, "Không tìm thấy bài đăng.");
 
         if (!string.Equals(listing.Status, ListingStatuses.PendingReview, StringComparison.OrdinalIgnoreCase))
         {
-            return new BasicResponse(false, "Listing can only be rejected when status is PendingReview.");
+            return new BasicResponse(false, "Bài đăng chỉ có thể bị từ chối khi trạng thái là PendingReview.");
         }
 
         listing.Status = ListingStatuses.Rejected;
@@ -191,18 +191,18 @@ public class ModeratorListingService : IModeratorListingService
             await NotifyAsync(listing.SellerId.Value, "LISTING", text.Title, text.Message, $"/listings/{listingId}", cancellationToken);
         }
         await LogModActionAsync(modPrincipal, "RejectListing", new { ListingId = listingId, request.Reason }, cancellationToken);
-        return new BasicResponse(true, "Listing rejected.");
+        return new BasicResponse(true, "Bài đăng đã bị từ chối.");
     }
 
     public async Task<BasicResponse> FlagAsync(ClaimsPrincipal modPrincipal, long listingId, FlagListingRequest request, CancellationToken cancellationToken = default)
     {
         ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateFlagListing(request));
         var listing = await _uow.Listings.GetByIdAsync(listingId);
-        if (listing == null) return new BasicResponse(false, "Listing not found.");
+        if (listing == null) return new BasicResponse(false, "Không tìm thấy bài đăng.");
 
         if (!string.Equals(listing.Status, ListingStatuses.Active, StringComparison.OrdinalIgnoreCase))
         {
-            return new BasicResponse(false, "Listing can only be flagged when status is Active.");
+            return new BasicResponse(false, "Bài đăng chỉ có thể bị gắn cờ khi trạng thái là Active.");
         }
 
         listing.Status = ListingStatuses.Flagged;
@@ -216,7 +216,7 @@ public class ModeratorListingService : IModeratorListingService
             await NotifyAsync(listing.SellerId.Value, "LISTING", text.Title, text.Message, $"/listings/{listingId}", cancellationToken);
         }
         await LogModActionAsync(modPrincipal, "FlagListing", new { ListingId = listingId, request.Reason }, cancellationToken);
-        return new BasicResponse(true, "Listing flagged.");
+        return new BasicResponse(true, "Bài đăng đã bị gắn cờ.");
     }
 
     private async Task LogModActionAsync(ClaimsPrincipal principal, string action, object details, CancellationToken cancellationToken)
@@ -257,6 +257,11 @@ public class ModeratorListingService : IModeratorListingService
         }
     }
 }
+
+
+
+
+
 
 
 

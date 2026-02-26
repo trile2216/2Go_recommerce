@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using _2GO_EXE_Project.BAL.Constants;
@@ -40,7 +40,7 @@ public class SellerListingService : ISellerListingService
                   ?? principal.FindFirst(ClaimTypes.Name)?.Value;
         if (!long.TryParse(sub, out var id))
         {
-            throw new UnauthorizedAccessException("Invalid user id in token.");
+            throw new UnauthorizedAccessException("User id trong token không hợp lệ.");
         }
         return id;
     }
@@ -51,11 +51,11 @@ public class SellerListingService : ISellerListingService
             .FirstOrDefaultAsync(sc => sc.SubCategoryId == subCategoryId, cancellationToken);
         if (subCategory == null)
         {
-            throw new InvalidOperationException("SubCategory not found.");
+            throw new InvalidOperationException("Không tìm thấy danh mục con.");
         }
         if (!subCategory.IsActive)
         {
-            throw new InvalidOperationException("SubCategory is inactive.");
+            throw new InvalidOperationException("Danh mục con đang bị vô hiệu hóa.");
         }
     }
 
@@ -67,13 +67,13 @@ public class SellerListingService : ISellerListingService
         if (ward == null)
         {
             var result = new ValidationResult();
-            result.Add("wardId", "WardId does not exist.");
+            result.Add("wardId", "WardId không tồn tại.");
             throw new CustomValidationException(result.Errors, "INVALID_LOCATION");
         }
         if (!ward.DistrictId.HasValue || !ward.CityId.HasValue)
         {
             var result = new ValidationResult();
-            result.Add("wardId", "WardId is missing district or city.");
+            result.Add("wardId", "WardId thiếu thông tin quận/huyện hoặc thành phố.");
             throw new CustomValidationException(result.Errors, "INVALID_LOCATION");
         }
     }
@@ -101,7 +101,7 @@ public class SellerListingService : ISellerListingService
         var normalized = mediaType.Trim().ToUpperInvariant();
         if (!MediaTypes.All.Contains(normalized, StringComparer.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException($"Invalid media type. Allowed: {string.Join(", ", MediaTypes.All)}.");
+            throw new InvalidOperationException($"Loại media không hợp lệ. Cho phép: {string.Join(", ", MediaTypes.All)}.");
         }
 
         return normalized;
@@ -117,7 +117,7 @@ public class SellerListingService : ISellerListingService
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(_cloudinaryCloudName))
         {
-            result.Add("media", "Cloudinary CloudName is not configured.");
+            result.Add("media", "Cloudinary CloudName chưa được cấu hình.");
             ValidationGuard.ThrowIfInvalid(result);
         }
 
@@ -132,19 +132,19 @@ public class SellerListingService : ISellerListingService
 
             if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
             {
-                result.Add($"media[{i}].url", "Media url must be a valid absolute Cloudinary URL.");
+                result.Add($"media[{i}].url", "Media url phải là URL Cloudinary tuyệt đối hợp lệ.");
                 continue;
             }
 
             if (!string.Equals(uri.Host, "res.cloudinary.com", StringComparison.OrdinalIgnoreCase))
             {
-                result.Add($"media[{i}].url", "Media url must be hosted on Cloudinary.");
+                result.Add($"media[{i}].url", "Media url phải được lưu trữ trên Cloudinary.");
                 continue;
             }
 
             if (!uri.AbsolutePath.StartsWith(cloudPathPrefix, StringComparison.OrdinalIgnoreCase))
             {
-                result.Add($"media[{i}].url", "Media url must belong to the configured Cloudinary cloud.");
+                result.Add($"media[{i}].url", "Media url phải thuộc Cloudinary cloud đã cấu hình.");
             }
         }
 
@@ -162,7 +162,7 @@ public class SellerListingService : ISellerListingService
         {
             if (!ListingStatuses.All.Contains(status, StringComparer.OrdinalIgnoreCase))
             {
-                throw new InvalidOperationException($"Invalid listing status. Allowed: {string.Join(", ", ListingStatuses.All)}.");
+                throw new InvalidOperationException($"Trạng thái bài đăng không hợp lệ. Cho phép: {string.Join(", ", ListingStatuses.All)}.");
             }
             query = query.Where(l => l.Status == status);
         }
@@ -274,7 +274,7 @@ public class SellerListingService : ISellerListingService
         }
         if (string.IsNullOrWhiteSpace(request.Title))
         {
-            throw new InvalidOperationException("Title is required.");
+            throw new InvalidOperationException("Tiêu đề là bắt buộc.");
         }
         var status = request.Status;
         if (string.IsNullOrWhiteSpace(status))
@@ -284,7 +284,7 @@ public class SellerListingService : ISellerListingService
 
         if (!string.Equals(status, ListingStatuses.Draft, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("Listings can only be created as Draft. Use the publish endpoint to submit.");
+            throw new InvalidOperationException("Bài đăng chỉ có thể tạo ở trạng thái Draft. Hãy dùng endpoint publish để gửi duyệt.");
         }
 
         var mediaRequests = request.Media?.ToList() ?? new List<ListingMediaRequest>();
@@ -297,7 +297,7 @@ public class SellerListingService : ISellerListingService
         {
             if (imageRequests.Count == 0)
             {
-                throw new InvalidOperationException("At least one image is required.");
+                throw new InvalidOperationException("Cần ít nhất một ảnh.");
             }
         }
         ValidateMediaRequests(mediaRequests);
@@ -361,7 +361,7 @@ public class SellerListingService : ISellerListingService
         }
 
         return await GetMyListingByIdAsync(sellerPrincipal, listing.ListingId, cancellationToken)
-               ?? throw new InvalidOperationException("Listing not found after create.");
+               ?? throw new InvalidOperationException("Không tìm thấy bài đăng sau khi tạo.");
     }
 
     public async Task<ListingDetail?> UpdateAsync(ClaimsPrincipal sellerPrincipal, long listingId, UpdateSellerListingRequest request, CancellationToken cancellationToken = default)
@@ -375,7 +375,7 @@ public class SellerListingService : ISellerListingService
         if (!string.Equals(listing.Status, ListingStatuses.Draft, StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(listing.Status, ListingStatuses.Rejected, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("Listing can only be updated when status is Draft or Rejected.");
+            throw new InvalidOperationException("Bài đăng chỉ có thể cập nhật khi trạng thái là Draft hoặc Rejected.");
         }
 
         if (request.SubCategoryId.HasValue)
@@ -397,11 +397,11 @@ public class SellerListingService : ISellerListingService
         if (!string.IsNullOrWhiteSpace(request.ListingType) &&
             !string.Equals(request.ListingType, ListingTypes.Single, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("ListingType only supports SINGLE for this marketplace.");
+            throw new InvalidOperationException("ListingType chỉ hỗ trợ SINGLE cho sàn này.");
         }
         if (request.AvailableQuantity.HasValue && request.AvailableQuantity.Value != 1)
         {
-            throw new InvalidOperationException("AvailableQuantity must be 1 for SINGLE listings.");
+            throw new InvalidOperationException("AvailableQuantity phải là 1 đối với listing SINGLE.");
         }
         listing.ListingType = ListingTypes.Single;
         listing.AvailableQuantity = 1;
@@ -441,27 +441,27 @@ public class SellerListingService : ISellerListingService
         var listing = await _uow.Listings.Query()
             .Include(l => l.ListingMedias)
             .FirstOrDefaultAsync(l => l.ListingId == listingId && l.SellerId == sellerId, cancellationToken);
-        if (listing == null) return new BasicResponse(false, "Listing not found.");
+        if (listing == null) return new BasicResponse(false, "Không tìm thấy bài đăng.");
 
         if (!string.Equals(listing.Status, ListingStatuses.Draft, StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(listing.Status, ListingStatuses.Rejected, StringComparison.OrdinalIgnoreCase))
         {
-            return new BasicResponse(false, "Listing can only be submitted when status is Draft or Rejected.");
+            return new BasicResponse(false, "Bài đăng chỉ có thể gửi duyệt khi trạng thái là Draft hoặc Rejected.");
         }
 
         if (string.IsNullOrWhiteSpace(listing.Title))
         {
-            return new BasicResponse(false, "Title is required before submitting.");
+            return new BasicResponse(false, "Cần có tiêu đề trước khi gửi duyệt.");
         }
 
         if (!listing.Price.HasValue || listing.Price.Value < 0)
         {
-            return new BasicResponse(false, "Price must be >= 0 before submitting.");
+            return new BasicResponse(false, "Giá phải lớn hơn hoặc bằng 0 trước khi gửi duyệt.");
         }
 
         if (!listing.SubCategoryId.HasValue)
         {
-            return new BasicResponse(false, "SubCategory is required before submitting.");
+            return new BasicResponse(false, "Cần chọn danh mục con trước khi gửi duyệt.");
         }
         await EnsureSubCategoryValidAsync(listing.SubCategoryId.Value, cancellationToken);
 
@@ -469,7 +469,7 @@ public class SellerListingService : ISellerListingService
         var images = media.Where(m => m.MediaType == MediaTypes.Image).ToList();
         if (images.Count == 0)
         {
-            return new BasicResponse(false, "At least one image is required before submitting.");
+            return new BasicResponse(false, "Cần ít nhất một ảnh trước khi gửi duyệt.");
         }
 
         if (!images.Any(i => i.IsPrimary == true))
@@ -482,7 +482,7 @@ public class SellerListingService : ISellerListingService
             .Include(u => u.UserProfiles)
             .Include(u => u.UserVerifications)
             .FirstOrDefaultAsync(u => u.UserId == sellerId, cancellationToken);
-        if (user == null) return new BasicResponse(false, "User not found.");
+        if (user == null) return new BasicResponse(false, "Không tìm thấy người dùng.");
         var eligibilityError = GetSellerEligibilityError(user);
         if (!string.IsNullOrWhiteSpace(eligibilityError))
         {
@@ -495,7 +495,7 @@ public class SellerListingService : ISellerListingService
             .FirstOrDefaultAsync(cancellationToken);
         if (categoryId <= 0)
         {
-            return new BasicResponse(false, "Category not found for listing.");
+            return new BasicResponse(false, "Không tìm thấy danh mục cho bài đăng.");
         }
 
         var precheckRequest = new AiListingPrecheckRequest(
@@ -513,12 +513,12 @@ public class SellerListingService : ISellerListingService
         var isQualityManual = string.Equals(qualityDecision, "MANUAL_REVIEW", StringComparison.OrdinalIgnoreCase);
         if (isQualityReject)
         {
-            return new BasicResponse(false, "Images did not pass quality checks. Please update your photos.");
+            return new BasicResponse(false, "Ảnh không đạt kiểm tra chất lượng. Vui lòng cập nhật ảnh.");
         }
 
         if (string.Equals(precheck.Risk.Action, "REJECTED", StringComparison.OrdinalIgnoreCase))
         {
-            return new BasicResponse(false, "Listing rejected due to risk checks. Please revise your content.");
+            return new BasicResponse(false, "Bài đăng bị từ chối do kiểm tra rủi ro. Vui lòng chỉnh sửa nội dung.");
         }
 
         var now = DateTime.UtcNow;
@@ -535,7 +535,7 @@ public class SellerListingService : ISellerListingService
                 .CountAsync(cancellationToken);
             if (publishedCount >= limit)
             {
-                return new BasicResponse(false, "Publish limit reached for your current plan. Please upgrade to continue.");
+                return new BasicResponse(false, "Bạn đã đạt giới hạn đăng bài của gói hiện tại. Vui lòng nâng cấp để tiếp tục.");
             }
         }
 
@@ -555,7 +555,7 @@ public class SellerListingService : ISellerListingService
         {
             await NotifyAdminsAsync("LISTING_REVIEW", "Có bài đăng cần duyệt", $"Bài đăng #{listing.ListingId} đang chờ duyệt.", $"/admin/listings/{listing.ListingId}", cancellationToken);
         }
-        return new BasicResponse(true, targetStatus == ListingStatuses.Active ? "Listing published." : "Listing submitted for review.");
+        return new BasicResponse(true, targetStatus == ListingStatuses.Active ? "Bài đăng đã được đăng." : "Bài đăng đã được gửi duyệt.");
     }
 
     public async Task<BasicResponse> ArchiveAsync(ClaimsPrincipal sellerPrincipal, long listingId, CancellationToken cancellationToken = default)
@@ -563,11 +563,11 @@ public class SellerListingService : ISellerListingService
         var sellerId = GetUserId(sellerPrincipal);
         var listing = await _uow.Listings.Query()
             .FirstOrDefaultAsync(l => l.ListingId == listingId && l.SellerId == sellerId, cancellationToken);
-        if (listing == null) return new BasicResponse(false, "Listing not found.");
+        if (listing == null) return new BasicResponse(false, "Không tìm thấy bài đăng.");
 
         if (!string.Equals(listing.Status, ListingStatuses.Active, StringComparison.OrdinalIgnoreCase))
         {
-            return new BasicResponse(false, "Listing can only be archived when status is Active.");
+            return new BasicResponse(false, "Bài đăng chỉ có thể lưu trữ khi trạng thái là Active.");
         }
 
         listing.Status = ListingStatuses.Archived;
@@ -575,7 +575,7 @@ public class SellerListingService : ISellerListingService
         _uow.Listings.Update(listing);
         await _uow.SaveChangesAsync(cancellationToken);
         await NotifyAsync(sellerId, "LISTING", ListingNotificationText.ForStatus(ListingStatuses.Archived).Title, ListingNotificationText.ForStatus(ListingStatuses.Archived).Message, $"/seller/listings/{listing.ListingId}", cancellationToken);
-        return new BasicResponse(true, "Listing archived.");
+        return new BasicResponse(true, "Bài đăng đã được lưu trữ.");
     }
 
     public async Task<BasicResponse> DeleteAsync(ClaimsPrincipal sellerPrincipal, long listingId, CancellationToken cancellationToken = default)
@@ -583,11 +583,11 @@ public class SellerListingService : ISellerListingService
         var sellerId = GetUserId(sellerPrincipal);
         var listing = await _uow.Listings.Query()
             .FirstOrDefaultAsync(l => l.ListingId == listingId && l.SellerId == sellerId, cancellationToken);
-        if (listing == null) return new BasicResponse(false, "Listing not found.");
+        if (listing == null) return new BasicResponse(false, "Không tìm thấy bài đăng.");
 
         if (string.Equals(listing.Status, ListingStatuses.Deleted, StringComparison.OrdinalIgnoreCase))
         {
-            return new BasicResponse(true, "Listing already deleted.");
+            return new BasicResponse(true, "Bài đăng đã bị xóa.");
         }
 
         listing.Status = ListingStatuses.Deleted;
@@ -595,7 +595,7 @@ public class SellerListingService : ISellerListingService
         _uow.Listings.Update(listing);
         await _uow.SaveChangesAsync(cancellationToken);
         await NotifyAsync(sellerId, "LISTING", ListingNotificationText.ForStatus(ListingStatuses.Deleted).Title, ListingNotificationText.ForStatus(ListingStatuses.Deleted).Message, $"/seller/listings/{listing.ListingId}", cancellationToken);
-        return new BasicResponse(true, "Listing deleted (soft).");
+        return new BasicResponse(true, "Bài đăng đã bị xóa (mềm).");
     }
 
     public async Task<BasicResponse> UpdateMediaAsync(ClaimsPrincipal sellerPrincipal, long listingId, UpdateListingMediaRequest request, CancellationToken cancellationToken = default)
@@ -605,12 +605,12 @@ public class SellerListingService : ISellerListingService
         var listing = await _uow.Listings.Query()
             .Include(l => l.ListingMedias)
             .FirstOrDefaultAsync(l => l.ListingId == listingId && l.SellerId == sellerId, cancellationToken);
-        if (listing == null) return new BasicResponse(false, "Listing not found.");
+        if (listing == null) return new BasicResponse(false, "Không tìm thấy bài đăng.");
 
         if (!string.Equals(listing.Status, ListingStatuses.Draft, StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(listing.Status, ListingStatuses.Rejected, StringComparison.OrdinalIgnoreCase))
         {
-            return new BasicResponse(false, "Media can only be updated when status is Draft or Rejected.");
+            return new BasicResponse(false, "Media chỉ có thể cập nhật khi trạng thái là Draft hoặc Rejected.");
         }
 
         var existing = listing.ListingMedias.ToList();
@@ -623,7 +623,7 @@ public class SellerListingService : ISellerListingService
         if (mediaRequests.Count == 0)
         {
             await _uow.SaveChangesAsync(cancellationToken);
-            return new BasicResponse(true, "Media cleared.");
+            return new BasicResponse(true, "Đã xóa media.");
         }
         ValidateMediaRequests(mediaRequests);
         ValidateCloudinaryMediaUrls(mediaRequests);
@@ -659,7 +659,7 @@ public class SellerListingService : ISellerListingService
 
         await _uow.ListingMedias.AddRangeAsync(newMedia, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
-        return new BasicResponse(true, "Media updated.");
+        return new BasicResponse(true, "Đã cập nhật media.");
     }
 
     public async Task<ListingStatsResponse?> GetMyListingStatsAsync(ClaimsPrincipal sellerPrincipal, long listingId, CancellationToken cancellationToken = default)
@@ -683,7 +683,7 @@ public class SellerListingService : ISellerListingService
     {
         if (string.IsNullOrWhiteSpace(listingType)) return ListingTypes.Single;
         if (string.Equals(listingType, ListingTypes.Single, StringComparison.OrdinalIgnoreCase)) return ListingTypes.Single;
-        throw new InvalidOperationException("ListingType only supports SINGLE for this marketplace.");
+        throw new InvalidOperationException("ListingType chỉ hỗ trợ SINGLE cho sàn này.");
     }
 
     private static string? GetSellerEligibilityError(User user)
@@ -711,8 +711,8 @@ public class SellerListingService : ISellerListingService
 
         if (missing.Count == 0) return null;
 
-        return "Complete your profile (fullName, phone, address, bankAccountNumber, bankBin, bankAccountName) and verify your account (email or phone) before submitting a listing. " +
-               $"Missing: {string.Join(", ", missing.Distinct(StringComparer.OrdinalIgnoreCase))}.";
+        return "Vui lòng hoàn thiện hồ sơ (fullName, phone, address, bankAccountNumber, bankBin, bankAccountName) và xác minh tài khoản (email hoặc phone) trước khi gửi bài đăng. " +
+               $"Thiếu: {string.Join(", ", missing.Distinct(StringComparer.OrdinalIgnoreCase))}.";
     }
 
     private async Task NotifyAsync(long userId, string type, string title, string message, string? link, CancellationToken cancellationToken)
@@ -830,3 +830,16 @@ public class SellerListingService : ISellerListingService
         return null;
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

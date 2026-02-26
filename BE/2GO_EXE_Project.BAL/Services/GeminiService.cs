@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -27,12 +27,12 @@ public class GeminiService : IGeminiService
     {
         if (string.IsNullOrWhiteSpace(_settings.ApiKey))
         {
-            throw new InvalidOperationException("Gemini API key is not configured.");
+            throw new InvalidOperationException("Chưa cấu hình Gemini API key.");
         }
 
         if (!TryConsumeQuota(DateTime.UtcNow, userKey, _settings.MaxRequestsPerMinute, _settings.MaxRequestsPerDay))
         {
-            throw new InvalidOperationException("Gemini rate limit exceeded.");
+            throw new InvalidOperationException("Gemini vượt quá giới hạn truy cập.");
         }
 
         var request = new
@@ -59,7 +59,7 @@ public class GeminiService : IGeminiService
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogWarning("Gemini API error {Status}: {Body}", response.StatusCode, body);
-            throw new InvalidOperationException("Gemini API request failed.");
+            throw new InvalidOperationException("Yêu cầu Gemini API thất bại.");
         }
 
         return ExtractText(body);
@@ -69,18 +69,18 @@ public class GeminiService : IGeminiService
     {
         if (string.IsNullOrWhiteSpace(_settings.ApiKey))
         {
-            throw new InvalidOperationException("Gemini API key is not configured.");
+            throw new InvalidOperationException("Chưa cấu hình Gemini API key.");
         }
 
         if (!TryConsumeQuota(DateTime.UtcNow, userKey, _settings.MaxRequestsPerMinute, _settings.MaxRequestsPerDay))
         {
-            throw new InvalidOperationException("Gemini rate limit exceeded.");
+            throw new InvalidOperationException("Gemini vượt quá giới hạn truy cập.");
         }
 
         var image = await TryReadImageAsync(imageUrl, cancellationToken);
         if (image == null)
         {
-            throw new InvalidOperationException("Image download failed.");
+            throw new InvalidOperationException("Tải ảnh thất bại.");
         }
 
         var request = new
@@ -115,7 +115,7 @@ public class GeminiService : IGeminiService
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogWarning("Gemini Vision API error {Status}: {Body}", response.StatusCode, body);
-            throw new InvalidOperationException("Gemini API request failed.");
+            throw new InvalidOperationException("Yêu cầu Gemini API thất bại.");
         }
 
         return ExtractText(body);
@@ -228,3 +228,4 @@ public class GeminiService : IGeminiService
         }
     }
 }
+

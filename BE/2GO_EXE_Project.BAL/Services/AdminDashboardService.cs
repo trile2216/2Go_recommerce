@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using _2GO_EXE_Project.BAL.Constants;
 using _2GO_EXE_Project.BAL.DTOs.Admin;
 using _2GO_EXE_Project.BAL.Interfaces;
@@ -22,7 +22,7 @@ public class AdminDashboardService : IAdminDashboardService
         var fromDate = from ?? now.AddDays(-30);
         if (fromDate > toDate)
         {
-            throw new InvalidOperationException("Invalid date range.");
+            throw new InvalidOperationException("Khoảng thời gian không hợp lệ.");
         }
 
         var ordersQuery = _uow.Orders.Query().AsNoTracking()
@@ -108,13 +108,13 @@ public class AdminDashboardService : IAdminDashboardService
         var fromDate = from ?? now.AddDays(-30);
         if (fromDate > toDate)
         {
-            throw new InvalidOperationException("Invalid date range.");
+            throw new InvalidOperationException("Khoảng thời gian không hợp lệ.");
         }
 
         var bucketKey = NormalizeBucket(bucket);
         if (bucketKey == null)
         {
-            throw new InvalidOperationException("Invalid bucket. Use day|week|month|year.");
+            throw new InvalidOperationException("Bucket không hợp lệ. Dùng day|week|month|year.");
         }
 
         var points = BuildBuckets(fromDate, toDate, bucketKey.Value);
@@ -399,3 +399,4 @@ public class AdminDashboardService : IAdminDashboardService
             .ToList();
     }
 }
+

@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using _2GO_EXE_Project.BAL.DTOs.Auth;
 using _2GO_EXE_Project.BAL.DTOs.Chat;
@@ -28,7 +28,7 @@ public class ChatService : IChatService
                   ?? principal.FindFirst(ClaimTypes.Name)?.Value;
         if (!long.TryParse(sub, out var id))
         {
-            throw new UnauthorizedAccessException("Invalid user id in token.");
+            throw new UnauthorizedAccessException("User id trong token không hợp lệ.");
         }
         return id;
     }
@@ -75,7 +75,7 @@ public class ChatService : IChatService
         var userId = GetUserId(userPrincipal);
         if (request.OtherUserId == userId)
         {
-            throw new InvalidOperationException("Cannot chat with yourself.");
+            throw new InvalidOperationException("Bạn không thể chat với chính mình.");
         }
 
         var existing = await _uow.Chats.Query()
@@ -156,7 +156,7 @@ public class ChatService : IChatService
         var chat = await _uow.Chats.GetByIdAsync(chatId);
         if (chat == null || (chat.User1Id != userId && chat.User2Id != userId))
         {
-            return new BasicResponse(false, "Chat not found.");
+            return new BasicResponse(false, "Không tìm thấy cuộc trò chuyện.");
         }
 
         var message = new Message
@@ -173,9 +173,9 @@ public class ChatService : IChatService
         var receiverId = chat.User1Id == userId ? chat.User2Id : chat.User1Id;
         if (receiverId.HasValue)
         {
-            await NotifyAsync(receiverId.Value, "CHAT", "Tin nhắn mới", "Bạn có tin nhắn mới.", $"/chat/{chatId}", cancellationToken);
+            await NotifyAsync(receiverId.Value, "CHAT", "Tin nhắn mới", "Bạn có Tin nh?n m?i.", $"/chat/{chatId}", cancellationToken);
         }
-        return new BasicResponse(true, "Message sent.");
+        return new BasicResponse(true, "Đã gửi tin nhắn.");
     }
 
     private async Task NotifyAsync(long userId, string type, string title, string message, string? link, CancellationToken cancellationToken)
@@ -195,3 +195,11 @@ public class ChatService : IChatService
         }
     }
 }
+
+
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using _2GO_EXE_Project.BAL.Constants;
@@ -36,7 +36,7 @@ public class OrderService : IOrderService
                   ?? principal.FindFirst(ClaimTypes.Name)?.Value;
         if (!long.TryParse(sub, out var id))
         {
-            throw new UnauthorizedAccessException("Invalid user id in token.");
+            throw new UnauthorizedAccessException("User id trong token không hợp lệ.");
         }
         return id;
     }
@@ -51,15 +51,15 @@ public class OrderService : IOrderService
             .FirstOrDefaultAsync(l => l.ListingId == request.ListingId, cancellationToken);
         if (listing == null || !string.Equals(listing.Status, ListingStatuses.Active, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("Listing not available.");
+            throw new InvalidOperationException("Bài đăng không khả dụng.");
         }
         if (!listing.SellerId.HasValue)
         {
-            throw new InvalidOperationException("Seller not found.");
+            throw new InvalidOperationException("Không tìm th?y ngu?i bán.");
         }
         if (listing.SellerId.Value == buyerId)
         {
-            throw new InvalidOperationException("You cannot order your own listing.");
+            throw new InvalidOperationException("Bạn không thể đặt hàng bài đăng của chính mình.");
         }
 
         var hasActiveOrder = await _uow.Orders.Query()
@@ -73,7 +73,7 @@ public class OrderService : IOrderService
                 cancellationToken);
         if (hasActiveOrder)
         {
-            throw new InvalidOperationException("Listing already has an active order.");
+            throw new InvalidOperationException("Bài đăng đã có đơn hàng đang hoạt động.");
         }
 
         var order = new Order
@@ -261,20 +261,20 @@ public class OrderService : IOrderService
     {
         var userId = GetUserId(userPrincipal);
         var order = await _uow.Orders.GetByIdAsync(orderId);
-        if (order == null) return new BasicResponse(false, "Order not found.");
-        if (order.BuyerId != userId) return new BasicResponse(false, "Not allowed.");
+        if (order == null) return new BasicResponse(false, "Không tìm thấy đơn hàng.");
+        if (order.BuyerId != userId) return new BasicResponse(false, "Không có quyền thực hiện.");
         if (string.Equals(order.Status, OrderStatuses.Disputed, StringComparison.OrdinalIgnoreCase))
         {
-            return new BasicResponse(false, "Order is in dispute.");
+            return new BasicResponse(false, "Đơn hàng đang tranh chấp.");
         }
         if (!string.Equals(order.Status, OrderStatuses.Pending, StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(order.Status, OrderStatuses.Confirmed, StringComparison.OrdinalIgnoreCase))
         {
             if (string.Equals(order.Status, OrderStatuses.Cancelled, StringComparison.OrdinalIgnoreCase))
             {
-                return new BasicResponse(true, "Order already cancelled.");
+                return new BasicResponse(true, "Đơn hàng đã bị hủy.");
             }
-            return new BasicResponse(false, "Only pending or confirmed orders can be cancelled.");
+            return new BasicResponse(false, "Chỉ đơn hàng đang chờ hoặc đã xác nhận mới có thể hủy.");
         }
 
         order.Status = OrderStatuses.Cancelled;
@@ -322,31 +322,31 @@ public class OrderService : IOrderService
         {
             await NotifyAsync(order.SellerId.Value, "ORDER", "Đơn hàng đã hủy", $"Đơn hàng #{order.OrderId} đã bị hủy.", $"/orders/{order.OrderId}", cancellationToken);
         }
-        return new BasicResponse(true, "Order cancelled.");
+        return new BasicResponse(true, "Đơn hàng đã bị hủy.");
     }
 
     public async Task<BasicResponse> ConfirmAsync(ClaimsPrincipal userPrincipal, long orderId, CancellationToken cancellationToken = default)
     {
         var userId = GetUserId(userPrincipal);
         var order = await _uow.Orders.GetByIdAsync(orderId);
-        if (order == null) return new BasicResponse(false, "Order not found.");
-        if (order.SellerId != userId) return new BasicResponse(false, "Not allowed.");
+        if (order == null) return new BasicResponse(false, "Không tìm thấy đơn hàng.");
+        if (order.SellerId != userId) return new BasicResponse(false, "Không có quyền thực hiện.");
         if (string.Equals(order.Status, OrderStatuses.Disputed, StringComparison.OrdinalIgnoreCase))
         {
-            return new BasicResponse(false, "Order is in dispute.");
+            return new BasicResponse(false, "Đơn hàng đang tranh chấp.");
         }
         if (!string.Equals(order.Status, OrderStatuses.Pending, StringComparison.OrdinalIgnoreCase))
         {
             if (string.Equals(order.Status, OrderStatuses.Confirmed, StringComparison.OrdinalIgnoreCase))
             {
-                return new BasicResponse(true, "Order already confirmed.");
+                return new BasicResponse(true, "Đơn hàng đã được xác nhận.");
             }
-            return new BasicResponse(false, "Only pending orders can be confirmed.");
+            return new BasicResponse(false, "Chỉ đơn hàng đang chờ mới có thể xác nhận.");
         }
 
         if (!string.Equals(order.PaymentMethod, "COD", StringComparison.OrdinalIgnoreCase))
         {
-            return new BasicResponse(false, "Non-COD orders are confirmed by payment verification.");
+            return new BasicResponse(false, "Đơn hàng không COD được xác nhận khi thanh toán được xác minh.");
         }
 
         order.Status = OrderStatuses.Confirmed;
@@ -358,26 +358,26 @@ public class OrderService : IOrderService
         {
             await NotifyAsync(order.BuyerId.Value, "ORDER", "Đơn hàng đã xác nhận", $"Đơn hàng #{order.OrderId} đã được xác nhận.", $"/orders/{order.OrderId}", cancellationToken);
         }
-        return new BasicResponse(true, "Order confirmed.");
+        return new BasicResponse(true, "Đơn hàng đã được xác nhận.");
     }
 
     public async Task<BasicResponse> CompleteAsync(ClaimsPrincipal userPrincipal, long orderId, CancellationToken cancellationToken = default)
     {
         var userId = GetUserId(userPrincipal);
         var order = await _uow.Orders.GetByIdAsync(orderId);
-        if (order == null) return new BasicResponse(false, "Order not found.");
-        if (order.BuyerId != userId) return new BasicResponse(false, "Not allowed.");
+        if (order == null) return new BasicResponse(false, "Không tìm thấy đơn hàng.");
+        if (order.BuyerId != userId) return new BasicResponse(false, "Không có quyền thực hiện.");
         if (string.Equals(order.Status, OrderStatuses.Disputed, StringComparison.OrdinalIgnoreCase))
         {
-            return new BasicResponse(false, "Order is in dispute.");
+            return new BasicResponse(false, "Đơn hàng đang tranh chấp.");
         }
         if (!string.Equals(order.Status, OrderStatuses.Delivered, StringComparison.OrdinalIgnoreCase))
         {
             if (string.Equals(order.Status, OrderStatuses.Completed, StringComparison.OrdinalIgnoreCase))
             {
-                return new BasicResponse(true, "Order already completed.");
+                return new BasicResponse(true, "Đơn hàng đã hoàn tất.");
             }
-            return new BasicResponse(false, "Only delivered orders can be completed.");
+            return new BasicResponse(false, "Chỉ đơn hàng đã giao mới có thể hoàn tất.");
         }
 
         var totalAmount = order.TotalAmount ?? 0m;
@@ -392,8 +392,8 @@ public class OrderService : IOrderService
             else
             {
                 return new BasicResponse(false, requiresDeposit
-                    ? "Remaining payment must be paid before completing the order."
-                    : "Payment must be paid before completing the order.");
+                    ? "Cần thanh toán phần còn lại trước khi hoàn tất đơn hàng."
+                    : "Cần thanh toán trước khi hoàn tất đơn hàng.");
             }
         }
 
@@ -409,14 +409,14 @@ public class OrderService : IOrderService
         {
             await NotifyAsync(order.SellerId.Value, "ORDER", "Đơn hàng đã hoàn tất", $"Đơn hàng #{order.OrderId} đã hoàn tất.", $"/orders/{order.OrderId}", cancellationToken);
         }
-        return new BasicResponse(true, "Order completed.");
+        return new BasicResponse(true, "Đơn hàng đã hoàn tất.");
     }
 
     private static string NormalizePaymentMethod(string method)
     {
         if (string.Equals(method, "COD", StringComparison.OrdinalIgnoreCase)) return "COD";
         if (string.Equals(method, "PAYOS", StringComparison.OrdinalIgnoreCase)) return "PAYOS";
-        throw new InvalidOperationException("Payment method not supported.");
+        throw new InvalidOperationException("Phương thức thanh toán không được hỗ trợ.");
     }
 
     private async Task<bool> IsDepositPaidAsync(long orderId, CancellationToken cancellationToken)
@@ -610,4 +610,14 @@ public class OrderService : IOrderService
             .FirstOrDefaultAsync(o => o.OrderCode == orderCode, cancellationToken);
     }
 }
+
+
+
+
+
+
+
+
+
+
 

@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using _2GO_EXE_Project.BAL.Constants;
@@ -45,7 +45,7 @@ public class AdminListingService : IAdminListingService
         {
             if (!AllowedStatuses.Contains(status))
             {
-                throw new InvalidOperationException($"Invalid listing status. Allowed: {string.Join(", ", ListingStatuses.All)}.");
+                throw new InvalidOperationException($"Trạng thái bài đăng không hợp lệ. Cho phép: {string.Join(", ", ListingStatuses.All)}.");
             }
             query = query.Where(l => l.Status == status);
         }
@@ -163,21 +163,21 @@ public class AdminListingService : IAdminListingService
     {
         ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateUpdateListingStatus(request));
         var listing = await _uow.Listings.GetByIdAsync(listingId);
-        if (listing == null) return new BasicResponse(false, "Listing not found.");
+        if (listing == null) return new BasicResponse(false, "Không tìm thấy bài đăng.");
 
         if (!AllowedStatuses.Contains(request.Status))
         {
-            return new BasicResponse(false, "Invalid status value.");
+            return new BasicResponse(false, "Giá trị trạng thái không hợp lệ.");
         }
 
         if (string.Equals(listing.Status, request.Status, StringComparison.OrdinalIgnoreCase))
         {
-            return new BasicResponse(true, "Listing already in requested status.");
+            return new BasicResponse(true, "Bài đăng đã ở trạng thái yêu cầu.");
         }
 
         if (!IsStatusTransitionAllowed(listing.Status, request.Status))
         {
-            return new BasicResponse(false, $"Invalid listing status transition: {listing.Status} -> {request.Status}.");
+            return new BasicResponse(false, $"Chuyển trạng thái bài đăng không hợp lệ: {listing.Status} -> {request.Status}.");
         }
 
         listing.Status = request.Status;
@@ -190,7 +190,7 @@ public class AdminListingService : IAdminListingService
             await NotifyAsync(listing.SellerId.Value, "LISTING", ListingNotificationText.ForStatus(request.Status).Title, ListingNotificationText.ForStatus(request.Status).Message, $"/listings/{listingId}", cancellationToken);
         }
         await LogAdminActionAsync(adminPrincipal, "UpdateListingStatus", new { ListingId = listingId, request.Status }, cancellationToken);
-        return new BasicResponse(true, "Listing status updated.");
+        return new BasicResponse(true, "Đã cập nhật trạng thái bài đăng.");
     }
 
     private static bool IsStatusTransitionAllowed(string? current, string next)
@@ -252,7 +252,7 @@ public class AdminListingService : IAdminListingService
     public async Task<BasicResponse> DeleteAsync(ClaimsPrincipal adminPrincipal, long listingId, CancellationToken cancellationToken = default)
     {
         var listing = await _uow.Listings.GetByIdAsync(listingId);
-        if (listing == null) return new BasicResponse(false, "Listing not found.");
+        if (listing == null) return new BasicResponse(false, "Không tìm thấy bài đăng.");
 
         listing.Status = ListingStatuses.Deleted;
         listing.UpdatedAt = DateTime.UtcNow;
@@ -264,7 +264,7 @@ public class AdminListingService : IAdminListingService
             await NotifyAsync(listing.SellerId.Value, "LISTING", ListingNotificationText.ForStatus(ListingStatuses.Deleted).Title, ListingNotificationText.ForStatus(ListingStatuses.Deleted).Message, $"/listings/{listingId}", cancellationToken);
         }
         await LogAdminActionAsync(adminPrincipal, "DeleteListing", new { ListingId = listingId }, cancellationToken);
-        return new BasicResponse(true, "Listing deleted (soft).");
+        return new BasicResponse(true, "Bài đăng đã bị xóa (mềm).");
     }
 
     private async Task LogAdminActionAsync(ClaimsPrincipal principal, string action, object details, CancellationToken cancellationToken)
@@ -305,4 +305,9 @@ public class AdminListingService : IAdminListingService
         }
     }
 }
+
+
+
+
+
 

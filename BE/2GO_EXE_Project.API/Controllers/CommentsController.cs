@@ -28,7 +28,7 @@ public class CommentsController : ControllerBase
             // Ensure listingId matches
             if (request.ListingId != listingId)
             {
-                return BadRequest("ListingId mismatch.");
+                return BadRequest("ListingId không kh?p.");
             }
 
             var result = await _commentService.CreateAsync(User, request, cancellationToken);
@@ -132,3 +132,4 @@ public class CommentsController : ControllerBase
         }
     }
 }
+

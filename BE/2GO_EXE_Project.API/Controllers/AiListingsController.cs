@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using _2GO_EXE_Project.BAL.DTOs.Ai;
@@ -30,7 +30,7 @@ public class AiListingsController : ControllerBase
         {
             return StatusCode(StatusCodes.Status429TooManyRequests, new
             {
-                message = "Gemini quota exceeded. Please retry later.",
+                message = "Đã vượt quá quota Gemini. Vui lòng thử lại sau.",
                 detail = ex.Message
             });
         }
@@ -53,4 +53,5 @@ public class AiListingsController : ControllerBase
                msg.Contains("API request failed", StringComparison.OrdinalIgnoreCase);
     }
 }
+
 

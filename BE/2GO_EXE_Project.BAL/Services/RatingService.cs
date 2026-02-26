@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using _2GO_EXE_Project.BAL.DTOs.Ratings;
 using _2GO_EXE_Project.BAL.Interfaces;
@@ -24,7 +24,7 @@ public class RatingService : IRatingService
                   ?? principal.FindFirst(ClaimTypes.Name)?.Value;
         if (!long.TryParse(sub, out var id))
         {
-            throw new UnauthorizedAccessException("Invalid user id in token.");
+            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
         }
         return id;
     }
@@ -39,26 +39,26 @@ public class RatingService : IRatingService
 
         if (order == null)
         {
-            throw new InvalidOperationException("Order not found.");
+            throw new InvalidOperationException("Không tìm th?y don hàng.");
         }
         if (order.BuyerId != raterId)
         {
-            throw new InvalidOperationException("Only the buyer can rate this order.");
+            throw new InvalidOperationException("Ch? ngu?i mua m?i có th? dánh giá don hàng này.");
         }
         if (order.SellerId == null)
         {
-            throw new InvalidOperationException("Seller not found for this order.");
+            throw new InvalidOperationException("Không tìm th?y ngu?i bán cho don hàng này.");
         }
         if (!string.Equals(order.Status, "Completed", StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("Only completed orders can be rated.");
+            throw new InvalidOperationException("Chỉ đơn hàng đã hoàn tất mới có thể đánh giá.");
         }
 
         var exists = await _uow.UserRatings.Query()
             .AnyAsync(r => r.OrderId == request.OrderId, cancellationToken);
         if (exists)
         {
-            throw new InvalidOperationException("This order has already been rated.");
+            throw new InvalidOperationException("Đơn hàng này đã được đánh giá.");
         }
 
         var rating = new UserRating
@@ -151,3 +151,8 @@ public class RatingService : IRatingService
         return new UserRatingListResponse(total, null, items);
     }
 }
+
+
+
+
+

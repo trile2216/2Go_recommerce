@@ -1,4 +1,4 @@
-using _2GO_EXE_Project.BAL.DTOs.Subscriptions;
+﻿using _2GO_EXE_Project.BAL.DTOs.Subscriptions;
 
 namespace _2GO_EXE_Project.BAL.Validation;
 
@@ -19,7 +19,7 @@ public static class SubscriptionPlanValidator
         var result = new ValidationResult();
         if (request.Price < 0)
         {
-            result.Add("price", "Price must be >= 0.");
+            result.Add("price", "Giá ph?i l?n hon ho?c b?ng 0.");
         }
         return result;
     }
@@ -31,43 +31,46 @@ public static class SubscriptionPlanValidator
         {
             if (string.IsNullOrWhiteSpace(code))
             {
-                result.Add("code", "Code is required.");
+                result.Add("code", "Mã là bắt buộc.");
             }
             else if (code.Trim().Length > 50)
             {
-                result.Add("code", "Code must be <= 50 chars.");
+                result.Add("code", "Mã không được vượt quá 50 ký tự.");
             }
         }
 
         if (string.IsNullOrWhiteSpace(name))
         {
-            result.Add("name", "Name is required.");
+            result.Add("name", "Tên là b?t bu?c.");
         }
         else if (name.Trim().Length > 255)
         {
-            result.Add("name", "Name must be <= 255 chars.");
+            result.Add("name", "Tên không du?c vu?t quá 255 ký t?.");
         }
 
         if (price < 0)
         {
-            result.Add("price", "Price must be >= 0.");
+            result.Add("price", "Giá ph?i l?n hon ho?c b?ng 0.");
         }
 
         if (durationDays <= 0)
         {
-            result.Add("durationDays", "DurationDays must be > 0.");
+            result.Add("durationDays", "DurationDays ph?i l?n hon 0.");
         }
 
         if (monthlyLimit.HasValue && monthlyLimit.Value <= 0)
         {
-            result.Add("monthlyListingLimit", "MonthlyListingLimit must be > 0 when provided.");
+            result.Add("monthlyListingLimit", "MonthlyListingLimit ph?i l?n hon 0 khi có cung c?p.");
         }
 
         if (sortOrder < 0)
         {
-            result.Add("sortOrder", "SortOrder must be >= 0.");
+            result.Add("sortOrder", "SortOrder ph?i l?n hon ho?c b?ng 0.");
         }
 
         return result;
     }
 }
+
+
+

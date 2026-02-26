@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -69,8 +69,8 @@ public class EscrowExpiryService : BackgroundService
             if (order.BuyerId.HasValue)
             {
                 await SafeNotifyAsync(notificationService, order.BuyerId.Value, "ORDER",
-                    "Sáº¯p háº¿t háº¡n cá»c",
-                    $"ÄÆ¡n hÃ ng #{order.OrderId} sáº¯p quáº£ háº¡n cá»c. Vui lÃ²ng hoÃ n táº¥t giao dá»‹ch Ä‘á»ƒ trÃ¡nh máº¥t cá»c.",
+                    "Sắp hết hạn cọc",
+                    $"Đơn hàng #{order.OrderId} sắp quả hạn cọc. Vui lòng hoàn tất giao dịch để tránh mất cọc.",
                     $"/orders/{order.OrderId}",
                     cancellationToken);
             }
@@ -105,16 +105,16 @@ public class EscrowExpiryService : BackgroundService
             if (order.BuyerId.HasValue)
             {
                 await SafeNotifyAsync(notificationService, order.BuyerId.Value, "ORDER",
-                    "ÄÆ¡n hÃ ng Ä‘Ã£ há»§y",
-                    $"ÄÆ¡n hÃ ng #{order.OrderId} Ä‘Ã£ quáº£ háº¡n cá»c vÃ  bá»‹ há»§y.",
+                    "Đơn hàng đã hủy",
+                    $"Đơn hàng #{order.OrderId} đã quá hạn cọc và bị hủy.",
                     $"/orders/{order.OrderId}",
                     cancellationToken);
             }
             if (order.SellerId.HasValue)
             {
                 await SafeNotifyAsync(notificationService, order.SellerId.Value, "ORDER",
-                    "Cá»c Ä‘Æ°á»£c chuyá»ƒn",
-                    $"ÄÆ¡n hÃ ng #{order.OrderId} quáº£ háº¡n cá»c. Cá»c Ä‘Æ°á»£c chuyá»ƒn cho báº¡n.",
+                    "Cọc được chuyển",
+                    $"Đơn hàng #{order.OrderId} quả hạn cọc. Cọc được chuyển cho bạn.",
                     $"/orders/{order.OrderId}",
                     cancellationToken);
             }
@@ -153,16 +153,16 @@ public class EscrowExpiryService : BackgroundService
             if (order.BuyerId.HasValue)
             {
                 await SafeNotifyAsync(notificationService, order.BuyerId.Value, "ORDER",
-                    "ÄÆ¡n hÃ ng Ä‘Ã£ há»§y",
-                    $"ÄÆ¡n hÃ ng #{order.OrderId} Ä‘Ã£ bá»‹ há»§y do ngÆ°á»i bÃ¡n khÃ´ng xÃ¡c nháº­n trong {OrderRules.SellerConfirmHoldHours}h. Cá»c (náº¿u cÃ³) Ä‘Ã£ hoÃ n cho báº¡n.",
+                    "Đơn hàng đã hủy",
+                    $"Đơn hàng #{order.OrderId} đã bị hủy do người bán không xác nhận trong {OrderRules.SellerConfirmHoldHours}h. Cọc (nếu có) đã hoàn cho bạn.",
                     $"/orders/{order.OrderId}",
                     cancellationToken);
             }
             if (order.SellerId.HasValue)
             {
                 await SafeNotifyAsync(notificationService, order.SellerId.Value, "ORDER",
-                    "Vi pháº¡m SLA xÃ¡c nháº­n",
-                    $"ÄÆ¡n hÃ ng #{order.OrderId} Ä‘Ã£ bá»‹ há»§y do báº¡n khÃ´ng xÃ¡c nháº­n trong {OrderRules.SellerConfirmHoldHours}h. HÃ nh vi Ä‘Ã£ Ä‘Æ°á»£c ghi nháº­n.",
+                    "Vi phạm SLA xác nhận",
+                    $"Đơn hàng #{order.OrderId} đã bị hủy do bạn không xác nhận trong {OrderRules.SellerConfirmHoldHours}h. Hành vi đã được ghi nhận.",
                     $"/orders/{order.OrderId}",
                     cancellationToken);
             }
@@ -242,3 +242,7 @@ public class EscrowExpiryService : BackgroundService
         }
     }
 }
+
+
+
+

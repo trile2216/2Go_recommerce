@@ -1,4 +1,4 @@
-namespace _2GO_EXE_Project.BAL.Constants;
+﻿namespace _2GO_EXE_Project.BAL.Constants;
 
 public static class ReportNotificationText
 {
@@ -7,12 +7,15 @@ public static class ReportNotificationText
         var normalized = status?.Trim();
         return normalized switch
         {
-            ReportStatuses.WaitingOtherParty => ("Report update", $"Report #{reportId} is waiting for your response."),
-            ReportStatuses.Resolved => ("Report update", $"Report #{reportId} has been resolved."),
-            ReportStatuses.Rejected => ("Report update", $"Report #{reportId} was rejected."),
-            ReportStatuses.InReview => ("Report update", $"Report #{reportId} is under review."),
-            ReportStatuses.Open => ("Report update", $"Report #{reportId} was opened."),
-            _ => ("Report update", $"Report #{reportId} was updated.")
+            ReportStatuses.WaitingOtherParty => ("Cập nhật báo cáo", $"Báo cáo #{reportId} đang chờ phản hồi từ bạn."),
+            ReportStatuses.Resolved => ("Cập nhật báo cáo", $"Báo cáo #{reportId} đã được giải quyết."),
+            ReportStatuses.Rejected => ("Cập nhật báo cáo", $"Báo cáo #{reportId} đã bị từ chối."),
+            ReportStatuses.InReview => ("Cập nhật báo cáo", $"Báo cáo #{reportId} đang được xem xét."),
+            ReportStatuses.Open => ("Cập nhật báo cáo", $"Báo cáo #{reportId} đã được mở."),
+            _ => ("Cập nhật báo cáo", $"Báo cáo #{reportId} đã được cập nhật.")
         };
     }
 }
+
+
+

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Text.Json;
 using _2GO_EXE_Project.BAL.Constants;
@@ -50,7 +50,7 @@ public class ModeratorService : IModeratorService
         {
             if (!UserStatuses.All.Contains(status, StringComparer.OrdinalIgnoreCase))
             {
-                throw new InvalidOperationException($"Invalid user status. Allowed: {string.Join(", ", UserStatuses.All)}.");
+                throw new InvalidOperationException($"Trạng thái người dùng không hợp lệ. Cho phép: {string.Join(", ", UserStatuses.All)}.");
             }
             query = query.Where(u => u.Status == status);
         }
@@ -82,7 +82,7 @@ public class ModeratorService : IModeratorService
         var user = await _uow.Users.GetByIdAsync(userId);
         if (user == null)
         {
-            return new BasicResponse(false, "User not found.");
+            return new BasicResponse(false, "Không tìm thấy người dùng.");
         }
 
         user.Status = UserStatuses.Banned;
@@ -104,7 +104,7 @@ public class ModeratorService : IModeratorService
         await _uow.SaveChangesAsync(cancellationToken);
 
         await LogModActionAsync(modPrincipal, "BanUser", new { TargetUserId = userId, request.Reason, request.DurationDays }, cancellationToken);
-        return new BasicResponse(true, "User banned.");
+        return new BasicResponse(true, "Đã cấm người dùng.");
     }
 
     public async Task<BasicResponse> UnbanUserAsync(ClaimsPrincipal modPrincipal, long userId, CancellationToken cancellationToken = default)
@@ -112,7 +112,7 @@ public class ModeratorService : IModeratorService
         var user = await _uow.Users.GetByIdAsync(userId);
         if (user == null)
         {
-            return new BasicResponse(false, "User not found.");
+            return new BasicResponse(false, "Không tìm thấy người dùng.");
         }
 
         user.Status = UserStatuses.Active;
@@ -121,7 +121,7 @@ public class ModeratorService : IModeratorService
         await _uow.SaveChangesAsync(cancellationToken);
 
         await LogModActionAsync(modPrincipal, "UnbanUser", new { TargetUserId = userId }, cancellationToken);
-        return new BasicResponse(true, "User unbanned.");
+        return new BasicResponse(true, "Đã bị cấm người dùng.");
     }
 
     public async Task<ModeratorReportListResponse> GetReportsAsync(string? status, int skip, int take, CancellationToken cancellationToken = default)
@@ -131,7 +131,7 @@ public class ModeratorService : IModeratorService
         {
             if (!ReportStatuses.All.Contains(status, StringComparer.OrdinalIgnoreCase))
             {
-                throw new InvalidOperationException($"Invalid report status. Allowed: {string.Join(", ", ReportStatuses.All)}.");
+                throw new InvalidOperationException($"Trạng thái báo cáo không hợp lệ. Cho phép: {string.Join(", ", ReportStatuses.All)}.");
             }
             query = query.Where(r => r.Status == status);
         }
@@ -161,46 +161,46 @@ public class ModeratorService : IModeratorService
         var report = await _uow.Reports.GetByIdAsync(reportId);
         if (report == null)
         {
-            return new BasicResponse(false, "Report not found.");
+            return new BasicResponse(false, "Không tìm thấy báo cáo.");
         }
 
         var currentStatus = string.IsNullOrWhiteSpace(report.Status) ? ReportStatuses.Open : report.Status!;
         if (string.IsNullOrWhiteSpace(request.Status))
         {
-            return new BasicResponse(false, "Status is required.");
+            return new BasicResponse(false, "Trạng thái là bắt buộc.");
         }
 
         var nextStatus = request.Status.Trim();
         if (!ReportStatuses.All.Contains(nextStatus, StringComparer.OrdinalIgnoreCase))
         {
-            return new BasicResponse(false, $"Invalid report status. Allowed: {string.Join(", ", ReportStatuses.All)}.");
+            return new BasicResponse(false, $"Trạng thái báo cáo không hợp lệ. Cho phép: {string.Join(", ", ReportStatuses.All)}.");
         }
         if (!IsTransitionAllowed(currentStatus, nextStatus))
         {
-            return new BasicResponse(false, $"Invalid report status transition: {currentStatus} -> {nextStatus}.");
+            return new BasicResponse(false, $"Chuyển trạng thái báo cáo không hợp lệ: {currentStatus} -> {nextStatus}.");
         }
 
         if (string.Equals(nextStatus, ReportStatuses.WaitingOtherParty, StringComparison.OrdinalIgnoreCase))
         {
             if (string.IsNullOrWhiteSpace(request.WaitingForRole))
             {
-                return new BasicResponse(false, "WaitingForRole is required.");
+                return new BasicResponse(false, "WaitingForRole là bắt buộc.");
             }
             if (!report.OrderId.HasValue)
             {
-                return new BasicResponse(false, "OrderId is required.");
+                return new BasicResponse(false, "OrderId là bắt buộc.");
             }
 
             var order = await _uow.Orders.GetByIdAsync(report.OrderId.Value);
             if (order == null)
             {
-                return new BasicResponse(false, "Order not found.");
+                return new BasicResponse(false, "Không tìm thấy đơn hàng.");
             }
 
             var waitingUserId = ResolveWaitingUserId(order, request.WaitingForRole);
             if (!waitingUserId.HasValue)
             {
-                return new BasicResponse(false, "Waiting user not found.");
+                return new BasicResponse(false, "Waiting Không tìm thấy người dùng.");
             }
 
             report.WaitingForUserId = waitingUserId.Value;
@@ -214,17 +214,17 @@ public class ModeratorService : IModeratorService
         {
             if (string.IsNullOrWhiteSpace(request.Decision))
             {
-                return new BasicResponse(false, "Decision is required for resolving reports.");
+                return new BasicResponse(false, "Cần Decision để giải quyết báo cáo.");
             }
             var orderId = report.OrderId;
             if (!orderId.HasValue)
             {
-                return new BasicResponse(false, "OrderId is required.");
+                return new BasicResponse(false, "OrderId là bắt buộc.");
             }
             var order = await _uow.Orders.GetByIdAsync(orderId.Value);
             if (order == null)
             {
-                return new BasicResponse(false, "Order not found.");
+                return new BasicResponse(false, "Không tìm thấy đơn hàng.");
             }
             await ApplyResolutionAsync(order, request.Decision, cancellationToken);
         }
@@ -233,12 +233,12 @@ public class ModeratorService : IModeratorService
             var orderId = report.OrderId;
             if (!orderId.HasValue)
             {
-                return new BasicResponse(false, "OrderId is required.");
+                return new BasicResponse(false, "OrderId là bắt buộc.");
             }
             var order = await _uow.Orders.GetByIdAsync(orderId.Value);
             if (order == null)
             {
-                return new BasicResponse(false, "Order not found.");
+                return new BasicResponse(false, "Không tìm thấy đơn hàng.");
             }
             await ApplyRejectionAsync(order, cancellationToken);
         }
@@ -249,7 +249,7 @@ public class ModeratorService : IModeratorService
 
         await NotifyReportStatusAsync(report, nextStatus, cancellationToken);
         await LogModActionAsync(modPrincipal, "ResolveReport", new { ReportId = reportId, report.Status, request.WaitingForRole, request.Decision, request.Note }, cancellationToken);
-        return new BasicResponse(true, "Report updated.");
+        return new BasicResponse(true, "Đã cập nhật báo cáo.");
     }
 
     private static bool IsTransitionAllowed(string current, string next)
@@ -354,7 +354,7 @@ public class ModeratorService : IModeratorService
             return;
         }
 
-        throw new InvalidOperationException("Invalid resolution decision.");
+        throw new InvalidOperationException("Quyết định giải quyết không hợp lệ.");
     }
 
     private async Task ApplyRejectionAsync(Order order, CancellationToken cancellationToken)
@@ -528,4 +528,9 @@ private async Task NotifyAsync(long userId, string type, string title, string me
         }
     }
 }
+
+
+
+
+
 

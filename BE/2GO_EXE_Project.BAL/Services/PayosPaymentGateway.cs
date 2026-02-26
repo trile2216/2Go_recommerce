@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -39,7 +39,7 @@ public class PayosPaymentGateway : IPayosPaymentGateway
 
         if (!response.IsSuccessStatusCode)
         {
-            throw new InvalidOperationException($"PayOS create payment failed: {(int)response.StatusCode} {response.ReasonPhrase}. {raw}");
+            throw new InvalidOperationException($"Tạo thanh toán PayOS thất bại: {(int)response.StatusCode} {response.ReasonPhrase}. {raw}");
         }
 
         return ParseCreateResponse(raw);
@@ -49,22 +49,22 @@ public class PayosPaymentGateway : IPayosPaymentGateway
     {
         if (string.IsNullOrWhiteSpace(_settings.ChecksumKey))
         {
-            message = "PayOS settings are not configured.";
+            message = "Chưa cấu hình PayOS.";
             return false;
         }
         if (request == null)
         {
-            message = "Webhook request is missing.";
+            message = "Thiếu dữ liệu webhook.";
             return false;
         }
         if (request.Data == null)
         {
-            message = "Webhook data is required.";
+            message = "Dữ liệu webhook là bắt buộc.";
             return false;
         }
         if (string.IsNullOrWhiteSpace(request.Signature))
         {
-            message = "Signature is required.";
+            message = "Signature là bắt buộc.";
             return false;
         }
 
@@ -74,7 +74,7 @@ public class PayosPaymentGateway : IPayosPaymentGateway
 
         if (!string.Equals(computed, provided, StringComparison.OrdinalIgnoreCase))
         {
-            message = "Invalid PayOS signature.";
+            message = "Chữ ký PayOS không hợp lệ.";
             return false;
         }
 
@@ -127,7 +127,7 @@ public class PayosPaymentGateway : IPayosPaymentGateway
             string.IsNullOrWhiteSpace(_settings.ReturnUrl) ||
             string.IsNullOrWhiteSpace(_settings.CancelUrl))
         {
-            throw new InvalidOperationException("PayOS is not configured.");
+            throw new InvalidOperationException("Chưa cấu hình PayOS.");
         }
     }
 
@@ -212,3 +212,6 @@ public class PayosPaymentGateway : IPayosPaymentGateway
         return null;
     }
 }
+
+
+

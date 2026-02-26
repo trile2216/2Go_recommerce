@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 
 namespace _2GO_EXE_Project.BAL.Validation;
@@ -28,8 +28,10 @@ public sealed class ValidationResult
         _errors.AddRange(other.Errors);
     }
 
-    public string FirstMessageOrDefault(string fallback = "Validation failed.")
+    public string FirstMessageOrDefault(string fallback = "Dữ liệu không hợp lệ.")
     {
         return _errors.FirstOrDefault()?.Message ?? fallback;
     }
 }
+
+

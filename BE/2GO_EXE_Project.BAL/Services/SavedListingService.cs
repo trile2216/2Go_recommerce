@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using _2GO_EXE_Project.BAL.Constants;
 using _2GO_EXE_Project.BAL.DTOs.Auth;
@@ -26,7 +26,7 @@ public class SavedListingService : ISavedListingService
                   ?? principal.FindFirst(ClaimTypes.Name)?.Value;
         if (!long.TryParse(sub, out var id))
         {
-            throw new UnauthorizedAccessException("Invalid user id in token.");
+            throw new UnauthorizedAccessException("User id trong token không hợp lệ.");
         }
         return id;
     }
@@ -77,15 +77,15 @@ public class SavedListingService : ISavedListingService
         var userId = GetUserId(userPrincipal);
         var listing = await _uow.Listings.Query()
             .FirstOrDefaultAsync(l => l.ListingId == request.ListingId, cancellationToken);
-        if (listing == null) return new BasicResponse(false, "Listing not found.");
+        if (listing == null) return new BasicResponse(false, "Không tìm thấy bài đăng.");
         if (!string.Equals(listing.Status, ListingStatuses.Active, StringComparison.OrdinalIgnoreCase))
         {
-            return new BasicResponse(false, "Only active listings can be saved.");
+            return new BasicResponse(false, "Chỉ bài đăng đang hoạt động mới có thể lưu.");
         }
 
         var existing = await _uow.SavedListings.Query()
             .FirstOrDefaultAsync(s => s.UserId == userId && s.ListingId == request.ListingId, cancellationToken);
-        if (existing != null) return new BasicResponse(true, "Listing already saved.");
+        if (existing != null) return new BasicResponse(true, "Bài đăng đã được lưu.");
 
         var saved = new SavedListing
         {
@@ -96,7 +96,7 @@ public class SavedListingService : ISavedListingService
 
         await _uow.SavedListings.AddAsync(saved, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
-        return new BasicResponse(true, "Listing saved.");
+        return new BasicResponse(true, "Đã lưu bài đăng.");
     }
 
     public async Task<BasicResponse> RemoveAsync(ClaimsPrincipal userPrincipal, long listingId, CancellationToken cancellationToken = default)
@@ -104,10 +104,15 @@ public class SavedListingService : ISavedListingService
         var userId = GetUserId(userPrincipal);
         var saved = await _uow.SavedListings.Query()
             .FirstOrDefaultAsync(s => s.UserId == userId && s.ListingId == listingId, cancellationToken);
-        if (saved == null) return new BasicResponse(false, "Saved listing not found.");
+        if (saved == null) return new BasicResponse(false, "Saved Không tìm thấy bài đăng.");
 
         _uow.SavedListings.Remove(saved);
         await _uow.SaveChangesAsync(cancellationToken);
-        return new BasicResponse(true, "Listing removed from saved.");
+        return new BasicResponse(true, "Đã xóa bài đăng khỏi danh sách lưu.");
     }
 }
+
+
+
+
+

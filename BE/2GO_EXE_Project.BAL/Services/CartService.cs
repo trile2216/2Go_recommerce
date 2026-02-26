@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using _2GO_EXE_Project.BAL.Constants;
@@ -27,7 +27,7 @@ public class CartService : ICartService
                   ?? principal.FindFirst(ClaimTypes.Name)?.Value;
         if (!long.TryParse(sub, out var id))
         {
-            throw new UnauthorizedAccessException("Invalid user id in token.");
+            throw new UnauthorizedAccessException("User id trong token không hợp lệ.");
         }
         return id;
     }
@@ -85,19 +85,19 @@ public class CartService : ICartService
         var userId = GetUserId(userPrincipal);
         var listing = await _uow.Listings.Query()
             .FirstOrDefaultAsync(l => l.ListingId == request.ListingId, cancellationToken);
-        if (listing == null) throw new InvalidOperationException("Listing not found.");
+        if (listing == null) throw new InvalidOperationException("Không tìm th?y bài dang.");
         if (!string.Equals(listing.Status, ListingStatuses.Active, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("Listing is not available.");
+            throw new InvalidOperationException("Bài đăng không khả dụng.");
         }
         var availableQuantity = listing.AvailableQuantity ?? 0;
         if (availableQuantity <= 0)
         {
-            throw new InvalidOperationException("Listing is out of stock.");
+            throw new InvalidOperationException("Bài đăng đã hết hàng.");
         }
         if (!listing.SellerId.HasValue)
         {
-            throw new InvalidOperationException("Listing seller not found.");
+            throw new InvalidOperationException("Không tìm th?y ngu?i bán c?a bài dang.");
         }
 
         var cart = await EnsureCartAsync(userId, cancellationToken);
@@ -153,31 +153,31 @@ public class CartService : ICartService
             .FirstOrDefaultAsync(i => i.CartItemId == cartItemId, cancellationToken);
         if (item == null || item.Cart?.UserId != userId)
         {
-            return new BasicResponse(false, "Cart item not found.");
+            return new BasicResponse(false, "Không tìm thấy sản phẩm trong giỏ.");
         }
 
         if (request.Quantity.HasValue)
         {
             if (request.Quantity.Value <= 0)
             {
-                return new BasicResponse(false, "Quantity must be greater than 0.");
+                return new BasicResponse(false, "Số lượng phải lớn hơn 0.");
             }
 
             var listing = await _uow.Listings.Query()
                 .FirstOrDefaultAsync(l => l.ListingId == item.ListingId, cancellationToken);
             if (listing == null || !string.Equals(listing.Status, ListingStatuses.Active, StringComparison.OrdinalIgnoreCase))
             {
-                return new BasicResponse(false, "Listing is not available.");
+                return new BasicResponse(false, "Bài đăng không khả dụng.");
             }
             var availableQuantity = listing.AvailableQuantity ?? 0;
             if (availableQuantity <= 0)
             {
-                return new BasicResponse(false, "Listing is out of stock.");
+                return new BasicResponse(false, "Bài đăng đã hết hàng.");
             }
 
             if (request.Quantity.Value > 1)
             {
-                return new BasicResponse(false, "Only 1 item available for this listing.");
+                return new BasicResponse(false, "Bài đăng này chỉ còn 1 sản phẩm.");
             }
 
             item.Quantity = request.Quantity.Value;
@@ -202,7 +202,7 @@ public class CartService : ICartService
         }
         await _uow.SaveChangesAsync(cancellationToken);
 
-        return new BasicResponse(true, "Cart item updated.");
+        return new BasicResponse(true, "Đã cập nhật sản phẩm trong giỏ.");
     }
 
     public async Task<BasicResponse> RemoveItemAsync(ClaimsPrincipal userPrincipal, long cartItemId, CancellationToken cancellationToken = default)
@@ -213,7 +213,7 @@ public class CartService : ICartService
             .FirstOrDefaultAsync(i => i.CartItemId == cartItemId, cancellationToken);
         if (item == null || item.Cart?.UserId != userId)
         {
-            return new BasicResponse(false, "Cart item not found.");
+            return new BasicResponse(false, "Không tìm thấy sản phẩm trong giỏ.");
         }
 
         _uow.CartItems.Remove(item);
@@ -223,7 +223,7 @@ public class CartService : ICartService
             _uow.Carts.Update(item.Cart);
         }
         await _uow.SaveChangesAsync(cancellationToken);
-        return new BasicResponse(true, "Cart item removed.");
+        return new BasicResponse(true, "Đã xóa sản phẩm khỏi giỏ.");
     }
 
     public async Task<BasicResponse> ClearAsync(ClaimsPrincipal userPrincipal, CancellationToken cancellationToken = default)
@@ -233,7 +233,7 @@ public class CartService : ICartService
             .FirstOrDefaultAsync(c => c.UserId == userId && c.Status == CartStatuses.Active, cancellationToken);
         if (cart == null)
         {
-            return new BasicResponse(true, "Cart cleared.");
+            return new BasicResponse(true, "Đã xóa giỏ hàng.");
         }
 
         var items = await _uow.CartItems.Query()
@@ -250,7 +250,7 @@ public class CartService : ICartService
         _uow.Carts.Update(cart);
         await _uow.SaveChangesAsync(cancellationToken);
 
-        return new BasicResponse(true, "Cart cleared.");
+        return new BasicResponse(true, "Đã xóa giỏ hàng.");
     }
 
     public async Task<CheckoutCartResponse> CheckoutAsync(ClaimsPrincipal userPrincipal, CheckoutCartRequest request, CancellationToken cancellationToken = default)
@@ -259,7 +259,7 @@ public class CartService : ICartService
         var userId = GetUserId(userPrincipal);
         if (!PaymentMethods.All.Contains(request.PaymentMethod, StringComparer.OrdinalIgnoreCase))
         {
-            return new CheckoutCartResponse(false, "Invalid payment method.", Array.Empty<CartValidationError>(), Array.Empty<CheckoutOrderSummary>());
+            return new CheckoutCartResponse(false, "Phương thức thanh toán không hợp lệ.", Array.Empty<CartValidationError>(), Array.Empty<CheckoutOrderSummary>());
         }
 
         var cart = await _uow.Carts.Query()
@@ -284,27 +284,27 @@ public class CartService : ICartService
         {
             if (item.Listing == null)
             {
-                errors.Add(new CartValidationError(item.CartItemId, "Listing not found."));
+                errors.Add(new CartValidationError(item.CartItemId, "Không tìm th?y bài dang."));
                 continue;
             }
             if (!string.Equals(item.Listing.Status, ListingStatuses.Active, StringComparison.OrdinalIgnoreCase))
             {
-                errors.Add(new CartValidationError(item.CartItemId, "Listing is not available."));
+                errors.Add(new CartValidationError(item.CartItemId, "Bài đăng không khả dụng."));
                 continue;
             }
             if ((item.Listing.AvailableQuantity ?? 0) <= 0)
             {
-                errors.Add(new CartValidationError(item.CartItemId, "Listing is out of stock."));
+                errors.Add(new CartValidationError(item.CartItemId, "Bài đăng đã hết hàng."));
                 continue;
             }
             if (!item.Listing.SellerId.HasValue)
             {
-                errors.Add(new CartValidationError(item.CartItemId, "Listing seller not found."));
+                errors.Add(new CartValidationError(item.CartItemId, "Không tìm th?y ngu?i bán c?a bài dang."));
                 continue;
             }
             if ((item.Quantity ?? 0) != 1)
             {
-                errors.Add(new CartValidationError(item.CartItemId, "Only 1 item available for this listing."));
+                errors.Add(new CartValidationError(item.CartItemId, "Bài đăng này chỉ còn 1 sản phẩm."));
                 continue;
             }
 
@@ -319,13 +319,13 @@ public class CartService : ICartService
                      o.Status == OrderStatuses.Disputed), cancellationToken);
             if (hasActiveOrder)
             {
-                errors.Add(new CartValidationError(item.CartItemId, "Listing already has an active order."));
+                errors.Add(new CartValidationError(item.CartItemId, "Bài đăng đã có đơn hàng đang hoạt động."));
             }
         }
 
         if (errors.Count > 0)
         {
-            return new CheckoutCartResponse(false, "Cart contains invalid items.", errors, Array.Empty<CheckoutOrderSummary>());
+            return new CheckoutCartResponse(false, "Giỏ hàng có sản phẩm không hợp lệ.", errors, Array.Empty<CheckoutOrderSummary>());
         }
 
         var orderSummaries = new List<CheckoutOrderSummary>();
@@ -435,3 +435,10 @@ public class CartService : ICartService
     }
 
 }
+
+
+
+
+
+
+

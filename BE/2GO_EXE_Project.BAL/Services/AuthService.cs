@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using FirebaseAdmin;
@@ -41,11 +41,11 @@ public class AuthService : IAuthService
         // FIX 1: Validate JWT Settings at construction time
         if (string.IsNullOrWhiteSpace(_jwtSettings.Secret))
         {
-            throw new InvalidOperationException("JWT Secret is not configured. Please check your appsettings.json.");
+            throw new InvalidOperationException("JWT Secret chua du?c c?u hình. Vui lòng ki?m tra appsettings.json.");
         }
         if (_jwtSettings.RefreshTokenLifetimeDays <= 0)
         {
-            throw new InvalidOperationException("JWT RefreshTokenLifetimeDays must be greater than 0.");
+            throw new InvalidOperationException("JWT RefreshTokenLifetimeDays ph?i l?n hon 0.");
         }
     }
 
@@ -59,7 +59,7 @@ public class AuthService : IAuthService
             .AnyAsync(u => u.Email == request.Email || u.Phone == request.Phone, cancellationToken);
         if (exists)
         {
-            throw new InvalidOperationException("User already exists.");
+            throw new InvalidOperationException("Người dùng đã tồn tại.");
         }
 
         var hash = _passwordHasher.HashPassword(request.Password, out var salt);
@@ -103,7 +103,7 @@ public class AuthService : IAuthService
 
         await _uow.SaveChangesAsync(cancellationToken);
 
-        return new RegisterResponse(user.UserId, "Register success");
+        return new RegisterResponse(user.UserId, "Đăng ký thành công");
     }
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
@@ -115,13 +115,13 @@ public class AuthService : IAuthService
 
         if (user is null || string.IsNullOrEmpty(user.PasswordHash) || string.IsNullOrEmpty(user.Salt))
         {
-            throw new UnauthorizedAccessException("Invalid credentials.");
+            throw new UnauthorizedAccessException("Thông tin dang nh?p không dúng.");
         }
 
         // FIX 3: Check user status before allowing login
         if (!string.Equals(user.Status, UserStatuses.Active, StringComparison.OrdinalIgnoreCase))
         {
-            throw new UnauthorizedAccessException("Account is not active.");
+            throw new UnauthorizedAccessException("Tài kho?n không ho?t d?ng.");
         }
 
         var normalizedRole = UserRoles.Normalize(user.Role);
@@ -159,19 +159,19 @@ public class AuthService : IAuthService
 
         if (token is null)
         {
-            return new BasicResponse(false, "Refresh token is invalid.");
+            return new BasicResponse(false, "Refresh token không hợp lệ.");
         }
 
         if (token.RevokedAt is not null)
         {
-            return new BasicResponse(false, "Refresh token is already revoked.");
+            return new BasicResponse(false, "Refresh token đã bị thu hồi.");
         }
 
         token.RevokedAt = DateTime.UtcNow;
         _uow.RefreshTokens.Update(token);
         await _uow.SaveChangesAsync(cancellationToken);
 
-        return new BasicResponse(true, "Logged out.");
+        return new BasicResponse(true, "Đã đăng xuất.");
     }
 
     public async Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request, CancellationToken cancellationToken = default)
@@ -183,7 +183,7 @@ public class AuthService : IAuthService
 
         if (token == null || token.RevokedAt != null || token.ExpiresAt < DateTime.UtcNow)
         {
-            throw new UnauthorizedAccessException("Invalid refresh token.");
+            throw new UnauthorizedAccessException("Refresh token không hợp lệ.");
         }
 
         var user = token.User;
@@ -191,7 +191,7 @@ public class AuthService : IAuthService
         // FIX 3: Check user status when refreshing token
         if (!string.Equals(user.Status, UserStatuses.Active, StringComparison.OrdinalIgnoreCase))
         {
-            throw new UnauthorizedAccessException("Account is not active.");
+            throw new UnauthorizedAccessException("Tài kho?n không ho?t d?ng.");
         }
 
         var (accessToken, expiresAt) = _tokenService.GenerateAccessToken(user);
@@ -215,7 +215,7 @@ public class AuthService : IAuthService
         var user = await _uow.Users.Query().FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
         if (user == null)
         {
-            return new BasicResponse(false, "User not found.");
+            return new BasicResponse(false, "Không tìm thấy người dùng.");
         }
 
         var codeEntity = await _uow.VerificationCodes.Query()
@@ -229,7 +229,7 @@ public class AuthService : IAuthService
 
         if (codeEntity == null)
         {
-            return new BasicResponse(false, "Code invalid or expired.");
+            return new BasicResponse(false, "Mã không hợp lệ hoặc đã hết hạn.");
         }
 
         codeEntity.ConsumedAt = DateTime.UtcNow;
@@ -260,7 +260,7 @@ public class AuthService : IAuthService
         // FIX 4: Clean up expired verification codes
         await CleanupExpiredVerificationCodesAsync(user.UserId, cancellationToken);
 
-        return new BasicResponse(true, "Email verified.");
+        return new BasicResponse(true, "Đã xác thực email.");
     }
 
     public async Task<BasicResponse> ResendVerifyEmailAsync(ResendVerifyEmailRequest request, CancellationToken cancellationToken = default)
@@ -269,14 +269,14 @@ public class AuthService : IAuthService
         var user = await _uow.Users.Query().FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
         if (user == null)
         {
-            return new BasicResponse(true, "If the email exists, a code has been sent.");
+            return new BasicResponse(true, "Nếu email tồn tại, mã đã được gửi.");
         }
 
         var userVerify = await _uow.UserVerifications.Query()
             .FirstOrDefaultAsync(v => v.UserId == user.UserId, cancellationToken);
         if (userVerify?.EmailVerified == true)
         {
-            return new BasicResponse(true, "Email already verified.");
+            return new BasicResponse(true, "Email đã được xác thực.");
         }
 
         var code = await CreateVerificationCodeAsync(user.UserId, "EmailVerify", cancellationToken);
@@ -293,7 +293,7 @@ public class AuthService : IAuthService
         }
 
         await _uow.SaveChangesAsync(cancellationToken);
-        return new BasicResponse(true, "If the email exists, a code has been sent.");
+        return new BasicResponse(true, "Nếu email tồn tại, mã đã được gửi.");
     }
 
     public async Task<AuthResponse> FirebaseLoginAsync(FirebaseLoginRequest request, CancellationToken cancellationToken = default)
@@ -308,7 +308,7 @@ public class AuthService : IAuthService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Invalid Firebase ID token");
-            throw new UnauthorizedAccessException("Invalid Firebase token.");
+            throw new UnauthorizedAccessException("Firebase token không h?p l?.");
         }
 
         decoded.Claims.TryGetValue("phone_number", out var phoneObj);
@@ -319,7 +319,7 @@ public class AuthService : IAuthService
 
         if (string.IsNullOrWhiteSpace(phone) && string.IsNullOrWhiteSpace(email))
         {
-            throw new UnauthorizedAccessException("Firebase token missing phone/email.");
+            throw new UnauthorizedAccessException("Firebase token thiếu phone/email.");
         }
 
         var user = await _uow.Users.Query()
@@ -343,7 +343,7 @@ public class AuthService : IAuthService
             
             if (!string.Equals(user.Status, UserStatuses.Active, StringComparison.OrdinalIgnoreCase))
             {
-                throw new UnauthorizedAccessException("Account is not active.");
+                throw new UnauthorizedAccessException("Tài kho?n không ho?t d?ng.");
             }
 
             var normalizedRole = UserRoles.Normalize(user.Role);
@@ -406,7 +406,7 @@ public class AuthService : IAuthService
 
         if (!long.TryParse(sub, out var userId))
         {
-            throw new UnauthorizedAccessException("Invalid user id in token.");
+            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
         }
 
         var user = await _uow.Users.Query()
@@ -415,7 +415,7 @@ public class AuthService : IAuthService
 
         if (user == null)
         {
-            throw new UnauthorizedAccessException("User not found.");
+            throw new UnauthorizedAccessException("Không tìm thấy người dùng.");
         }
 
         FirebaseToken decoded;
@@ -426,7 +426,7 @@ public class AuthService : IAuthService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Invalid Firebase ID token");
-            throw new UnauthorizedAccessException("Invalid Firebase token.");
+            throw new UnauthorizedAccessException("Firebase token không h?p l?.");
         }
 
         decoded.Claims.TryGetValue("phone_number", out var phoneObj);
@@ -434,13 +434,13 @@ public class AuthService : IAuthService
 
         if (string.IsNullOrWhiteSpace(phone))
         {
-            return new BasicResponse(false, "Firebase token missing phone_number.");
+            return new BasicResponse(false, "Firebase token thiếu phone_number.");
         }
 
         if (!string.IsNullOrWhiteSpace(user.Phone) &&
             !string.Equals(user.Phone, phone, StringComparison.Ordinal))
         {
-            return new BasicResponse(false, "Phone does not match current account. Use change phone flow.");
+            return new BasicResponse(false, "Số điện thoại không khớp với tài khoản hiện tại. Vui lòng dùng chức năng đổi số.");
         }
 
         if (string.IsNullOrWhiteSpace(user.Phone))
@@ -451,7 +451,7 @@ public class AuthService : IAuthService
 
             if (phoneInUse)
             {
-                return new BasicResponse(false, "Phone already in use.");
+                return new BasicResponse(false, "Số điện thoại đã được sử dụng.");
             }
 
             user.Phone = phone;
@@ -481,7 +481,7 @@ public class AuthService : IAuthService
 
         await _uow.SaveChangesAsync(cancellationToken);
 
-        return new BasicResponse(true, "Phone verified.");
+        return new BasicResponse(true, "Đã xác thực số điện thoại.");
     }
 
     public async Task<BasicResponse> ChangePhoneFirebaseAsync(ClaimsPrincipal userPrincipal, ChangePhoneFirebaseRequest request, CancellationToken cancellationToken = default)
@@ -494,7 +494,7 @@ public class AuthService : IAuthService
 
         if (!long.TryParse(sub, out var userId))
         {
-            throw new UnauthorizedAccessException("Invalid user id in token.");
+            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
         }
 
         var user = await _uow.Users.Query()
@@ -503,7 +503,7 @@ public class AuthService : IAuthService
 
         if (user == null)
         {
-            throw new UnauthorizedAccessException("User not found.");
+            throw new UnauthorizedAccessException("Không tìm thấy người dùng.");
         }
 
         FirebaseToken decoded;
@@ -514,7 +514,7 @@ public class AuthService : IAuthService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Invalid Firebase ID token");
-            throw new UnauthorizedAccessException("Invalid Firebase token.");
+            throw new UnauthorizedAccessException("Firebase token không h?p l?.");
         }
 
         decoded.Claims.TryGetValue("phone_number", out var phoneObj);
@@ -522,7 +522,7 @@ public class AuthService : IAuthService
 
         if (string.IsNullOrWhiteSpace(phone))
         {
-            return new BasicResponse(false, "Firebase token missing phone_number.");
+            return new BasicResponse(false, "Firebase token thiếu phone_number.");
         }
 
         var phoneInUse = await _uow.Users.Query()
@@ -531,7 +531,7 @@ public class AuthService : IAuthService
 
         if (phoneInUse)
         {
-            return new BasicResponse(false, "Phone already in use.");
+            return new BasicResponse(false, "Số điện thoại đã được sử dụng.");
         }
 
         var phoneChanged = !string.Equals(user.Phone, phone, StringComparison.Ordinal);
@@ -565,8 +565,8 @@ public class AuthService : IAuthService
         await _uow.SaveChangesAsync(cancellationToken);
 
         return phoneChanged
-            ? new BasicResponse(true, "Phone changed and verified.")
-            : new BasicResponse(true, "Phone verified.");
+            ? new BasicResponse(true, "Số điện thoại đã được đổi và xác thực.")
+            : new BasicResponse(true, "Đã xác thực số điện thoại.");
     }
 
     public async Task<UserInfoResponse> GetCurrentUserAsync(ClaimsPrincipal userPrincipal, CancellationToken cancellationToken = default)
@@ -577,7 +577,7 @@ public class AuthService : IAuthService
 
         if (!long.TryParse(sub, out var userId))
         {
-            throw new UnauthorizedAccessException("Invalid user id in token.");
+            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
         }
 
         var user = await _uow.Users.Query()
@@ -587,7 +587,7 @@ public class AuthService : IAuthService
 
         if (user == null)
         {
-            throw new UnauthorizedAccessException("User not found.");
+            throw new UnauthorizedAccessException("Không tìm thấy người dùng.");
         }
 
         var now = DateTime.UtcNow;
@@ -675,7 +675,7 @@ public class AuthService : IAuthService
 
         if (!long.TryParse(sub, out var userId))
         {
-            throw new UnauthorizedAccessException("Invalid user id in token.");
+            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
         }
 
         var user = await _uow.Users.Query()
@@ -685,7 +685,7 @@ public class AuthService : IAuthService
 
         if (user == null)
         {
-            throw new UnauthorizedAccessException("User not found.");
+            throw new UnauthorizedAccessException("Không tìm thấy người dùng.");
         }
 
         ValidationGuard.ThrowIfInvalid(UserValidator.ValidateUpdateProfile(request));
@@ -697,7 +697,7 @@ public class AuthService : IAuthService
                 .AnyAsync(b => b.Bin == bankBin && b.IsActive, cancellationToken);
             if (!bankActive)
             {
-                throw new InvalidOperationException("BankBin is invalid or inactive.");
+                throw new InvalidOperationException("BankBin không h?p l? ho?c không ho?t d?ng.");
             }
         }
 
@@ -710,7 +710,7 @@ public class AuthService : IAuthService
                 .AnyAsync(u => u.UserId != user.UserId && u.Phone == newPhone, cancellationToken);
             if (phoneExists)
             {
-                throw new InvalidOperationException("Phone already in use.");
+                throw new InvalidOperationException("Số điện thoại đã được sử dụng.");
             }
 
             user.Phone = newPhone;
@@ -833,7 +833,7 @@ public class AuthService : IAuthService
 
         if (!long.TryParse(sub, out var userId))
         {
-            throw new UnauthorizedAccessException("Invalid user id in token.");
+            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
         }
 
         var user = await _uow.Users.Query()
@@ -841,12 +841,12 @@ public class AuthService : IAuthService
 
         if (user == null || string.IsNullOrEmpty(user.PasswordHash) || string.IsNullOrEmpty(user.Salt))
         {
-            throw new UnauthorizedAccessException("User not found.");
+            throw new UnauthorizedAccessException("Không tìm thấy người dùng.");
         }
 
         if (!_passwordHasher.VerifyPassword(request.CurrentPassword, user.PasswordHash, user.Salt))
         {
-            return new BasicResponse(false, "Current password is incorrect.");
+            return new BasicResponse(false, "Mật khẩu hiện tại không đúng.");
         }
 
         user.PasswordHash = _passwordHasher.HashPassword(request.NewPassword, out var newSalt);
@@ -865,7 +865,7 @@ public class AuthService : IAuthService
         _uow.RefreshTokens.UpdateRange(tokens);
         await _uow.SaveChangesAsync(cancellationToken);
 
-        return new BasicResponse(true, "Password changed. Please login again.");
+        return new BasicResponse(true, "Mật khẩu đã được đổi. Vui lòng đăng nhập lại.");
     }
 
     public async Task<IReadOnlyList<DeviceResponse>> GetMyDevicesAsync(ClaimsPrincipal userPrincipal, CancellationToken cancellationToken = default)
@@ -876,7 +876,7 @@ public class AuthService : IAuthService
 
         if (!long.TryParse(sub, out var userId))
         {
-            throw new UnauthorizedAccessException("Invalid user id in token.");
+            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
         }
 
         var devices = await _uow.UserDevices.Query()
@@ -896,7 +896,7 @@ public class AuthService : IAuthService
 
         if (!long.TryParse(sub, out var userId))
         {
-            throw new UnauthorizedAccessException("Invalid user id in token.");
+            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
         }
 
         var device = await _uow.UserDevices.Query()
@@ -904,12 +904,12 @@ public class AuthService : IAuthService
 
         if (device == null)
         {
-            return new BasicResponse(false, "Device not found.");
+            return new BasicResponse(false, "Không tìm thấy thiết bị.");
         }
 
         _uow.UserDevices.Remove(device);
         await _uow.SaveChangesAsync(cancellationToken);
-        return new BasicResponse(true, "Device removed.");
+        return new BasicResponse(true, "Đã xóa thiết bị.");
     }
 
     public async Task<IReadOnlyList<ActivityResponse>> GetMyActivityAsync(ClaimsPrincipal userPrincipal, CancellationToken cancellationToken = default)
@@ -920,7 +920,7 @@ public class AuthService : IAuthService
 
         if (!long.TryParse(sub, out var userId))
         {
-            throw new UnauthorizedAccessException("Invalid user id in token.");
+            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
         }
 
         var logs = await _uow.ActivityLogs.Query()
@@ -940,7 +940,7 @@ public class AuthService : IAuthService
 
         if (!long.TryParse(sub, out var userId))
         {
-            throw new UnauthorizedAccessException("Invalid user id in token.");
+            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
         }
 
         var user = await _uow.Users.Query()
@@ -949,7 +949,7 @@ public class AuthService : IAuthService
 
         if (user == null)
         {
-            throw new UnauthorizedAccessException("User not found.");
+            throw new UnauthorizedAccessException("Không tìm thấy người dùng.");
         }
 
         var now = DateTime.UtcNow;
@@ -996,7 +996,7 @@ public class AuthService : IAuthService
 
         if (!long.TryParse(sub, out var userId))
         {
-            throw new UnauthorizedAccessException("Invalid user id in token.");
+            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
         }
 
         var now = DateTime.UtcNow;
@@ -1034,7 +1034,7 @@ public class AuthService : IAuthService
 
         if (!long.TryParse(sub, out var userId))
         {
-            throw new UnauthorizedAccessException("Invalid user id in token.");
+            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
         }
 
         var user = await _uow.Users.Query()
@@ -1043,7 +1043,7 @@ public class AuthService : IAuthService
 
         if (user == null)
         {
-            throw new UnauthorizedAccessException("User not found.");
+            throw new UnauthorizedAccessException("Không tìm thấy người dùng.");
         }
 
         var profile = user.UserProfiles.FirstOrDefault();
@@ -1060,7 +1060,7 @@ public class AuthService : IAuthService
             _uow.UserProfiles.Update(profile);
         }
         await _uow.SaveChangesAsync(cancellationToken);
-        return new BasicResponse(true, "Avatar updated.");
+        return new BasicResponse(true, "Đã cập nhật ảnh đại diện.");
     }
 
     public async Task<BasicResponse> UpdateAddressAsync(ClaimsPrincipal userPrincipal, UpdateAddressRequest request, CancellationToken cancellationToken = default)
@@ -1072,7 +1072,7 @@ public class AuthService : IAuthService
 
         if (!long.TryParse(sub, out var userId))
         {
-            throw new UnauthorizedAccessException("Invalid user id in token.");
+            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
         }
 
         var user = await _uow.Users.Query()
@@ -1081,7 +1081,7 @@ public class AuthService : IAuthService
 
         if (user == null)
         {
-            throw new UnauthorizedAccessException("User not found.");
+            throw new UnauthorizedAccessException("Không tìm thấy người dùng.");
         }
 
         var profile = user.UserProfiles.FirstOrDefault();
@@ -1102,7 +1102,7 @@ public class AuthService : IAuthService
             _uow.UserProfiles.Update(profile);
         }
         await _uow.SaveChangesAsync(cancellationToken);
-        return new BasicResponse(true, "Address updated.");
+        return new BasicResponse(true, "Đã cập nhật địa chỉ.");
     }
 
     public async Task<BasicResponse> ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken cancellationToken = default)
@@ -1111,7 +1111,7 @@ public class AuthService : IAuthService
         var user = await _uow.Users.Query().FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
         if (user == null)
         {
-            return new BasicResponse(true, "If the email exists, a code has been sent."); // do not reveal existence
+            return new BasicResponse(true, "Nếu email tồn tại, mã đã được gửi."); // do not reveal existence
         }
 
         var code = await CreateVerificationCodeAsync(user.UserId, "ForgotPassword", cancellationToken);
@@ -1124,7 +1124,7 @@ public class AuthService : IAuthService
             _logger.LogWarning(ex, "Failed to send forgot-password email to {Email}", request.Email);
         }
         await _uow.SaveChangesAsync(cancellationToken);
-        return new BasicResponse(true, "If the email exists, a code has been sent.");
+        return new BasicResponse(true, "Nếu email tồn tại, mã đã được gửi.");
     }
 
     public async Task<BasicResponse> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default)
@@ -1133,7 +1133,7 @@ public class AuthService : IAuthService
         var user = await _uow.Users.Query().FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
         if (user == null)
         {
-            return new BasicResponse(false, "Invalid code.");
+            return new BasicResponse(false, "Mã không hợp lệ.");
         }
 
         var codeEntity = await _uow.VerificationCodes.Query()
@@ -1147,7 +1147,7 @@ public class AuthService : IAuthService
 
         if (codeEntity == null)
         {
-            return new BasicResponse(false, "Code invalid or expired.");
+            return new BasicResponse(false, "Mã không hợp lệ hoặc đã hết hạn.");
         }
 
         codeEntity.ConsumedAt = DateTime.UtcNow;
@@ -1171,7 +1171,7 @@ public class AuthService : IAuthService
 
         await CleanupExpiredVerificationCodesAsync(user.UserId, cancellationToken);
 
-        return new BasicResponse(true, "Password reset successful.");
+        return new BasicResponse(true, "Đặt lại mật khẩu thành công.");
     }
 
     private static string? NormalizeGender(string? gender)
@@ -1297,3 +1297,9 @@ public class AuthService : IAuthService
         return null;
     }
 }
+
+
+
+
+
+
