@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using _2GO_EXE_Project.BAL.Interfaces;
 using System.Text;
@@ -57,7 +57,7 @@ public class EmailService : IEmailService
             if (response is null || string.IsNullOrEmpty(response.Id))
             {
                 _logger.LogError("Failed to send email to {To} via Gmail API", to);
-                throw new InvalidOperationException("Email sending failed");
+                throw new InvalidOperationException("Gửi email thất bại");
             }
 
             _logger.LogInformation("Sent email to {To} via Gmail API, MessageId: {Id}", to, response.Id);
@@ -152,3 +152,4 @@ public class EmailService : IEmailService
         return raw;
     }
 }
+

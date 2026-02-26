@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,7 +30,7 @@ public class TransferService : ITransferService
                   ?? principal.FindFirst(ClaimTypes.Name)?.Value;
         if (!long.TryParse(sub, out var id))
         {
-            throw new UnauthorizedAccessException("Invalid user id in token.");
+            throw new UnauthorizedAccessException("User id trong token không hợp lệ.");
         }
         return id;
     }
@@ -137,7 +137,7 @@ public class TransferService : ITransferService
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException($"Failed to create transfer: {ex.Message}", ex);
+            throw new InvalidOperationException($"Tạo chuyển khoản thất bại: {ex.Message}", ex);
         }
     }
 
@@ -207,7 +207,7 @@ public class TransferService : ITransferService
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException($"Failed to create batch transfer: {ex.Message}", ex);
+            throw new InvalidOperationException($"Tạo chuyển khoản hàng loạt thất bại: {ex.Message}", ex);
         }
     }
 
@@ -273,7 +273,7 @@ public class TransferService : ITransferService
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException($"Failed to get account balance: {ex.Message}", ex);
+            throw new InvalidOperationException($"Lấy số dư tài khoản thất bại: {ex.Message}", ex);
         }
     }
 
@@ -300,7 +300,7 @@ public class TransferService : ITransferService
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException($"Failed to estimate credit: {ex.Message}", ex);
+            throw new InvalidOperationException($"Ước tính hạn mức thất bại: {ex.Message}", ex);
         }
     }
 
@@ -395,3 +395,5 @@ public class TransferService : ITransferService
         );
     }
 }
+
+

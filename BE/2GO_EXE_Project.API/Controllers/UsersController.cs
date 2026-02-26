@@ -36,7 +36,7 @@ public class UsersController : ControllerBase
     {
         if (!IsValidPassword(request.NewPassword))
         {
-            return BadRequest("Password must be at least 8 characters and include at least 1 letter and 1 digit.");
+            return BadRequest("M?t kh?u ph?i có ít nh?t 8 ký t? và bao g?m ít nh?t 1 ch? cái và 1 ch? s?.");
         }
         var result = await _authService.ChangePasswordAsync(User, request, cancellationToken);
         if (!result.Success)
@@ -79,3 +79,4 @@ public class UsersController : ControllerBase
         return hasLetter && hasDigit;
     }
 }
+

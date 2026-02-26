@@ -35,7 +35,7 @@ public class ReportService : IReportService
                   ?? principal.FindFirst(ClaimTypes.Name)?.Value;
         if (!long.TryParse(sub, out var id))
         {
-            throw new UnauthorizedAccessException("Invalid user id in token.");
+            throw new UnauthorizedAccessException("User id trong token không hợp lệ.");
         }
         return id;
     }
@@ -50,31 +50,31 @@ public class ReportService : IReportService
         var order = await _uow.Orders.GetByIdAsync(request.OrderId);
         if (order == null)
         {
-            throw new InvalidOperationException("Order not found.");
+            throw new InvalidOperationException("Không tìm th?y don hàng.");
         }
 
         var isBuyer = order.BuyerId == userId;
         var isSeller = order.SellerId == userId;
         if (!isBuyer && !isSeller)
         {
-            throw new InvalidOperationException("Only buyer or seller can report this order.");
+            throw new InvalidOperationException("Chỉ người mua hoặc người bán mới có thể báo cáo đơn hàng này.");
         }
 
         var targetUserId = isBuyer ? order.SellerId : order.BuyerId;
         if (!targetUserId.HasValue)
         {
-            throw new InvalidOperationException("Target user not found.");
+            throw new InvalidOperationException("Không tìm th?y ngu?i dùng m?c tiêu.");
         }
         if (request.TargetUserId.HasValue && request.TargetUserId.Value != targetUserId.Value)
         {
-            throw new InvalidOperationException("Target user does not match order context.");
+            throw new InvalidOperationException("Người dùng mục tiêu không khớp với ngữ cảnh đơn hàng.");
         }
 
         var hasActive = await _uow.Reports.Query()
             .AnyAsync(r => r.OrderId == order.OrderId && IsActiveStatus(r.Status), cancellationToken);
         if (hasActive)
         {
-            throw new InvalidOperationException("Order already has an active report.");
+            throw new InvalidOperationException("Đơn hàng đã có báo cáo đang xử lý.");
         }
 
         var report = new Report
@@ -112,7 +112,7 @@ public class ReportService : IReportService
         {
             await NotifyAsync(targetUserId.Value, "REPORT", "Bạn bị báo cáo", $"Một báo cáo mới đã được tạo (ID #{report.ReportId}).", $"/reports/{report.ReportId}", cancellationToken);
         }
-        await NotifyAdminsAsync("REPORT", "Có báo cáo mới", $"Có báo cáo mới (ID #{report.ReportId}).", $"/admin/reports/{report.ReportId}", cancellationToken);
+        await NotifyAdminsAsync("REPORT", "Có báo cáo m?i", $"Có báo cáo m?i (ID #{report.ReportId}).", $"/admin/reports/{report.ReportId}", cancellationToken);
 
         return new ReportResponse(report.ReportId, report.OrderId ?? 0, report.ReporterId, report.TargetUserId, report.Reason, ParseEvidenceUrls(report.EvidenceUrls), report.Status, report.WaitingForUserId, report.CreatedAt);
     }
@@ -142,15 +142,15 @@ public class ReportService : IReportService
         var report = await _uow.Reports.GetByIdAsync(reportId);
         if (report == null)
         {
-            return new BasicResponse(false, "Report not found.");
+            return new BasicResponse(false, "Không tìm thấy báo cáo.");
         }
         if (!string.Equals(report.Status, ReportStatuses.WaitingOtherParty, StringComparison.OrdinalIgnoreCase))
         {
-            return new BasicResponse(false, "Report is not waiting for a response.");
+            return new BasicResponse(false, "Báo cáo không ở trạng thái chờ phản hồi.");
         }
         if (!report.WaitingForUserId.HasValue || report.WaitingForUserId.Value != userId)
         {
-            return new BasicResponse(false, "Not allowed to reply for this report.");
+            return new BasicResponse(false, "Không có quyền phản hồi báo cáo này.");
         }
 
         report.Status = ReportStatuses.InReview;
@@ -173,7 +173,7 @@ public class ReportService : IReportService
             await NotifyAsync(otherUserId.Value, "REPORT", "Có phản hồi báo cáo", $"Báo cáo #{report.ReportId} đã có phản hồi mới.", $"/reports/{report.ReportId}", cancellationToken);
         }
 
-        return new BasicResponse(true, "Reply submitted.");
+        return new BasicResponse(true, "Đã gửi phản hồi.");
     }
 
     private static bool IsActiveStatus(string? status)
@@ -198,7 +198,7 @@ public class ReportService : IReportService
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(_cloudinaryCloudName))
         {
-            result.Add("evidenceUrls", "Cloudinary CloudName is not configured.");
+            result.Add("evidenceUrls", "Cloudinary CloudName chưa được cấu hình.");
             ValidationGuard.ThrowIfInvalid(result);
         }
 
@@ -208,19 +208,19 @@ public class ReportService : IReportService
             var url = evidenceUrls[i];
             if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
             {
-                result.Add($"evidenceUrls[{i}]", "Evidence url must be a valid absolute Cloudinary URL.");
+                result.Add($"evidenceUrls[{i}]", "Evidence url phải là URL Cloudinary tuyệt đối hợp lệ.");
                 continue;
             }
 
             if (!string.Equals(uri.Host, "res.cloudinary.com", StringComparison.OrdinalIgnoreCase))
             {
-                result.Add($"evidenceUrls[{i}]", "Evidence url must be hosted on Cloudinary.");
+                result.Add($"evidenceUrls[{i}]", "Evidence url phải được lưu trữ trên Cloudinary.");
                 continue;
             }
 
             if (!uri.AbsolutePath.StartsWith(cloudPathPrefix, StringComparison.OrdinalIgnoreCase))
             {
-                result.Add($"evidenceUrls[{i}]", "Evidence url must belong to the configured Cloudinary cloud.");
+                result.Add($"evidenceUrls[{i}]", "Evidence url phải thuộc Cloudinary cloud đã cấu hình.");
             }
         }
 
@@ -282,3 +282,11 @@ public class ReportService : IReportService
         }
     }
 }
+
+
+
+
+
+
+
+

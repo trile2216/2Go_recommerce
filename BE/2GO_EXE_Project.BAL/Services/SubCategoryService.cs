@@ -72,7 +72,7 @@ public class SubCategoryService : ISubCategoryService
         var categoryExists = await _uow.Categories.Query().AnyAsync(c => c.CategoryId == categoryId, cancellationToken);
         if (!categoryExists)
         {
-            throw new InvalidOperationException("Category not found.");
+            throw new InvalidOperationException("Không tìm th?y danh m?c.");
         }
 
         var entity = new SubCategory
@@ -123,3 +123,4 @@ public class SubCategoryService : ISubCategoryService
         return true;
     }
 }
+

@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Options;
 using _2GO_EXE_Project.BAL.DTOs.Payments;
@@ -20,12 +20,12 @@ public class HmacPaymentGateway : IPaymentGateway
     {
         if (string.IsNullOrWhiteSpace(_settings.Secret))
         {
-            message = "Payment gateway is not configured.";
+            message = "Cổng thanh toán chưa được cấu hình.";
             return false;
         }
         if (string.IsNullOrWhiteSpace(request.RawResponse) || string.IsNullOrWhiteSpace(request.Signature))
         {
-            message = "RawResponse and Signature are required.";
+            message = "RawResponse và Signature là bắt buộc.";
             return false;
         }
 
@@ -38,7 +38,7 @@ public class HmacPaymentGateway : IPaymentGateway
 
         if (!string.Equals(computed, provided, StringComparison.OrdinalIgnoreCase))
         {
-            message = "Invalid signature.";
+            message = "Chữ ký không hợp lệ.";
             return false;
         }
 
@@ -46,3 +46,4 @@ public class HmacPaymentGateway : IPaymentGateway
         return true;
     }
 }
+

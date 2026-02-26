@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using _2GO_EXE_Project.BAL.Constants;
@@ -40,7 +40,7 @@ public class PaymentService : IPaymentService
                   ?? principal.FindFirst(ClaimTypes.Name)?.Value;
         if (!long.TryParse(sub, out var id))
         {
-            throw new UnauthorizedAccessException("Invalid user id in token.");
+            throw new UnauthorizedAccessException("User id trong token không hợp lệ.");
         }
         return id;
     }
@@ -53,22 +53,22 @@ public class PaymentService : IPaymentService
         var order = await _uow.Orders.GetByIdAsync(request.OrderId);
         if (order == null)
         {
-            throw new InvalidOperationException("Order not found.");
+            throw new InvalidOperationException("Không tìm th?y don hàng.");
         }
         if (order.BuyerId != userId)
         {
-            throw new InvalidOperationException("Not allowed.");
+            throw new InvalidOperationException("Không được phép.");
         }
         if (!string.Equals(order.PaymentMethod, request.Method, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("Payment method does not match the order.");
+            throw new InvalidOperationException("Phương thức thanh toán không khớp với đơn hàng.");
         }
 
         if (string.Equals(order.Status, OrderStatuses.Cancelled, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(order.Status, OrderStatuses.Completed, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(order.Status, OrderStatuses.Disputed, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("Payments are not allowed for this order status.");
+            throw new InvalidOperationException("Không thể thanh toán ở trạng thái đơn hàng này.");
         }
 
         var existing = await _uow.Payments.Query()
@@ -133,7 +133,7 @@ public class PaymentService : IPaymentService
                     }
                     catch (Exception ex)
                     {
-                        throw new InvalidOperationException($"PayOS payment link re-creation failed: {ex.Message}");
+                        throw new InvalidOperationException($"Tạo lại link thanh toán PayOS thất bại: {ex.Message}");
                     }
                 }
             }
@@ -152,7 +152,7 @@ public class PaymentService : IPaymentService
         {
             if (!string.Equals(order.Status, OrderStatuses.Pending, StringComparison.OrdinalIgnoreCase))
             {
-                throw new InvalidOperationException("Deposit payment can only be created when order status is Pending.");
+                throw new InvalidOperationException("Thanh toán đặt cọc chỉ có thể tạo khi đơn hàng ở trạng thái Pending.");
             }
         }
         else if (string.Equals(stage, PaymentStages.Remaining, StringComparison.OrdinalIgnoreCase))
@@ -162,11 +162,11 @@ public class PaymentService : IPaymentService
                 !string.Equals(order.Status, OrderStatuses.Delivering, StringComparison.OrdinalIgnoreCase) &&
                 !string.Equals(order.Status, OrderStatuses.Delivered, StringComparison.OrdinalIgnoreCase))
             {
-                throw new InvalidOperationException("Remaining payment can only be created when order status is Confirmed, Delivering, or Delivered.");
+                throw new InvalidOperationException("Thanh toán còn lại chỉ có thể tạo khi đơn hàng ở trạng thái Confirmed, Delivering hoặc Delivered.");
             }
             if (requiresDeposit && !await HasPaidPaymentAsync(order.OrderId, PaymentStages.Deposit, cancellationToken))
             {
-                throw new InvalidOperationException("Deposit must be paid before creating remaining payment.");
+                throw new InvalidOperationException("Cần thanh toán đặt cọc trước khi tạo thanh toán còn lại.");
             }
         }
 
@@ -234,7 +234,7 @@ public class PaymentService : IPaymentService
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException($"PayOS payment creation failed: {ex.Message}");
+                throw new InvalidOperationException($"Tạo thanh toán PayOS thất bại: {ex.Message}");
             }
         }
 
@@ -249,21 +249,21 @@ public class PaymentService : IPaymentService
         var userId = GetUserId(userPrincipal);
         if (!PaymentMethods.All.Contains(request.Method, StringComparer.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("Invalid payment method.");
+            throw new InvalidOperationException("Phương thức thanh toán không hợp lệ.");
         }
         if (string.Equals(request.Method, PaymentMethods.COD, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("COD is not supported for subscription.");
+            throw new InvalidOperationException("COD không được hỗ trợ cho gói đăng bài.");
         }
 
         var plan = await GetPlanByCodeAsync(request.PlanCode, requireActive: true, cancellationToken);
         if (plan.DurationDays <= 0)
         {
-            throw new InvalidOperationException("Invalid subscription duration.");
+            throw new InvalidOperationException("Thời hạn gói không hợp lệ.");
         }
         if (plan.Price <= 0)
         {
-            throw new InvalidOperationException("Selected plan is free and does not require payment.");
+            throw new InvalidOperationException("Gói đã chọn là miễn phí và không cần thanh toán.");
         }
 
         var payment = new Payment
@@ -317,7 +317,7 @@ public class PaymentService : IPaymentService
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException($"PayOS payment creation failed: {ex.Message}");
+                throw new InvalidOperationException($"Tạo thanh toán PayOS thất bại: {ex.Message}");
             }
         }
 
@@ -331,26 +331,26 @@ public class PaymentService : IPaymentService
         var userId = GetUserId(userPrincipal);
         var payment = await _uow.Payments.Query()
             .FirstOrDefaultAsync(p => p.PaymentId == paymentId && p.UserId == userId, cancellationToken);
-        if (payment == null) return new BasicResponse(false, "Payment not found.");
+        if (payment == null) return new BasicResponse(false, "Không tìm thấy thanh toán.");
 
         if (!PaymentStatuses.All.Contains(request.Status, StringComparer.OrdinalIgnoreCase))
         {
-            return new BasicResponse(false, "Invalid payment status.");
+            return new BasicResponse(false, "Trạng thái thanh toán không hợp lệ.");
         }
 
         if (string.Equals(payment.Status, request.Status, StringComparison.OrdinalIgnoreCase))
         {
-            return new BasicResponse(true, "Payment already in requested status.");
+            return new BasicResponse(true, "Thanh toán đã ở trạng thái yêu cầu.");
         }
 
         if (!IsPaymentTransitionAllowed(payment.Status, request.Status))
         {
-            return new BasicResponse(false, $"Invalid payment status transition: {payment.Status} -> {request.Status}.");
+            return new BasicResponse(false, $"Chuyển trạng thái thanh toán không hợp lệ: {payment.Status} -> {request.Status}.");
         }
 
         if (string.Equals(payment.Method, "COD", StringComparison.OrdinalIgnoreCase))
         {
-            return new BasicResponse(false, "COD payments are verified when order is completed.");
+            return new BasicResponse(false, "Thanh toán COD được xác nhận khi đơn hàng hoàn tất.");
         }
 
         if (!_gateway.VerifySignature(request, out var verifyMessage))
@@ -377,7 +377,7 @@ public class PaymentService : IPaymentService
         await UpdateOrderByPaymentAsync(payment, cancellationToken);
         await ApplySubscriptionIfPaidAsync(payment, cancellationToken);
 
-        return new BasicResponse(true, "Payment updated.");
+        return new BasicResponse(true, "Đã cập nhật thanh toán.");
     }
 
 
@@ -385,7 +385,7 @@ public class PaymentService : IPaymentService
     {
         if (request == null || request.Data == null)
         {
-            return new BasicResponse(false, "PayOS webhook data is required.");
+            return new BasicResponse(false, "Dữ liệu webhook PayOS là bắt buộc.");
         }
         if (!_payosGateway.VerifyWebhookSignature(request, out var verifyMessage))
         {
@@ -399,31 +399,31 @@ public class PaymentService : IPaymentService
                 p.PaymentId == orderCode ||
                 (p.ReferenceCode != null && p.ReferenceCode == orderCode.ToString()), cancellationToken);
 
-        if (payment == null) return new BasicResponse(false, "Payment not found.");
+        if (payment == null) return new BasicResponse(false, "Không tìm thấy thanh toán.");
 
         if (!string.Equals(payment.Method, "PAYOS", StringComparison.OrdinalIgnoreCase))
         {
-            return new BasicResponse(false, "Payment method is not PayOS.");
+            return new BasicResponse(false, "Phương thức thanh toán không phải PayOS.");
         }
 
         if (payment.Amount.HasValue && payment.Amount.Value != request.Data.Amount)
         {
-            return new BasicResponse(false, "Amount mismatch.");
+            return new BasicResponse(false, "Số tiền không khớp.");
         }
 
         var nextStatus = MapPayosStatus(request.Data.Status);
         if (string.IsNullOrWhiteSpace(nextStatus))
         {
-            return new BasicResponse(false, "Unknown PayOS status.");
+            return new BasicResponse(false, "Trạng thái PayOS không xác định.");
         }
 
         if (string.Equals(payment.Status, nextStatus, StringComparison.OrdinalIgnoreCase))
         {
-            return new BasicResponse(true, "Payment already in requested status.");
+            return new BasicResponse(true, "Thanh toán đã ở trạng thái yêu cầu.");
         }
         if (!IsPaymentTransitionAllowed(payment.Status, nextStatus))
         {
-            return new BasicResponse(false, $"Invalid payment status transition: {payment.Status} -> {nextStatus}.");
+            return new BasicResponse(false, $"Chuyển trạng thái thanh toán không hợp lệ: {payment.Status} -> {nextStatus}.");
         }
 
         payment.Status = nextStatus;
@@ -448,20 +448,20 @@ public class PaymentService : IPaymentService
         await UpdateOrderByPaymentAsync(payment, cancellationToken);
         await ApplySubscriptionIfPaidAsync(payment, cancellationToken);
 
-        return new BasicResponse(true, "Payment updated.");
+        return new BasicResponse(true, "Đã cập nhật thanh toán.");
     }
 
     public async Task<WebhookData> VerifyWebhookSignatureAsync(Webhook webhook, CancellationToken cancellationToken = default)
     {
         var data = await _payosService.VerifyWebhookSignatureAsync(webhook, cancellationToken);
-        return data ?? throw new InvalidOperationException("Webhook signature verification failed.");
+        return data ?? throw new InvalidOperationException("Xác minh chữ ký webhook thất bại.");
     }
 
     public async Task<BasicResponse> HandlePayOSWebhookAsync(Webhook webhook, CancellationToken cancellationToken = default)
     {
         if (webhook == null || webhook.Data == null)
         {
-            return new BasicResponse(false, "Webhook data is required.");
+            return new BasicResponse(false, "Dữ liệu webhook là bắt buộc.");
         }
 
         try
@@ -471,7 +471,7 @@ public class PaymentService : IPaymentService
             
             if (webhookData == null)
             {
-                return new BasicResponse(false, "Webhook signature verification failed.");
+                return new BasicResponse(false, "Xác minh chữ ký webhook thất bại.");
             }
 
             // Find payment by OrderCode (stored in PaymentLog or Order)
@@ -500,14 +500,14 @@ public class PaymentService : IPaymentService
 
             if (payment == null)
             {
-                return new BasicResponse(false, $"Payment not found for PayOS OrderCode: {webhookData.OrderCode}");
+                return new BasicResponse(false, $"Không tìm thấy thanh toán cho PayOS OrderCode: {webhookData.OrderCode}");
             }
 
             // Verify amount
             var expectedAmount = Convert.ToInt64(decimal.Round(payment.Amount ?? 0, 0));
             if (webhookData.Amount != expectedAmount)
             {
-                return new BasicResponse(false, "Amount mismatch.");
+                return new BasicResponse(false, "Số tiền không khớp.");
             }
 
             // Determine payment status based on webhook code
@@ -527,12 +527,12 @@ public class PaymentService : IPaymentService
 
             if (string.Equals(payment.Status, nextStatus, StringComparison.OrdinalIgnoreCase))
             {
-                return new BasicResponse(true, "Payment already in requested status.");
+                return new BasicResponse(true, "Thanh toán đã ở trạng thái yêu cầu.");
             }
 
             if (!IsPaymentTransitionAllowed(payment.Status, nextStatus))
             {
-                return new BasicResponse(false, $"Invalid payment status transition: {payment.Status} -> {nextStatus}.");
+                return new BasicResponse(false, $"Chuyển trạng thái thanh toán không hợp lệ: {payment.Status} -> {nextStatus}.");
             }
 
             payment.Status = nextStatus;
@@ -555,11 +555,11 @@ public class PaymentService : IPaymentService
             // Log activity
             await LogPaymentActionAsync(payment.UserId ?? 0, "PayOSWebhookReceived", new { payment.PaymentId, webhookData.OrderCode, Status = nextStatus }, cancellationToken);
 
-            return new BasicResponse(true, "Payment updated successfully.");
+            return new BasicResponse(true, "Cập nhật thanh toán thành công.");
         }
         catch (Exception ex)
         {
-            return new BasicResponse(false, $"Webhook processing failed: {ex.Message}");
+            return new BasicResponse(false, $"Xử lý webhook thất bại: {ex.Message}");
         }
     }
 
@@ -631,7 +631,7 @@ public class PaymentService : IPaymentService
                 }
                 if (order.BuyerId.HasValue)
                 {
-                    await NotifyAsync(order.BuyerId.Value, "PAYMENT", "Thanh toán thành công", $"Đơn hàng #{order.OrderId} đã được thanh toán phàn còn lại.", $"/orders/{order.OrderId}", cancellationToken);
+                    await NotifyAsync(order.BuyerId.Value, "PAYMENT", "Thanh toán thành công", $"Đơn hàng #{order.OrderId} đã được thanh toán phần còn lại.", $"/orders/{order.OrderId}", cancellationToken);
                 }
             }
             else if (string.Equals(payment.Status, PaymentStatuses.Failed, StringComparison.OrdinalIgnoreCase) ||
@@ -639,7 +639,7 @@ public class PaymentService : IPaymentService
             {
                 if (order.BuyerId.HasValue)
                 {
-                    await NotifyAsync(order.BuyerId.Value, "PAYMENT", "Thanh toán thất bại", $"Thanh toán phàn còn lại cho đơn hàng #{order.OrderId} không thành công.", $"/orders/{order.OrderId}", cancellationToken);
+                    await NotifyAsync(order.BuyerId.Value, "PAYMENT", "Thanh toán thất bại", $"Thanh toán phần còn lại cho đơn hàng #{order.OrderId} không thành công.", $"/orders/{order.OrderId}", cancellationToken);
                 }
             }
         }
@@ -709,7 +709,7 @@ public class PaymentService : IPaymentService
                 (!requireActive || p.IsActive), cancellationToken);
         if (plan == null)
         {
-            throw new InvalidOperationException("Subscription plan not found.");
+            throw new InvalidOperationException("Không tìm th?y gói dang bài.");
         }
 
         return plan;
@@ -866,5 +866,17 @@ public class PaymentService : IPaymentService
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 

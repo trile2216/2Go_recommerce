@@ -44,7 +44,7 @@ public class NotificationService : INotificationService
     {
         var notification = await _uow.Notifications.Query()
             .FirstOrDefaultAsync(n => n.NotificationId == notificationId && n.UserId == userId, cancellationToken);
-        if (notification == null) return new BasicResponse(false, "Notification not found.");
+        if (notification == null) return new BasicResponse(false, "Không tìm thấy thông báo.");
 
         if (!notification.IsRead)
         {
@@ -53,7 +53,7 @@ public class NotificationService : INotificationService
             await _uow.SaveChangesAsync(cancellationToken);
         }
 
-        return new BasicResponse(true, "Marked as read.");
+        return new BasicResponse(true, "Đã đánh dấu đã đọc.");
     }
 
     public async Task<BasicResponse> MarkAllReadAsync(long userId, CancellationToken cancellationToken = default)
@@ -62,7 +62,7 @@ public class NotificationService : INotificationService
             .Where(n => n.UserId == userId && !n.IsRead)
             .ToListAsync(cancellationToken);
 
-        if (notifications.Count == 0) return new BasicResponse(true, "No unread notifications.");
+        if (notifications.Count == 0) return new BasicResponse(true, "Không có thông báo chưa đọc.");
 
         foreach (var n in notifications)
         {
@@ -71,14 +71,14 @@ public class NotificationService : INotificationService
         }
         await _uow.SaveChangesAsync(cancellationToken);
 
-        return new BasicResponse(true, "All notifications marked as read.");
+        return new BasicResponse(true, "All notifications Đã đánh dấu đã đọc.");
     }
 
     public async Task<BasicResponse> CreateAsync(CreateNotificationRequest request, CancellationToken cancellationToken = default)
     {
-        if (request.UserId <= 0) return new BasicResponse(false, "Invalid user id.");
-        if (string.IsNullOrWhiteSpace(request.Title)) return new BasicResponse(false, "Title is required.");
-        if (string.IsNullOrWhiteSpace(request.Message)) return new BasicResponse(false, "Message is required.");
+        if (request.UserId <= 0) return new BasicResponse(false, "User id không hợp lệ.");
+        if (string.IsNullOrWhiteSpace(request.Title)) return new BasicResponse(false, "Tiêu đề là bắt buộc.");
+        if (string.IsNullOrWhiteSpace(request.Message)) return new BasicResponse(false, "Nội dung là bắt buộc.");
 
         var notification = new Notification
         {
@@ -94,6 +94,10 @@ public class NotificationService : INotificationService
         await _uow.Notifications.AddAsync(notification, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
 
-        return new BasicResponse(true, "Notification created.");
+        return new BasicResponse(true, "Đã tạo thông báo.");
     }
 }
+
+
+
+

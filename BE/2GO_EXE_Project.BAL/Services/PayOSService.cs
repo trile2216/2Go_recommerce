@@ -1,4 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using PayOS;
 using PayOS.Models.V2.PaymentRequests;
@@ -37,12 +37,12 @@ public class PayOSService : IPayOSService
         var frontendBaseUrl = configuration.GetValue<string>("FrontendBaseUrl") ?? Environment.GetEnvironmentVariable("FRONTEND_BASE_URL") ?? "http://localhost:5173";
         if (amount <= 0)
         {
-            throw new ArgumentException("Amount must be greater than 0.", nameof(amount));
+            throw new ArgumentException("Số tiền phải lớn hơn 0.", nameof(amount));
         }
 
         if (string.IsNullOrWhiteSpace(referenceCode))
         {
-            throw new ArgumentException("Reference code is required.", nameof(referenceCode));
+            throw new ArgumentException("Reference code là bắt buộc.", nameof(referenceCode));
         }
 
         // Generate unique order code from timestamp + random to avoid duplicates
@@ -78,7 +78,7 @@ public class PayOSService : IPayOSService
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException($"Failed to create PayOS payment link: {ex.Message}", ex);
+            throw new InvalidOperationException($"Tạo liên kết thanh toán PayOS thất bại: {ex.Message}", ex);
         }
     }
 
@@ -90,22 +90,22 @@ public class PayOSService : IPayOSService
 
             if (paymentLinkInfo == null)
             {
-                return new BasicResponse(false, "Payment link not found.");
+                return new BasicResponse(false, "Không tìm thấy link thanh toán.");
             }
 
             // Only cancel if payment is still pending
             if (paymentLinkInfo.Status != PayOS.Models.V2.PaymentRequests.PaymentLinkStatus.Pending)
             {
-                return new BasicResponse(false, $"Cannot cancel payment with status: {paymentLinkInfo.Status}");
+                return new BasicResponse(false, $"Không thể hủy thanh toán với trạng thái: {paymentLinkInfo.Status}");
             }
 
             await _client.PaymentRequests.CancelAsync(orderCode.ToString(), reason);
 
-            return new BasicResponse(true, "Payment link cancelled successfully.");
+            return new BasicResponse(true, "Đã hủy link thanh toán thành công.");
         }
         catch (Exception ex)
         {
-            return new BasicResponse(false, $"Failed to cancel payment link: {ex.Message}");
+            return new BasicResponse(false, $"Hủy link thanh toán thất bại: {ex.Message}");
         }
     }
 
@@ -118,7 +118,7 @@ public class PayOSService : IPayOSService
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException($"Failed to get payment link info: {ex.Message}", ex);
+            throw new InvalidOperationException($"Lấy thông tin liên kết thanh toán thất bại: {ex.Message}", ex);
         }
     }
 
@@ -137,7 +137,13 @@ public class PayOSService : IPayOSService
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException($"Webhook signature verification failed: {ex.Message}", ex);
+            throw new InvalidOperationException($"Xác thực chữ ký webhook thất bại: {ex.Message}", ex);
         }
     }
 }
+
+
+
+
+
+

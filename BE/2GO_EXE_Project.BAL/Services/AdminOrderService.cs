@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using _2GO_EXE_Project.BAL.Constants;
@@ -57,7 +57,7 @@ public class AdminOrderService : IAdminOrderService
         {
             if (!AllowedStatuses.Contains(status))
             {
-                throw new InvalidOperationException($"Invalid order status. Allowed: {string.Join(", ", OrderStatuses.All)}.");
+                throw new InvalidOperationException($"Trạng thái đơn hàng không hợp lệ. Cho phép: {string.Join(", ", OrderStatuses.All)}.");
             }
             query = query.Where(o => o.Status == status);
         }
@@ -161,21 +161,21 @@ public class AdminOrderService : IAdminOrderService
             .Include(o => o.ShippingRequests)
             .Include(o => o.Escrow)
             .FirstOrDefaultAsync(o => o.OrderId == orderId, cancellationToken);
-        if (order == null) return new BasicResponse(false, "Order not found.");
+        if (order == null) return new BasicResponse(false, "Không tìm thấy đơn hàng.");
 
         if (!AllowedStatuses.Contains(request.Status))
         {
-            return new BasicResponse(false, "Invalid status value.");
+            return new BasicResponse(false, "Giá trị trạng thái không hợp lệ.");
         }
 
         if (string.Equals(order.Status, request.Status, StringComparison.OrdinalIgnoreCase))
         {
-            return new BasicResponse(true, "Order already in requested status.");
+            return new BasicResponse(true, "Đơn hàng đã ở trạng thái yêu cầu.");
         }
 
         if (!IsStatusTransitionAllowed(order.Status, request.Status))
         {
-            return new BasicResponse(false, $"Invalid order status transition: {order.Status} -> {request.Status}.");
+            return new BasicResponse(false, $"Chuyển trạng thái đơn hàng không hợp lệ: {order.Status} -> {request.Status}.");
         }
 
         if (string.Equals(request.Status, OrderStatuses.Cancelled, StringComparison.OrdinalIgnoreCase))
@@ -199,7 +199,7 @@ public class AdminOrderService : IAdminOrderService
         _uow.Orders.Update(order);
         await _uow.SaveChangesAsync(cancellationToken);
         await LogAdminActionAsync(adminPrincipal, "UpdateOrderStatus", new { order.OrderId, To = request.Status, request.Reason }, cancellationToken);
-        return new BasicResponse(true, "Order status updated.");
+        return new BasicResponse(true, "Đã cập nhật trạng thái đơn hàng.");
     }
 
     private static bool IsStatusTransitionAllowed(string? current, string next)
@@ -302,14 +302,14 @@ public class AdminOrderService : IAdminOrderService
             await NotifyAsync(order.SellerId.Value, "ORDER", cancelText.Title, cancelText.Message, $"/orders/{order.OrderId}", cancellationToken);
         }
         await LogAdminActionAsync(adminPrincipal, "UpdateOrderStatus", new { order.OrderId, From = fromStatus, To = order.Status, reason }, cancellationToken);
-        return new BasicResponse(true, "Order cancelled.");
+        return new BasicResponse(true, "Đơn hàng đã bị hủy.");
     }
 
     private async Task<BasicResponse> ConfirmOrderAsync(ClaimsPrincipal adminPrincipal, Order order, string? reason, CancellationToken cancellationToken)
     {
         if (!string.Equals(order.PaymentMethod, PaymentMethods.COD, StringComparison.OrdinalIgnoreCase))
         {
-            return new BasicResponse(false, "Non-COD orders are confirmed by payment verification.");
+            return new BasicResponse(false, "Đơn hàng không COD được xác nhận khi thanh toán được xác minh.");
         }
 
         var fromStatus = order.Status;
@@ -324,14 +324,14 @@ public class AdminOrderService : IAdminOrderService
             await NotifyAsync(order.BuyerId.Value, "ORDER", confirmText.Title, confirmText.Message, $"/orders/{order.OrderId}", cancellationToken);
         }
         await LogAdminActionAsync(adminPrincipal, "UpdateOrderStatus", new { order.OrderId, From = fromStatus, To = order.Status, reason }, cancellationToken);
-        return new BasicResponse(true, "Order confirmed.");
+        return new BasicResponse(true, "Đơn hàng đã được xác nhận.");
     }
 
     private async Task<BasicResponse> CompleteOrderAsync(ClaimsPrincipal adminPrincipal, Order order, string? reason, CancellationToken cancellationToken)
     {
         if (!string.Equals(order.Status, OrderStatuses.Delivered, StringComparison.OrdinalIgnoreCase))
         {
-            return new BasicResponse(false, "Only delivered orders can be completed.");
+            return new BasicResponse(false, "Chỉ đơn hàng đã giao mới có thể hoàn tất.");
         }
         var totalAmount = order.TotalAmount ?? 0m;
         var requiresDeposit = totalAmount >= EscrowRules.DepositThresholdAmount;
@@ -345,8 +345,8 @@ public class AdminOrderService : IAdminOrderService
             else
             {
                 return new BasicResponse(false, requiresDeposit
-                    ? "Remaining payment must be paid before completing the order."
-                    : "Payment must be paid before completing the order.");
+                    ? "Cần thanh toán phần còn lại trước khi hoàn tất đơn hàng."
+                    : "Cần thanh toán trước khi hoàn tất đơn hàng.");
             }
         }
 
@@ -365,7 +365,7 @@ public class AdminOrderService : IAdminOrderService
             await NotifyAsync(order.SellerId.Value, "ORDER", completeText.Title, completeText.Message, $"/orders/{order.OrderId}", cancellationToken);
         }
         await LogAdminActionAsync(adminPrincipal, "UpdateOrderStatus", new { order.OrderId, From = fromStatus, To = order.Status, reason }, cancellationToken);
-        return new BasicResponse(true, "Order completed.");
+        return new BasicResponse(true, "Đơn hàng đã hoàn tất.");
     }
 
     private async Task<BasicResponse> DisputeOrderAsync(ClaimsPrincipal adminPrincipal, Order order, string? reason, CancellationToken cancellationToken)
@@ -385,7 +385,7 @@ public class AdminOrderService : IAdminOrderService
             await NotifyAsync(order.SellerId.Value, "ORDER", disputeText.Title, disputeText.Message, $"/orders/{order.OrderId}", cancellationToken);
         }
         await LogAdminActionAsync(adminPrincipal, "UpdateOrderStatus", new { order.OrderId, From = fromStatus, To = order.Status, reason }, cancellationToken);
-        return new BasicResponse(true, "Order marked as disputed.");
+        return new BasicResponse(true, "Đơn hàng đã được đánh dấu tranh chấp.");
     }
 
     private async Task<bool> IsPaymentPaidAsync(long orderId, string stage, CancellationToken cancellationToken)
@@ -524,3 +524,9 @@ public class AdminOrderService : IAdminOrderService
         }
     }
 }
+
+
+
+
+
+

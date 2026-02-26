@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using _2GO_EXE_Project.BAL.Constants;
 using _2GO_EXE_Project.BAL.DTOs.Auth;
@@ -38,7 +38,7 @@ public class ShippingService : IShippingService
                   ?? principal.FindFirst(ClaimTypes.Name)?.Value;
         if (!long.TryParse(sub, out var id))
         {
-            throw new UnauthorizedAccessException("Invalid user id in token.");
+            throw new UnauthorizedAccessException("User id trong token không hợp lệ.");
         }
         return id;
     }
@@ -49,8 +49,8 @@ public class ShippingService : IShippingService
         var userId = GetUserId(userPrincipal);
         var order = await _uow.Orders.Query()
             .FirstOrDefaultAsync(o => o.OrderId == request.OrderId, cancellationToken);
-        if (order == null) throw new InvalidOperationException("Order not found.");
-        if (order.SellerId != userId) throw new InvalidOperationException("Only seller can create shipping.");
+        if (order == null) throw new InvalidOperationException("Không tìm th?y don hàng.");
+        if (order.SellerId != userId) throw new InvalidOperationException("Chỉ người bán mới có thể tạo vận chuyển.");
 
         var existing = await _uow.ShippingRequests.Query()
             .FirstOrDefaultAsync(s => s.OrderId == request.OrderId, cancellationToken);
@@ -72,7 +72,7 @@ public class ShippingService : IShippingService
             {
                 if (string.IsNullOrWhiteSpace(request.DeliveryAddress))
                 {
-                    throw new InvalidOperationException("Delivery address is required.");
+                    throw new InvalidOperationException("Địa chỉ giao hàng là bắt buộc.");
                 }
                 existing.DeliveryAddress = request.DeliveryAddress;
                 updated = true;
@@ -98,12 +98,12 @@ public class ShippingService : IShippingService
 
         if (!string.Equals(order.Status, OrderStatuses.Confirmed, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("Shipping can only be created when order status is Confirmed.");
+            throw new InvalidOperationException("Chỉ có thể tạo vận chuyển khi đơn hàng ở trạng thái Confirmed.");
         }
 
         if (string.IsNullOrWhiteSpace(request.DeliveryAddress))
         {
-            throw new InvalidOperationException("Delivery address is required.");
+            throw new InvalidOperationException("Địa chỉ giao hàng là bắt buộc.");
         }
 
         var ship = new ShippingRequest
@@ -145,8 +145,8 @@ public class ShippingService : IShippingService
         var userId = GetUserId(userPrincipal);
         var order = await _uow.Orders.Query()
             .FirstOrDefaultAsync(o => o.OrderId == request.OrderId, cancellationToken);
-        if (order == null) throw new InvalidOperationException("Order not found.");
-        if (order.SellerId != userId) throw new InvalidOperationException("Only seller can create shipping.");
+        if (order == null) throw new InvalidOperationException("Không tìm th?y don hàng.");
+        if (order.SellerId != userId) throw new InvalidOperationException("Chỉ người bán mới có thể tạo vận chuyển.");
 
         var existing = await _uow.ShippingRequests.Query()
             .FirstOrDefaultAsync(s => s.OrderId == request.OrderId, cancellationToken);
@@ -164,7 +164,7 @@ public class ShippingService : IShippingService
 
         if (!string.Equals(order.Status, OrderStatuses.Confirmed, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("Shipping can only be created when order status is Confirmed.");
+            throw new InvalidOperationException("Chỉ có thể tạo vận chuyển khi đơn hàng ở trạng thái Confirmed.");
         }
 
         var orderCode = await _ghnShippingService.CreateOrderAsync(request, cancellationToken);
@@ -315,7 +315,7 @@ public class ShippingService : IShippingService
             .ToListAsync(cancellationToken);
         if (shippingList.Count == 0)
         {
-            throw new InvalidOperationException("Shipping not found for provided GHN codes.");
+            throw new InvalidOperationException("Không tìm thấy vận chuyển với GHN codes đã cung cấp.");
         }
 
         foreach (var ship in shippingList)
@@ -323,7 +323,7 @@ public class ShippingService : IShippingService
             var order = await _uow.Orders.GetByIdAsync(ship.OrderId ?? 0);
             if (order == null || order.SellerId != userId)
             {
-                throw new InvalidOperationException("Not allowed to cancel this shipping.");
+                throw new InvalidOperationException("Không được phép hủy vận chuyển này.");
             }
         }
 
@@ -368,7 +368,7 @@ public class ShippingService : IShippingService
             .ToListAsync(cancellationToken);
         if (shippingList.Count == 0)
         {
-            throw new InvalidOperationException("Shipping not found for provided GHN codes.");
+            throw new InvalidOperationException("Không tìm thấy vận chuyển với GHN codes đã cung cấp.");
         }
 
         foreach (var ship in shippingList)
@@ -376,7 +376,7 @@ public class ShippingService : IShippingService
             var order = await _uow.Orders.GetByIdAsync(ship.OrderId ?? 0);
             if (order == null || order.SellerId != userId)
             {
-                throw new InvalidOperationException("Not allowed to access this shipping.");
+                throw new InvalidOperationException("Không được phép truy cập vận chuyển này.");
             }
         }
 
@@ -399,7 +399,7 @@ public class ShippingService : IShippingService
     {
         if (string.IsNullOrWhiteSpace(orderCode))
         {
-            throw new InvalidOperationException("OrderCode is required.");
+            throw new InvalidOperationException("OrderCode là bắt buộc.");
         }
 
         var userId = GetUserId(userPrincipal);
@@ -407,13 +407,13 @@ public class ShippingService : IShippingService
             .FirstOrDefaultAsync(s => s.TrackingCode == orderCode, cancellationToken);
         if (ship == null)
         {
-            throw new InvalidOperationException("Shipping not found for provided GHN code.");
+            throw new InvalidOperationException("Không tìm thấy vận chuyển với GHN code đã cung cấp.");
         }
 
         var order = await _uow.Orders.GetByIdAsync(ship.OrderId ?? 0);
         if (order == null || order.SellerId != userId)
         {
-            throw new InvalidOperationException("Not allowed to access this shipping.");
+            throw new InvalidOperationException("Không được phép truy cập vận chuyển này.");
         }
 
         return await _ghnShippingService.GetOrderInfoAsync(orderCode, cancellationToken);
@@ -425,39 +425,39 @@ public class ShippingService : IShippingService
         {
             if (!string.Equals(_ghnSettings.WebhookToken, webhookToken, StringComparison.Ordinal))
             {
-                return new BasicResponse(false, "Invalid webhook token.");
+                return new BasicResponse(false, "Webhook token không hợp lệ.");
             }
         }
 
         if (string.IsNullOrWhiteSpace(payload.OrderCode))
         {
-            return new BasicResponse(false, "OrderCode is required.");
+            return new BasicResponse(false, "OrderCode là bắt buộc.");
         }
 
         var ship = await _uow.ShippingRequests.Query()
             .FirstOrDefaultAsync(s => s.TrackingCode == payload.OrderCode, cancellationToken);
         if (ship == null)
         {
-            return new BasicResponse(false, "Shipping not found.");
+            return new BasicResponse(false, "Không tìm thấy đơn giao hàng.");
         }
 
         var mapped = MapGhnStatus(payload.Status);
         if (mapped == null)
         {
-            return new BasicResponse(true, "Webhook received, no status change.");
+            return new BasicResponse(true, "Đã nhận webhook, không có thay đổi trạng thái.");
         }
 
         var current = ship.Status ?? ShippingStatuses.Requested;
         if (string.Equals(current, mapped, StringComparison.OrdinalIgnoreCase))
         {
-            return new BasicResponse(true, "Shipping already in requested status.");
+            return new BasicResponse(true, "Đơn giao hàng đã ở trạng thái yêu cầu.");
         }
 
         if (!IsShippingTransitionAllowed(current, mapped) &&
             !(string.Equals(current, ShippingStatuses.Requested, StringComparison.OrdinalIgnoreCase) &&
               string.Equals(mapped, ShippingStatuses.Delivered, StringComparison.OrdinalIgnoreCase)))
         {
-            return new BasicResponse(false, $"Invalid shipping status transition: {current} -> {mapped}.");
+            return new BasicResponse(false, $"Chuyển trạng thái giao hàng không hợp lệ: {current} -> {mapped}.");
         }
 
         ship.Status = mapped;
@@ -477,7 +477,7 @@ public class ShippingService : IShippingService
                 await NotifyShippingStatusAsync(order, mapped, cancellationToken);
             }
         }
-        return new BasicResponse(true, "Shipping updated.");
+        return new BasicResponse(true, "Đã cập nhật giao hàng.");
     }
 
     public async Task<ShippingResponse?> GetByOrderAsync(ClaimsPrincipal userPrincipal, long orderId, CancellationToken cancellationToken = default)
@@ -499,25 +499,25 @@ public class ShippingService : IShippingService
         ValidationGuard.ThrowIfInvalid(RequestValidator.ValidateUpdateShippingStatus(request));
         var userId = GetUserId(userPrincipal);
         var ship = await _uow.ShippingRequests.GetByIdAsync(shipId);
-        if (ship == null) return new BasicResponse(false, "Shipping not found.");
+        if (ship == null) return new BasicResponse(false, "Không tìm thấy đơn giao hàng.");
 
         var order = await _uow.Orders.GetByIdAsync(ship.OrderId ?? 0);
-        if (order == null || order.SellerId != userId) return new BasicResponse(false, "Not allowed.");
+        if (order == null || order.SellerId != userId) return new BasicResponse(false, "Không có quyền thực hiện.");
 
         if (!ShippingStatuses.All.Contains(request.Status, StringComparer.OrdinalIgnoreCase))
         {
-            return new BasicResponse(false, $"Invalid shipping status. Allowed: {string.Join(", ", ShippingStatuses.All)}.");
+            return new BasicResponse(false, $"Trạng thái giao hàng không hợp lệ. Cho phép: {string.Join(", ", ShippingStatuses.All)}.");
         }
 
         if (string.Equals(ship.Status, request.Status, StringComparison.OrdinalIgnoreCase))
         {
-            return new BasicResponse(true, "Shipping already in requested status.");
+            return new BasicResponse(true, "Đơn giao hàng đã ở trạng thái yêu cầu.");
         }
 
         var current = ship.Status ?? ShippingStatuses.Requested;
         if (!IsShippingTransitionAllowed(current, request.Status))
         {
-            return new BasicResponse(false, $"Invalid shipping status transition: {current} -> {request.Status}.");
+            return new BasicResponse(false, $"Chuyển trạng thái giao hàng không hợp lệ: {current} -> {request.Status}.");
         }
 
         ship.Status = request.Status;
@@ -532,7 +532,7 @@ public class ShippingService : IShippingService
         {
             await NotifyShippingStatusAsync(order, request.Status, cancellationToken);
         }
-        return new BasicResponse(true, "Shipping updated.");
+        return new BasicResponse(true, "Đã cập nhật giao hàng.");
     }
 
     private static bool IsShippingTransitionAllowed(string current, string next)
@@ -693,4 +693,14 @@ public class ShippingService : IShippingService
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
 

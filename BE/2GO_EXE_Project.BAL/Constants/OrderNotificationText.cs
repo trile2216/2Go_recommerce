@@ -1,4 +1,4 @@
-namespace _2GO_EXE_Project.BAL.Constants;
+﻿namespace _2GO_EXE_Project.BAL.Constants;
 
 public static class OrderNotificationText
 {
@@ -7,14 +7,17 @@ public static class OrderNotificationText
         var normalized = status?.Trim();
         return normalized switch
         {
-            OrderStatuses.Pending => ("Order status", $"Order #{orderId} is pending."),
-            OrderStatuses.Confirmed => ("Order status", $"Order #{orderId} was confirmed."),
-            OrderStatuses.Delivering => ("Order status", $"Order #{orderId} is delivering."),
-            OrderStatuses.Delivered => ("Order status", $"Order #{orderId} was delivered."),
-            OrderStatuses.Completed => ("Order status", $"Order #{orderId} was completed."),
-            OrderStatuses.Cancelled => ("Order status", $"Order #{orderId} was cancelled."),
-            OrderStatuses.Disputed => ("Order status", $"Order #{orderId} is now in dispute."),
-            _ => ("Order status", $"Order #{orderId} status was updated.")
+            OrderStatuses.Pending => ("Trạng thái đơn hàng", $"Đơn hàng #{orderId} đang chờ xử lý."),
+            OrderStatuses.Confirmed => ("Trạng thái đơn hàng", $"Đơn hàng #{orderId} đã được xác nhận."),
+            OrderStatuses.Delivering => ("Trạng thái đơn hàng", $"Đơn hàng #{orderId} đang được giao."),
+            OrderStatuses.Delivered => ("Trạng thái đơn hàng", $"Đơn hàng #{orderId} đã giao."),
+            OrderStatuses.Completed => ("Trạng thái đơn hàng", $"Đơn hàng #{orderId} đã hoàn tất."),
+            OrderStatuses.Cancelled => ("Trạng thái đơn hàng", $"Đơn hàng #{orderId} đã bị hủy."),
+            OrderStatuses.Disputed => ("Trạng thái đơn hàng", $"Đơn hàng #{orderId} đang tranh chấp."),
+            _ => ("Trạng thái đơn hàng", $"Trạng thái đơn hàng #{orderId} đã được cập nhật.")
         };
     }
 }
+
+
+

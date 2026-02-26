@@ -20,10 +20,11 @@ public class GeminiController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.Prompt))
         {
-            return BadRequest(new { message = "Prompt is required." });
+            return BadRequest(new { message = "Prompt là b?t bu?c." });
         }
 
         var text = await _geminiService.GenerateAsync(request.Prompt, null, cancellationToken);
         return Ok(new GeminiGenerateResponse(text));
     }
 }
+

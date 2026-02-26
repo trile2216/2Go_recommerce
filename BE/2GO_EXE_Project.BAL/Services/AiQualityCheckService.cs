@@ -44,33 +44,33 @@ public class AiQualityCheckService : IAiQualityCheckService
         if (mediaUrls.Count < 2)
         {
             score -= 0.1;
-            issues.Add("Only 1 media item provided.");
+            issues.Add("Chỉ có 1 media được cung cấp.");
         }
 
         foreach (var url in mediaUrls)
         {
             if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
             {
-                issues.Add("Invalid media URL.");
+                issues.Add("Media URL không hợp lệ.");
                 continue;
             }
 
             var info = await TryGetImageInfoAsync(uri, cancellationToken);
             if (!info.IsImage)
             {
-                issues.Add("Media is not a valid image.");
+                issues.Add("Media không phải ảnh hợp lệ.");
                 score = 0;
                 break;
             }
 
             if (!info.ContentLength.HasValue)
             {
-                issues.Add("Cannot verify content length.");
+                issues.Add("Không thể xác minh kích thước nội dung.");
             }
 
             if (!info.Width.HasValue || !info.Height.HasValue)
             {
-                issues.Add("Cannot verify image resolution.");
+                issues.Add("Không thể xác minh độ phân giải ảnh.");
                 continue;
             }
 
@@ -84,7 +84,7 @@ public class AiQualityCheckService : IAiQualityCheckService
         var geminiUnavailable = IsGeminiDown();
         if (geminiUnavailable)
         {
-            issues.Add("Gemini unavailable; manual review required.");
+            issues.Add("Gemini không khả dụng; cần kiểm duyệt thủ công.");
             score = Math.Min(score, 0.5);
         }
 
@@ -143,10 +143,10 @@ public class AiQualityCheckService : IAiQualityCheckService
                     if (IsGeminiFailure(ex))
                     {
                         MarkGeminiDown();
-                        issues.Add("Gemini unavailable; manual review required.");
+                        issues.Add("Gemini không khả dụng; cần kiểm duyệt thủ công.");
                         score = Math.Min(score, 0.5);
                     }
-                    issues.Add($"NSFW check failed: {ex.Message}");
+                    issues.Add($"Kiểm tra NSFW thất bại: {ex.Message}");
                 }
             }
         }
@@ -470,4 +470,6 @@ public class AiQualityCheckService : IAiQualityCheckService
 
     private sealed record ImageInfo(bool IsImage, int? Width, int? Height, long? ContentLength);
 }
+
+
 

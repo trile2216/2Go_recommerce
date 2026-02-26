@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using _2GO_EXE_Project.BAL.DTOs.Ai;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
@@ -81,7 +81,7 @@ public class AdminMarketPriceService : IAdminMarketPriceService
     {
         if (await _uow.MarketPrices.Query().AnyAsync(cancellationToken))
         {
-            return new { message = "MarketPrices already has data." };
+            return new { message = "MarketPrices đã có dữ liệu." };
         }
 
         var now = DateTime.UtcNow;
@@ -283,3 +283,8 @@ public class AdminMarketPriceService : IAdminMarketPriceService
         return string.IsNullOrWhiteSpace(cleaned) ? null : cleaned;
     }
 }
+
+
+
+
+

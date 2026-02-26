@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using _2GO_EXE_Project.BAL.DTOs.Auth;
 using _2GO_EXE_Project.BAL.Interfaces;
@@ -48,7 +48,7 @@ public class AdminUserService : IAdminUserService
         {
             if (!UserStatuses.All.Contains(status, StringComparer.OrdinalIgnoreCase))
             {
-                throw new InvalidOperationException($"Invalid user status. Allowed: {string.Join(", ", UserStatuses.All)}.");
+                throw new InvalidOperationException($"Trạng thái người dùng không hợp lệ. Cho phép: {string.Join(", ", UserStatuses.All)}.");
             }
             query = query.Where(u => u.Status == status);
         }
@@ -124,7 +124,7 @@ public class AdminUserService : IAdminUserService
             .AnyAsync(u => (!string.IsNullOrEmpty(request.Email) && u.Email == request.Email) || (!string.IsNullOrEmpty(request.Phone) && u.Phone == request.Phone), cancellationToken);
         if (exists)
         {
-            throw new InvalidOperationException("User already exists.");
+            throw new InvalidOperationException("Người dùng đã tồn tại.");
         }
 
         string? passwordHash = null;
@@ -210,7 +210,7 @@ public class AdminUserService : IAdminUserService
 
         if (user == null)
         {
-            throw new InvalidOperationException("User not found.");
+            throw new InvalidOperationException("Không tìm thấy người dùng.");
         }
 
         user.Email = request.Email ?? user.Email;
@@ -276,19 +276,19 @@ public class AdminUserService : IAdminUserService
         var user = await _uow.Users.GetByIdAsync(userId);
         if (user == null)
         {
-            return new BasicResponse(false, "User not found.");
+            return new BasicResponse(false, "Không tìm thấy người dùng.");
         }
 
         if (!UserRoles.All.Contains(request.Role ?? string.Empty, StringComparer.OrdinalIgnoreCase))
         {
-            return new BasicResponse(false, "Invalid role. Allowed: User, Manager, Admin.");
+            return new BasicResponse(false, "Vai trò không hợp lệ. Cho phép: User, Manager, Admin.");
         }
         var normalizedRole = UserRoles.Normalize(request.Role);
         user.Role = normalizedRole;
         _uow.Users.Update(user);
         await _uow.SaveChangesAsync(cancellationToken);
         await LogAdminActionAsync(adminPrincipal, "UpdateRole", new { TargetUserId = userId, NewRole = normalizedRole }, cancellationToken);
-        return new BasicResponse(true, "Role updated.");
+        return new BasicResponse(true, "Đã cập nhật vai trò.");
     }
 
     public async Task<BasicResponse> UpdateUserStatusAsync(ClaimsPrincipal adminPrincipal, long userId, UpdateUserStatusRequest request, CancellationToken cancellationToken = default)
@@ -296,12 +296,12 @@ public class AdminUserService : IAdminUserService
         var user = await _uow.Users.GetByIdAsync(userId);
         if (user == null)
         {
-            return new BasicResponse(false, "User not found.");
+            return new BasicResponse(false, "Không tìm thấy người dùng.");
         }
 
         if (string.IsNullOrWhiteSpace(request.Status) || !UserStatuses.All.Contains(request.Status, StringComparer.OrdinalIgnoreCase))
         {
-            return new BasicResponse(false, "Invalid status. Allowed: Active, Banned, Deleted.");
+            return new BasicResponse(false, "Trạng thái không hợp lệ. Cho phép: Active, Banned, Deleted.");
         }
 
         user.Status = request.Status;
@@ -322,7 +322,7 @@ public class AdminUserService : IAdminUserService
 
         await _uow.SaveChangesAsync(cancellationToken);
         await LogAdminActionAsync(adminPrincipal, "UpdateStatus", new { TargetUserId = userId, NewStatus = request.Status }, cancellationToken);
-        return new BasicResponse(true, "Status updated.");
+        return new BasicResponse(true, "Đã cập nhật trạng thái.");
     }
 
     public async Task<BasicResponse> DeleteUserAsync(ClaimsPrincipal adminPrincipal, long userId, CancellationToken cancellationToken = default)
@@ -330,7 +330,7 @@ public class AdminUserService : IAdminUserService
         var user = await _uow.Users.GetByIdAsync(userId);
         if (user == null)
         {
-            return new BasicResponse(false, "User not found.");
+            return new BasicResponse(false, "Không tìm thấy người dùng.");
         }
 
         user.Status = UserStatuses.Deleted;
@@ -347,7 +347,7 @@ public class AdminUserService : IAdminUserService
 
         await _uow.SaveChangesAsync(cancellationToken);
         await LogAdminActionAsync(adminPrincipal, "DeleteUser", new { TargetUserId = userId, Status = UserStatuses.Deleted }, cancellationToken);
-        return new BasicResponse(true, "User deleted (soft).");
+        return new BasicResponse(true, "Người dùng đã bị xóa (mềm).");
     }
 
     public async Task<IReadOnlyList<ActivityResponse>> GetAuditLogsAsync(int skip, int take, CancellationToken cancellationToken = default)
@@ -398,3 +398,8 @@ public class AdminUserService : IAdminUserService
         return trimmed.Length == 0 ? null : trimmed;
     }
 }
+
+
+
+
+

@@ -19,7 +19,7 @@ public class CloudinaryService : ICloudinaryService
             string.IsNullOrWhiteSpace(settings.ApiKey) ||
             string.IsNullOrWhiteSpace(settings.ApiSecret))
         {
-            throw new InvalidOperationException("Cloudinary settings are missing.");
+            throw new InvalidOperationException("Thiếu cấu hình Cloudinary.");
         }
 
         var account = new Account(settings.CloudName, settings.ApiKey, settings.ApiSecret);
@@ -39,7 +39,7 @@ public class CloudinaryService : ICloudinaryService
         var result = await _cloudinary.UploadAsync(uploadParams, cancellationToken);
         if (result.StatusCode != HttpStatusCode.OK && result.StatusCode != HttpStatusCode.Created)
         {
-            throw new InvalidOperationException("Cloudinary upload failed.");
+            throw new InvalidOperationException("Tải lên Cloudinary thất bại.");
         }
 
         return new CloudinaryUploadResult(
@@ -58,7 +58,7 @@ public class CloudinaryService : ICloudinaryService
         var result = await _cloudinary.UploadAsync(uploadParams, cancellationToken);
         if (result.StatusCode != HttpStatusCode.OK && result.StatusCode != HttpStatusCode.Created)
         {
-            throw new InvalidOperationException("Cloudinary upload failed.");
+            throw new InvalidOperationException("Tải lên Cloudinary thất bại.");
         }
 
         return new CloudinaryUploadResult(

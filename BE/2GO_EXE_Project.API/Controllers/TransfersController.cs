@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using _2GO_EXE_Project.BAL.DTOs.Transfers;
 using _2GO_EXE_Project.BAL.Interfaces;
@@ -31,7 +31,7 @@ public class TransfersController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Failed to create transfer", error = ex.Message });
+            return StatusCode(500, new { message = "Tạo chuyển khoản thất bại", error = ex.Message });
         }
     }
 
@@ -49,7 +49,7 @@ public class TransfersController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Failed to create batch transfer", error = ex.Message });
+            return StatusCode(500, new { message = "Tạo chuyển khoản hàng loạt thất bại", error = ex.Message });
         }
     }
 
@@ -60,13 +60,13 @@ public class TransfersController : ControllerBase
         {
             var result = await _transferService.GetTransferByIdAsync(User, transferId, cancellationToken);
             if (result == null)
-                return NotFound(new { message = "Transfer not found" });
+                return NotFound(new { message = "Không tìm thấy giao dịch" });
 
             return Ok(result);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Failed to retrieve transfer", error = ex.Message });
+            return StatusCode(500, new { message = "Lấy thông tin chuyển khoản thất bại", error = ex.Message });
         }
     }
 
@@ -77,13 +77,13 @@ public class TransfersController : ControllerBase
         {
             var result = await _transferService.GetTransferByReferenceIdAsync(User, referenceId, cancellationToken);
             if (result == null)
-                return NotFound(new { message = "Transfer not found" });
+                return NotFound(new { message = "Không tìm thấy giao dịch" });
 
             return Ok(result);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Failed to retrieve transfer", error = ex.Message });
+            return StatusCode(500, new { message = "Lấy thông tin chuyển khoản thất bại", error = ex.Message });
         }
     }
 
@@ -97,7 +97,7 @@ public class TransfersController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Failed to retrieve transfers", error = ex.Message });
+            return StatusCode(500, new { message = "Lấy danh sách chuyển khoản thất bại", error = ex.Message });
         }
     }
 
@@ -111,7 +111,7 @@ public class TransfersController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Failed to get account balance", error = ex.Message });
+            return StatusCode(500, new { message = "Lấy số dư tài khoản thất bại", error = ex.Message });
         }
     }
 
@@ -125,7 +125,8 @@ public class TransfersController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Failed to estimate credit", error = ex.Message });
+            return StatusCode(500, new { message = "Ước tính hạn mức thất bại", error = ex.Message });
         }
     }
 }
+

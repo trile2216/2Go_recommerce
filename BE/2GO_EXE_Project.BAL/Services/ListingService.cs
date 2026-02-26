@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using _2GO_EXE_Project.BAL.Constants;
 using _2GO_EXE_Project.BAL.DTOs.Listings;
 using _2GO_EXE_Project.BAL.Interfaces;
@@ -66,7 +66,7 @@ public class ListingService : IListingService
         {
             if (!ListingStatuses.All.Contains(status, StringComparer.OrdinalIgnoreCase))
             {
-                throw new InvalidOperationException($"Invalid listing status. Allowed: {string.Join(", ", ListingStatuses.All)}.");
+                throw new InvalidOperationException($"Trạng thái bài đăng không hợp lệ. Cho phép: {string.Join(", ", ListingStatuses.All)}.");
             }
             query = query.Where(l => l.Status == status);
         }
@@ -228,3 +228,4 @@ public class ListingService : IListingService
         }
     }
 }
+
