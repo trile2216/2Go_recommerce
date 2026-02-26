@@ -94,7 +94,7 @@ const Compare = () => {
                   <div className="compare-product-actions">
                     <button 
                       className="cmp-btn-secondary"
-                      onClick={() => navigate(`/product/${product.id}`)}
+                      onClick={() => navigate(`/listings/${product.id}`)}
                     >
                       Xem chi tiết
                     </button>

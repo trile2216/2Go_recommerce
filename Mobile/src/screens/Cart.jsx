@@ -134,21 +134,7 @@ const Cart = () => {
           {formatPrice(item.priceSnapshot || item.price)}
         </Text>
 
-        <View style={styles.quantityContainer}>
-          <Pressable
-            style={styles.quantityButton}
-            onPress={() => handleQuantityChange(item.cartItemId, (item.quantity || 1) - 1)}
-          >
-            <MaterialCommunityIcons name="minus" size={18} color="#374151" />
-          </Pressable>
-          <Text style={styles.quantityText}>{item.quantity || 1}</Text>
-          <Pressable
-            style={styles.quantityButton}
-            onPress={() => handleQuantityChange(item.cartItemId, (item.quantity || 1) + 1)}
-          >
-            <MaterialCommunityIcons name="plus" size={18} color="#374151" />
-          </Pressable>
-        </View>
+        
       </View>
 
       <Pressable
@@ -198,9 +184,6 @@ const Cart = () => {
           <Text style={styles.emptySubtitle}>
             Hãy khám phá và thêm sản phẩm yêu thích vào giỏ hàng
           </Text>
-          <Pressable style={styles.shopButton} onPress={() => navigation.navigate("Home")}>
-            <Text style={styles.shopButtonText}>Khám phá ngay</Text>
-          </Pressable>
         </View>
       ) : (
         <>

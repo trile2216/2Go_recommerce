@@ -81,9 +81,15 @@ export default function Chat() {
     }
   }, []);
 
-  // Get initials from a user ID
-  const getInitials = (userId) => {
-    return `U${userId}`;
+  // Get initials from name or email
+  const getInitials = (name) => {
+    if (!name) return '?';
+    const nameStr = String(name).trim();
+    if (nameStr.includes('@')) return nameStr.charAt(0).toUpperCase();
+    
+    const parts = nameStr.split(' ');
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return parts.slice(-2).map(n => n.charAt(0).toUpperCase()).join('');
   };
 
   const isVideoUrl = (url) => url?.match(/\.(mp4|mov|webm|ogg)$/i) || url?.includes('/video/upload/');
@@ -152,10 +158,11 @@ export default function Chat() {
     }
   }, [selectedChatId, loadMessages]);
 
-  // Scroll to bottom when messages change
+  // Scroll to bottom when new messages arrive
+  const lastMessageId = messages.length > 0 ? messages[messages.length - 1].messageId : null;
   useEffect(() => {
     scrollToBottom();
-  }, [messages, scrollToBottom]);
+  }, [lastMessageId, scrollToBottom]);
 
   // Poll for new messages & chats
   useEffect(() => {
@@ -297,8 +304,8 @@ export default function Chat() {
               defaultActiveKey="all"
               onChange={(key) => setActiveTab(key)}
               items={[
-                { key: 'all', label: 'Tất cả tin nhắn' },
-                { key: 'unread', label: 'Tin chưa đọc' },
+                { key: 'all', label: 'Tất cả tin nhắn' }
+                // { key: 'unread', label: 'Tin chưa đọc' },
               ]}
               className="chat-tabs"
             />
@@ -327,14 +334,13 @@ export default function Chat() {
                     <List.Item.Meta
                       avatar={
                         <Avatar
-                          style={{ backgroundColor: '#0091FF' }}
                           size={48}
                           className="chat-avatar"
                         >
                           {item.otherUser?.avatarUrl ? (
                             <img src={item.otherUser.avatarUrl} alt="avatar" />
                           ) : (
-                            getInitials(item.otherUserId)
+                            getInitials(item.otherUser?.fullName || item.otherUser?.email || item.otherUserId)
                           )}
                         </Avatar>
                       }
@@ -375,11 +381,14 @@ export default function Chat() {
                     onClick={() => setSelectedChatId(null)}
                   />
                   <Avatar
-                    style={{ backgroundColor: '#0091FF' }}
                     size={40}
                     className="chat-avatar"
                   >
-                    {selectedConversation ? <img src={selectedConversation.otherUser?.avatarUrl} alt="avatar" /> : '?'}
+                    {selectedConversation?.otherUser?.avatarUrl ? (
+                      <img src={selectedConversation.otherUser.avatarUrl} alt="avatar" />
+                    ) : (
+                      getInitials(selectedConversation?.otherUser?.fullName || selectedConversation?.otherUser?.email)
+                    )}
                   </Avatar>
                   <div className="chat-header-info">
                     <Text strong className="chat-header-name">
@@ -421,11 +430,14 @@ export default function Chat() {
                       >
                         {!isSent && (
                           <Avatar
-                            style={{ backgroundColor: '#0091FF' }}
                             size={40}
                             className="message-avatar"
                           >
-                            {selectedConversation ? getInitials(selectedConversation.otherUserId) : '?'}
+                            {selectedConversation?.otherUser?.avatarUrl ? (
+                              <img src={selectedConversation.otherUser.avatarUrl} alt="avatar" />
+                            ) : (
+                              getInitials(selectedConversation?.otherUser?.fullName || selectedConversation?.otherUser?.email)
+                            )}
                           </Avatar>
                         )}
                         <div className="message-content">
@@ -571,11 +583,14 @@ export default function Chat() {
         <div className="drawer-content">
           <div className="user-info-section">
             <Avatar
-              style={{ backgroundColor: '#0091FF' }}
               size={80}
               className="info-avatar"
             >
-              {selectedConversation ? getInitials(selectedConversation.otherUserId) : '?'}
+              {selectedConversation?.otherUser?.avatarUrl ? (
+                <img src={selectedConversation.otherUser.avatarUrl} alt="avatar" />
+              ) : (
+                getInitials(selectedConversation?.otherUser?.fullName || selectedConversation?.otherUser?.email)
+              )}
             </Avatar>
             <Title level={4}>User #{selectedConversation?.otherUserId}</Title>
             <Button type="primary" className="view-profile-btn">

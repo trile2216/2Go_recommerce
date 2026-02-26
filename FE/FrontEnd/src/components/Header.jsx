@@ -34,7 +34,7 @@ export default function Header() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
-
+  const [chatCount, setChatCount] = useState(0);  
   // Get favorites and compare from Redux
   const dispatch = useDispatch();
   const favorites = useSelector(state => state.favorites.items);
@@ -55,8 +55,9 @@ export default function Header() {
     try {
       setNotificationsLoading(true);
       const data = await fetchNotifications(0, 20);
-      setNotifications(data.items || []);
-      setUnreadCount((data.items || []).filter(n => !n.isRead).length);
+      setNotifications((data.items || []).filter(n => n.type !== "CHAT"));
+      setUnreadCount((data.items || []).filter(n => !n.isRead && n.type !== "CHAT").length);
+      setChatCount((data.items || []).filter(n => n.type === "CHAT" && !n.isRead).length);
     } catch (error) {
       console.error('Error loading notifications:', error);
     } finally {
@@ -125,7 +126,7 @@ export default function Header() {
     const fetchCategories = async () => {
       try {
         const data = await fetchAllCategories();
-        setCategories([{ id: 0, name: "Tất cả" }, ...data.items.map(cat => ({ id: cat.categoryId, name: cat.name }))]);
+        setCategories([{ id: 0, name: "Tất cả" }, ...data.items.map(cat => ({ id: cat.categoryId, name: cat.name })).filter(cat => cat.isActive === true)]);
       } catch (error) {
         console.error('Error fetching categories:', error);
       }
@@ -536,7 +537,9 @@ export default function Header() {
             }}
           >
             <MessageSquare size={20} />
-            {/* <span className="icon-badge primary">5</span> */}
+            {chatCount > 0 && (
+              <span className="icon-badge primary">{chatCount}</span>
+            )}
           </button>
 
           {/* Notifications */}

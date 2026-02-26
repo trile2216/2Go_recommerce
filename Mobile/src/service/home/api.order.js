@@ -5,10 +5,12 @@ import api from '../../config/axios';
  * @param {number} listingId - ID của listing
  * @param {string} paymentMethod - "COD" | "PayOS"
  * @param {string} deliveryAddress - Địa chỉ giao hàng (bắt buộc)
- * @returns {Promise<OrderResponse>} - includes checkoutUrl, qrCodeUrl for PayOS
+ * @param {string} deliveryPhone - Số điện thoại người nhận (tùy chọn)
+ * @returns {Promise<OrderResponse>} - includes checkoutUrl, qrCodeUrl for PayOS,
+ *   depositRequired, depositPaid, escrowStatus, depositAmount, depositDeadlineAt
  */
-export const createOrder = async (listingId, paymentMethod, deliveryAddress) => {
-    const response = await api.post('/orders', { listingId, paymentMethod, deliveryAddress });
+export const createOrder = async (listingId, paymentMethod, deliveryAddress, deliveryPhone) => {
+    const response = await api.post('/orders', { listingId, paymentMethod, deliveryAddress, deliveryPhone });
     return response.data;
 };
 

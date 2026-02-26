@@ -65,7 +65,7 @@ const Login = ({ navigation }) => {
           contentContainerStyle={styles.content}
         >
           <View style={styles.headerSection}>
-            <Text style={styles.title}>Welcome Back</Text>
+            <Text style={styles.title}>Welcome to 2GO</Text>
             <Text style={styles.subtitle}>Sign in to continue</Text>
           </View>
 

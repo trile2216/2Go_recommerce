@@ -154,10 +154,27 @@
   display: block;
 }
 
-.chat-avatar {
-  background: linear-gradient(135deg, #0091ff 0%, #0072cc 100%) !important;
-  font-weight: 600;
-  color: #fff !important;
+/* Matches Header.jsx user-avatar-lg styling */
+.chat-avatar,
+.message-avatar,
+.info-avatar {
+  background: linear-gradient(135deg, #0DA2E7 0%, rgba(13, 162, 231, 0.80) 100%) !important;
+  color: #FFF !important;
+  font-weight: 600 !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  border: none !important;
+  overflow: hidden;
+}
+
+.chat-avatar img,
+.message-avatar img,
+.info-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover !important;
+  display: block;
 }
 
 /* ===== CHAT CONTENT AREA ===== */

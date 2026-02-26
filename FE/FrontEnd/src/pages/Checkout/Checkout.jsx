@@ -95,10 +95,11 @@ export default function Checkout() {
 
     try {
       const deliveryAddress = buyerInfo.address;
+      const deliveryPhone = buyerInfo.phone;
       const orderResults = [];
       for (const item of displayItems) {
         const listingId = item.listingId || item.id;
-        const result = await createOrder(listingId, paymentMethod, deliveryAddress);
+        const result = await createOrder(listingId, paymentMethod, deliveryAddress, deliveryPhone);
         const itemTotal = result.totalAmount || (item.priceSnapshot || item.price || 0);
         const itemRequiresDeposit = itemTotal >= DEPOSIT_THRESHOLD;
         const paymentStage = itemRequiresDeposit ? "DEPOSIT" : null;
