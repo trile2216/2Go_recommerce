@@ -22,7 +22,14 @@ public class AdminCategoriesController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] string? search, [FromQuery] int skip = 0, [FromQuery] int take = 20, CancellationToken cancellationToken = default)
     {
-        var result = await _categoryService.GetCategoriesAsync(search, skip, take, false, null, cancellationToken);
+        var result = await _categoryService.GetCategoriesAsync(
+            search,
+            skip,
+            take,
+            includeSubCategories: false,
+            subIsActive: null,
+            isActive: null,
+            cancellationToken: cancellationToken);
         return Ok(result);
     }
 
@@ -47,7 +54,12 @@ public class AdminCategoriesController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id, CancellationToken cancellationToken)
     {
-        var category = await _categoryService.GetByIdAsync(id, false, null, cancellationToken);
+        var category = await _categoryService.GetByIdAsync(
+            id,
+            includeSubCategories: false,
+            subIsActive: null,
+            isActive: null,
+            cancellationToken: cancellationToken);
         if (category == null) return NotFound();
         return Ok(category);
     }

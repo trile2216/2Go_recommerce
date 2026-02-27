@@ -17,12 +17,16 @@ public class CategoryService : ICategoryService
         _uow = uow;
     }
 
-    public async Task<CategoryListResponse> GetCategoriesAsync(string? search, int skip, int take, bool includeSubCategories = false, bool? subIsActive = null, CancellationToken cancellationToken = default)
+    public async Task<CategoryListResponse> GetCategoriesAsync(string? search, int skip, int take, bool includeSubCategories = false, bool? subIsActive = null, bool? isActive = null, CancellationToken cancellationToken = default)
     {
         var query = _uow.Categories.Query();
         if (!string.IsNullOrWhiteSpace(search))
         {
             query = query.Where(c => c.Name != null && c.Name.Contains(search));
+        }
+        if (isActive.HasValue)
+        {
+            query = query.Where(c => c.IsActive == isActive.Value);
         }
 
         if (includeSubCategories)
@@ -52,9 +56,13 @@ public class CategoryService : ICategoryService
         return new CategoryListResponse(total, items);
     }
 
-    public async Task<CategoryResponse?> GetByIdAsync(int id, bool includeSubCategories = false, bool? subIsActive = null, CancellationToken cancellationToken = default)
+    public async Task<CategoryResponse?> GetByIdAsync(int id, bool includeSubCategories = false, bool? subIsActive = null, bool? isActive = null, CancellationToken cancellationToken = default)
     {
         var query = _uow.Categories.Query().Where(c => c.CategoryId == id);
+        if (isActive.HasValue)
+        {
+            query = query.Where(c => c.IsActive == isActive.Value);
+        }
         if (includeSubCategories)
         {
             query = query.Include(c => c.SubCategories);
