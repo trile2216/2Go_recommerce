@@ -50,7 +50,7 @@ export default function Homepage() {
 
   return (
     <div className="homepage">
-      {error && <>        <HeroBanner />
+      {error && <>    
         <ErrorPage error={error} /></>}
       {!error && <>
         <Header />

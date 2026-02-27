@@ -21,12 +21,16 @@ import { fetchProducts } from "../service/home/api.product";
 import { fetchAllCategories } from "../service/home/api.category";
 import { fetchNotifications } from "../service/home/api.notification";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useDispatch, useSelector } from "react-redux";
+import { addToCompare, removeFromCompare } from "../store/compareSlice";
 
 const Home = () => {
   const navigation = useNavigation();
   const { isFavorited, addToFavorites, removeFromFavorites } = useFavorites();
   const { user } = useAuth();
-  const { cartCount, fetchCartData, addToCart } = useCart();
+  const { cartCount, fetchCartData, addToCart, isInCart } = useCart();
+  const dispatch = useDispatch();
+  const compareItems = useSelector(state => state.compare?.items || []);
 
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -53,13 +57,13 @@ const Home = () => {
     }
   }, [user]);
 
-  const loadProducts = useCallback(async () => {
+  const loadProducts = useCallback(async (isRefresh = false) => {
     try {
       setError(null);
-      const data = await fetchProducts({ take: 50 });
+      const data = await fetchProducts({ skip: 0, take: 20 });
       const items = Array.isArray(data) ? data : data.items || [];
+      
       setProducts(items);
-      setFilteredProducts(items);
     } catch (err) {
       console.error("Error loading products:", err);
       setError("Không thể tải sản phẩm");
@@ -80,12 +84,11 @@ const Home = () => {
 
   useFocusEffect(
     useCallback(() => {
-      if (loading) loadProducts();
       fetchCartData();
       if (user) {
         loadNotifications();
       }
-    }, [loadProducts, loading, fetchCartData, loadNotifications, user])
+    }, [fetchCartData, loadNotifications, user])
   );
 
   useEffect(() => {
@@ -127,7 +130,7 @@ const Home = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadProducts();
+    await loadProducts(true);
     await loadCategories();
     setRefreshing(false);
   };
@@ -189,6 +192,20 @@ const Home = () => {
     }
   };
 
+  const handleToggleCompare = (product) => {
+    const id = product.listingId || product.id;
+    const isExist = compareItems.find(item => item.id === id);
+    if (isExist) {
+        dispatch(removeFromCompare(id));
+    } else {
+        if (compareItems.length >= 5) {
+            // limit reached
+            return;
+        }
+        dispatch(addToCompare({ ...product, id }));
+    }
+  };
+
   const handleCategoryPress = (categoryId) => {
     if (selectedCategory === categoryId) {
       setSelectedCategory(null);
@@ -200,6 +217,9 @@ const Home = () => {
   const ProductCard = ({ product }) => {
     const id = product.listingId || product.id;
     const isFav = isFavorited(id);
+    const inCart = isInCart(id);
+    const inCompare = compareItems.some(item => item.id === id);
+
     const image =
       product.primaryImageUrl ||
       product.images?.[0]?.imageUrl ||
@@ -229,12 +249,24 @@ const Home = () => {
           {/* Add to Cart Button */}
           <Pressable
             style={[styles.favoriteButton, styles.cartButton]}
-            onPress={() => handleAddToCart(product)}
+            onPress={() => inCart ? navigation.navigate("Cart") : handleAddToCart(product)}
           >
             <MaterialCommunityIcons
-              name="cart-plus"
+              name={inCart ? "cart-check" : "cart-outline"}
               size={18}
-              color="#359EFF"
+              color={inCart ? "#359EFF" : "#9ca3af"}
+            />
+          </Pressable>
+
+          {/* Add to Compare Button */}
+          <Pressable
+            style={[styles.favoriteButton, styles.compareButton]}
+            onPress={() => handleToggleCompare(product)}
+          >
+            <MaterialCommunityIcons
+              name="scale-balance"
+              size={18}
+              color={inCompare ? "#10b981" : "#9ca3af"}
             />
           </Pressable>
 
@@ -323,7 +355,7 @@ const Home = () => {
       {/* Section Title */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Khám phá</Text>
-        <Pressable>
+        <Pressable onPress={() => navigation.navigate("Listings")}>
           <Text style={styles.viewAllText}>Xem tất cả</Text>
         </Pressable>
       </View>
@@ -365,6 +397,15 @@ const Home = () => {
         </View>
 
         <View style={styles.headerRight}>
+          <Pressable style={styles.cartBtn} onPress={() => navigation.navigate("Compare")}>
+            <MaterialCommunityIcons name="scale-balance" size={24} color="#374151" />
+            {compareItems.length > 0 && (
+              <View style={styles.cartBadge}>
+                <Text style={styles.cartBadgeText}>{compareItems.length}</Text>
+              </View>
+            )}
+          </Pressable>
+
           <Pressable style={styles.cartBtn} onPress={() => {
             if (!user) {
               navigation.navigate("Login");
@@ -432,6 +473,7 @@ const Home = () => {
             autoCorrect={false}
             autoCapitalize="none"
             clearButtonMode="while-editing"
+            onSubmitEditing={() => navigation.navigate("Listings", { initialSearchText: searchText })}
             selectTextOnFocus={false}
             textContentType="none"
             keyboardType="default"
@@ -444,7 +486,7 @@ const Home = () => {
               <MaterialCommunityIcons name="close-circle" size={18} color="#9ca3af" />
             </Pressable>
           )}
-          <Pressable style={styles.filterBtn}>
+          <Pressable style={styles.filterBtn} onPress={() => navigation.navigate("Listings")}>
             <MaterialCommunityIcons name="tune-variant" size={20} color="#9ca3af" />
           </Pressable>
         </View>
@@ -475,11 +517,27 @@ const Home = () => {
           </View>
         }
         ListFooterComponent={
-          <View style={styles.footerLoader}>
-            <View style={styles.spinnerContainer}>
-              <ActivityIndicator size="small" color="#359EFF" />
+          products.length > 0 ? (
+            <View style={styles.footerLoader}>
+               <Pressable 
+                 style={{
+                   backgroundColor: '#f3f4f6', 
+                   paddingVertical: 12, 
+                   marginHorizontal: 16, 
+                   width: 100,
+                   borderRadius: 8, 
+                   alignItems: 'center',
+                   marginTop: 8,
+                   marginBottom: 24,
+                   borderWidth: 1,
+                   borderColor: '#e5e7eb'
+                 }}
+                 onPress={() => navigation.navigate("Listings")}
+               >
+                 <Text style={{ fontWeight: '600', color: '#374151' }}>Xem thêm</Text>
+               </Pressable>
             </View>
-          </View>
+          ) : null
         }
         contentContainerStyle={styles.listContent}
       />
@@ -741,6 +799,10 @@ const styles = StyleSheet.create({
   },
   cartButton: {
     top: 48,
+    backgroundColor: "rgba(255,255,255,0.95)",
+  },
+  compareButton: {
+    top: 88,
     backgroundColor: "rgba(255,255,255,0.95)",
   },
   priceBadge: {

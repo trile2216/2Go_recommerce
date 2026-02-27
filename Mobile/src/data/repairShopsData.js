@@ -1,6 +1,3 @@
-/**
- * Mock data for repair shops in Ho Chi Minh City
- */
 export const repairShops = [
     {
         id: 1,
