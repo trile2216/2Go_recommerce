@@ -4,7 +4,7 @@ public static class OrderNotificationText
 {
     public static (string Title, string Message) ForStatus(string? status, long orderId)
     {
-        var normalized = statusố.Trim();
+        var normalized = status?.Trim();
         return normalized switch
         {
             OrderStatuses.Pending => ("Trạng thái đơn hàng", $"Đơn hàng #{orderId} đang chờ xử lý."),

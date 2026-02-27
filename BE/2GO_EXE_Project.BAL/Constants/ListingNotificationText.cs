@@ -4,7 +4,7 @@ public static class ListingNotificationText
 {
     public static (string Title, string Message) ForStatus(string? status)
     {
-        var normalized = statusố.Trim();
+        var normalized = status?.Trim();
         return normalized switch
         {
             ListingStatuses.PendingReview => ("Trạng thái bài đăng", "Bài đăng của bạn đã được gửi duyệt."),
