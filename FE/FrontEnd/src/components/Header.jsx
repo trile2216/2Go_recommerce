@@ -97,6 +97,17 @@ export default function Header() {
     }
   };
 
+  const handleMarkChatRead = async () => {
+    if (chatCount === 0) return;
+    try {
+      // Mark all notifications as read (server-side), filter CHAT client-side
+      await markAllNotificationsRead();
+      setChatCount(0);
+    } catch (error) {
+      console.error('Error marking chat notifications as read:', error);
+    }
+  };
+
   const handleNotificationClick = async (notification) => {
     if (!notification.isRead) {
       await handleMarkRead(notification.notificationId);
@@ -126,7 +137,12 @@ export default function Header() {
     const fetchCategories = async () => {
       try {
         const data = await fetchAllCategories();
-        setCategories([{ id: 0, name: "Tất cả" }, ...data.items.map(cat => ({ id: cat.categoryId, name: cat.name })).filter(cat => cat.isActive === true)]);
+        setCategories([
+          { id: 0, name: "Tất cả" },
+          ...(data.items || [])
+            .filter(cat => cat.isActive === true)
+            .map(cat => ({ id: cat.categoryId, name: cat.name }))
+        ]);
       } catch (error) {
         console.error('Error fetching categories:', error);
       }
@@ -534,6 +550,7 @@ export default function Header() {
             onClick={() => {
               navigate("/chat");
               closeAllMenus();
+              handleMarkChatRead();
             }}
           >
             <MessageSquare size={20} />
@@ -547,10 +564,15 @@ export default function Header() {
             <button
               className="icon-btn notifications-btn"
               onClick={() => {
-                setShowNotificationsMenu(!showNotificationsMenu);
+                const opening = !showNotificationsMenu;
+                setShowNotificationsMenu(opening);
                 setShowFavoritesMenu(false);
                 setShowUserMenu(false);
-                if (!showNotificationsMenu) loadNotifications();
+                if (opening) {
+                  loadNotifications();
+                  // Auto đánh dấu tất cả đã đọc khi mở dropdown
+                  if (unreadCount > 0) handleMarkAllRead();
+                }
               }}
             >
               <Bell size={20} />
