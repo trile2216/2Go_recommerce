@@ -185,6 +185,31 @@ public class SellerListingService : ISellerListingService
                     .ThenBy(m => m.SortOrder ?? 0)
                     .ThenBy(m => m.MediaId)
                     .Select(m => m.Url)
+                    .FirstOrDefault(),
+                _uow.Orders.Query()
+                    .Where(o => o.ListingId == l.ListingId &&
+                                (o.Status == OrderStatuses.Pending ||
+                                 o.Status == OrderStatuses.Confirmed ||
+                                 o.Status == OrderStatuses.Delivering ||
+                                 o.Status == OrderStatuses.Delivered ||
+                                 o.Status == OrderStatuses.Completed ||
+                                 o.Status == OrderStatuses.Disputed))
+                    .OrderByDescending(o => o.CreatedAt)
+                    .Select(o => o.PaymentMethod)
+                    .FirstOrDefault(),
+                _uow.Orders.Query()
+                    .Where(o => o.ListingId == l.ListingId &&
+                                (o.Status == OrderStatuses.Pending ||
+                                 o.Status == OrderStatuses.Confirmed ||
+                                 o.Status == OrderStatuses.Delivering ||
+                                 o.Status == OrderStatuses.Delivered ||
+                                 o.Status == OrderStatuses.Completed ||
+                                 o.Status == OrderStatuses.Disputed))
+                    .OrderByDescending(o => o.CreatedAt)
+                    .Select(o => (bool?)_uow.Payments.Query()
+                        .Any(p => p.OrderId == o.OrderId &&
+                                  (p.PaymentStage == PaymentStages.Deposit || p.PaymentStage == null) &&
+                                  p.Status == PaymentStatuses.Paid))
                     .FirstOrDefault()))
             .ToListAsync(cancellationToken);
 

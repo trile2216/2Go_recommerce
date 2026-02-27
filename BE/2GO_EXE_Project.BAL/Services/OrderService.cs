@@ -202,7 +202,13 @@ public class OrderService : IOrderService
                 o.CreatedAt,
                 o.Listing != null ? o.Listing.Title : null,
                 o.Listing != null ? o.Listing.Price : null,
-                o.ShippingRequests.Select(s => s.DeliveryAddress).FirstOrDefault()))
+                o.ShippingRequests.Select(s => s.DeliveryAddress).FirstOrDefault(),
+                (o.TotalAmount ?? 0m) >= EscrowRules.DepositThresholdAmount,
+                ((o.TotalAmount ?? 0m) >= EscrowRules.DepositThresholdAmount) &&
+                _uow.Payments.Query().Any(p =>
+                    p.OrderId == o.OrderId &&
+                    (p.PaymentStage == PaymentStages.Deposit || p.PaymentStage == null) &&
+                    p.Status == PaymentStatuses.Paid)))
             .ToListAsync(cancellationToken);
 
         return new OrderListResponse(total, items);

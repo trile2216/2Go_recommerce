@@ -7,7 +7,9 @@ public record SellerListingListItem(
     string? Status,
     DateTime? CreatedAt,
     DateTime? UpdatedAt,
-    string? PrimaryImageUrl);
+    string? PrimaryImageUrl,
+    string? ActiveOrderPaymentMethod,
+    bool? ActiveOrderDepositPaid);
 
 public record SellerListingListResponse(int Total, IReadOnlyList<SellerListingListItem> Items);
 

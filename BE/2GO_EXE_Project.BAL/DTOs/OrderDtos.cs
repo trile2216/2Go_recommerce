@@ -41,7 +41,9 @@ public record OrderListItem(
     DateTime? CreatedAt,
     string? ListingTitle,
     decimal? ListingPrice,
-    string? DeliveryAddress);
+    string? DeliveryAddress,
+    bool DepositRequired,
+    bool DepositPaid);
 
 public record OrderListResponse(int Total, IReadOnlyList<OrderListItem> Items);
 
