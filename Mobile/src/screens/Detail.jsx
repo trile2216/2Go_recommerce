@@ -605,7 +605,7 @@ const Detail = () => {
                       color: "#111",
                     }}
                   >
-                    {getConditionLabel(productDetail.condition)}
+                    {getConditionLabel(productDetail.condition) === "Used" ? "Đã qua sử dụng" : "Mới"}
                   </Text>
                 </View>
               )}

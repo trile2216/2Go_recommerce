@@ -4,6 +4,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as Linking from "expo-linking";
 
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
@@ -24,7 +25,14 @@ import Orders from "../screens/Orders";
 import OrderDetail from "../screens/OrderDetail";
 import Subscription from "../screens/Subscription";
 import MyPost from "../screens/MyPost";
+import Compare from "../screens/Compare";
+import Listings from "../screens/Listings";
+import MyReports from "../screens/MyReports";
+import MyReviews from "../screens/MyReviews";
+import PaymentResult from "../screens/PaymentResult";
+import RepairShopMap from "../screens/RepairShopMap";
 import Notifications from "../screens/Notifications";
+import SellerListingDetail from "../screens/SellerListingDetail";
 
 const Stack = createStackNavigator();
 const Tabs = createBottomTabNavigator();
@@ -169,8 +177,17 @@ const RootNavigation = () => {
     );
   }
 
+  const linking = {
+    prefixes: [Linking.createURL("/"), "twogo://"],
+    config: {
+      screens: {
+        PaymentResult: "payment-result",
+      },
+    },
+  };
+
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!isLoggedIn || !token ? (
           // Guest: Home, Detail, Login, Register only
@@ -184,6 +201,9 @@ const RootNavigation = () => {
             <Stack.Screen name="Login" component={Login} />
             <Stack.Screen name="Register" component={Register} />
             <Stack.Screen name="Notifications" component={Notifications} />
+            <Stack.Screen name="Compare" component={Compare} />
+            <Stack.Screen name="Listings" component={Listings} />
+            <Stack.Screen name="RepairShopMap" component={RepairShopMap} />
           </>
         ) : (
           // Authenticated: all screens
@@ -204,6 +224,13 @@ const RootNavigation = () => {
             <Stack.Screen name="MyPost" component={MyPost} />
             <Stack.Screen name="Notifications" component={Notifications} />
             <Stack.Screen name="PostListing" component={PostListing} />
+            <Stack.Screen name="Compare" component={Compare} />
+            <Stack.Screen name="Listings" component={Listings} />
+            <Stack.Screen name="MyReports" component={MyReports} />
+            <Stack.Screen name="MyReviews" component={MyReviews} />
+            <Stack.Screen name="PaymentResult" component={PaymentResult} />
+            <Stack.Screen name="RepairShopMap" component={RepairShopMap} />
+            <Stack.Screen name="SellerListingDetail" component={SellerListingDetail} />
           </>
         )}
       </Stack.Navigator>

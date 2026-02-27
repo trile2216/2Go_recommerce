@@ -12,6 +12,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "scheme": "twogo",
     "ios": {
       "supportsTablet": true
     },

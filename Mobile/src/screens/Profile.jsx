@@ -793,6 +793,24 @@ const Profile = () => {
               label="Gói đăng ký của tôi"
               onPress={() => navigation.navigate("Subscription")}
             />
+            <View style={styles.menuDivider} />
+            <MenuItem
+              icon="store-search-outline"
+              label="Bản đồ trạm sửa chữa"
+              onPress={() => navigation.navigate("RepairShopMap")}
+            />
+            <View style={styles.menuDivider} />
+            <MenuItem
+              icon="alert-circle-outline"
+              label="Phiếu báo cáo của tôi"
+              onPress={() => navigation.navigate("MyReports")}
+            />
+            <View style={styles.menuDivider} />
+            <MenuItem
+              icon="star-outline"
+              label="Đánh giá của tôi"
+              onPress={() => navigation.navigate("MyReviews")}
+            />
           </View>
         )}
 

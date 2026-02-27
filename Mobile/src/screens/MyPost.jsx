@@ -228,7 +228,10 @@ const MyPost = () => {
     const status = item.status;
 
     return (
-      <View style={styles.card}>
+      <Pressable 
+        style={styles.card}
+        onPress={() => navigation.navigate("SellerListingDetail", { listingId: item.listingId })}
+      >
         {/* Image */}
         <View style={styles.imageContainer}>
           {item.primaryImage ? (
@@ -266,7 +269,7 @@ const MyPost = () => {
             <Text style={styles.meta}>Posted {formatDate(item.createdAt)}</Text>
           </View>
         </View>
-      </View>
+      </Pressable>
     );
   };
 
