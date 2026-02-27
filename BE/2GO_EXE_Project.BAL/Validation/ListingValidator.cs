@@ -1,4 +1,4 @@
-using _2GO_EXE_Project.BAL.Constants;
+﻿using _2GO_EXE_Project.BAL.Constants;
 using _2GO_EXE_Project.BAL.DTOs.Listings;
 
 namespace _2GO_EXE_Project.BAL.Validation;
@@ -19,41 +19,41 @@ public static class ListingValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.Title))
         {
-            result.Add("title", "Ti�u d? l� b?t bu?c.");
+            result.Add("title", "Tiêu đề là bắt buộc.");
         }
         else if (request.Title.Trim().Length > TitleMaxLength)
         {
-            result.Add("title", "Ti�u d? kh�ng du?c vu?t qu� 255 k� t?.");
+            result.Add("title", "Tiêu đề không được vượt quá 255 ký tự.");
         }
 
         if (!request.Price.HasValue || request.Price.Value < 0)
         {
-            result.Add("price", "Gi� ph?i l?n hon ho?c b?ng 0.");
+            result.Add("price", "Giá phải lớn hơn hoặc bằng 0.");
         }
 
         if (!string.IsNullOrWhiteSpace(request.Condition) && request.Condition.Trim().Length > ConditionMaxLength)
         {
-            result.Add("condition", "T�nh tr?ng kh�ng du?c vu?t qu� 50 k� t?.");
+            result.Add("condition", "Tình trạng không được vượt quá 50 ký tự.");
         }
 
         if (!string.IsNullOrWhiteSpace(request.ListingType) && request.ListingType.Trim().Length > ListingTypeMaxLength)
         {
-            result.Add("listingType", "ListingType kh�ng du?c vu?t qu� 20 k� t?.");
+            result.Add("listingType", "ListingType không được vượt quá 20 ký tự.");
         }
 
         if (!string.IsNullOrWhiteSpace(request.Dimensions) && request.Dimensions.Trim().Length > DimensionsMaxLength)
         {
-            result.Add("dimensions", "K�ch thu?c kh�ng du?c vu?t qu� 255 k� t?.");
+            result.Add("dimensions", "Kích thước không được vượt quá 255 ký tự.");
         }
 
         if (!string.IsNullOrWhiteSpace(request.Brand) && request.Brand.Trim().Length > BrandMaxLength)
         {
-            result.Add("brand", "Thuong hi?u kh�ng du?c vu?t qu� 255 k� t?.");
+            result.Add("brand", "Thương hiệu không được vượt quá 255 ký tự.");
         }
 
         if (request.Weight.HasValue && request.Weight.Value <= 0)
         {
-            result.Add("weight", "Kh?i lu?ng ph?i l?n hon 0.");
+            result.Add("weight", "Khối lượng phải lớn hơn 0.");
         }
 
         var mediaResult = ValidateMedia(request.Media);
@@ -70,37 +70,37 @@ public static class ListingValidator
         var result = new ValidationResult();
         if (!string.IsNullOrWhiteSpace(request.Title) && request.Title.Trim().Length > TitleMaxLength)
         {
-            result.Add("title", "Ti�u d? kh�ng du?c vu?t qu� 255 k� t?.");
+            result.Add("title", "Tiêu đề không được vượt quá 255 ký tự.");
         }
 
         if (request.Price.HasValue && request.Price.Value < 0)
         {
-            result.Add("price", "Gi� ph?i l?n hon ho?c b?ng 0.");
+            result.Add("price", "Giá phải lớn hơn hoặc bằng 0.");
         }
 
         if (!string.IsNullOrWhiteSpace(request.Condition) && request.Condition.Trim().Length > ConditionMaxLength)
         {
-            result.Add("condition", "T�nh tr?ng kh�ng du?c vu?t qu� 50 k� t?.");
+            result.Add("condition", "Tình trạng không được vượt quá 50 ký tự.");
         }
 
         if (!string.IsNullOrWhiteSpace(request.ListingType) && request.ListingType.Trim().Length > ListingTypeMaxLength)
         {
-            result.Add("listingType", "ListingType kh�ng du?c vu?t qu� 20 k� t?.");
+            result.Add("listingType", "ListingType không được vượt quá 20 ký tự.");
         }
 
         if (!string.IsNullOrWhiteSpace(request.Dimensions) && request.Dimensions.Trim().Length > DimensionsMaxLength)
         {
-            result.Add("dimensions", "K�ch thu?c kh�ng du?c vu?t qu� 255 k� t?.");
+            result.Add("dimensions", "Kích thước không được vượt quá 255 ký tự.");
         }
 
         if (!string.IsNullOrWhiteSpace(request.Brand) && request.Brand.Trim().Length > BrandMaxLength)
         {
-            result.Add("brand", "Thuong hi?u kh�ng du?c vu?t qu� 255 k� t?.");
+            result.Add("brand", "Thương hiệu không được vượt quá 255 ký tự.");
         }
 
         if (request.Weight.HasValue && request.Weight.Value <= 0)
         {
-            result.Add("weight", "Kh?i lu?ng ph?i l?n hon 0.");
+            result.Add("weight", "Khối lượng phải lớn hơn 0.");
         }
 
         result.Merge(ValidateAttributes(request.Attributes));
@@ -112,7 +112,7 @@ public static class ListingValidator
         var result = new ValidationResult();
         if (mediaRequests == null || mediaRequests.Count == 0)
         {
-            result.Add("media", "C?n �t nh?t m?t media.");
+            result.Add("media", "Cần ít nhất một media.");
             return result;
         }
 
@@ -122,27 +122,27 @@ public static class ListingValidator
             var item = mediaRequests[i];
             if (string.IsNullOrWhiteSpace(item.Url))
             {
-                result.Add($"media[{i}].url", "Media url l� b?t bu?c.");
+                result.Add($"media[{i}].url", "Media url là bắt buộc.");
             }
             else if (item.Url.Trim().Length > MediaUrlMaxLength)
             {
-                result.Add($"media[{i}].url", "Media url kh�ng du?c vu?t qu� 500 k� t?.");
+                result.Add($"media[{i}].url", "Media url không được vượt quá 500 ký tự.");
             }
 
             if (!string.IsNullOrWhiteSpace(item.MediaType) && item.MediaType.Trim().Length > ListingTypeMaxLength)
             {
-                result.Add($"media[{i}].mediaType", "MediaType kh�ng du?c vu?t qu� 20 k� t?.");
+                result.Add($"media[{i}].mediaType", "MediaType không được vượt quá 20 ký tự.");
             }
 
             var normalizedType = string.IsNullOrWhiteSpace(item.MediaType) ? MediaTypes.Image : item.MediaType.Trim();
             if (!MediaTypes.All.Contains(normalizedType, StringComparer.OrdinalIgnoreCase))
             {
-                result.Add($"media[{i}].mediaType", $"Lo?i media kh�ng h?p l?. Cho ph�p: {string.Join(", ", MediaTypes.All)}.");
+                result.Add($"media[{i}].mediaType", $"Loại media không hợp lệ. Cho phép: {string.Join(", ", MediaTypes.All)}.");
             }
 
             if (string.Equals(normalizedType, MediaTypes.Video, StringComparison.OrdinalIgnoreCase) && item.IsPrimary)
             {
-                result.Add($"media[{i}].isPrimary", "Media ch�nh ph?i l� ?nh.");
+                result.Add($"media[{i}].isPrimary", "Media chính phải là ảnh.");
             }
             if (string.Equals(normalizedType, MediaTypes.Image, StringComparison.OrdinalIgnoreCase) && item.IsPrimary)
             {
@@ -152,13 +152,13 @@ public static class ListingValidator
 
         if (primaryImageCount > 1)
         {
-            result.Add("media", "Ch? du?c ph�p m?t ?nh ch�nh.");
+            result.Add("media", "Chỉ được phép một ảnh chính.");
         }
 
         var imageCount = mediaRequests.Count(m => string.IsNullOrWhiteSpace(m.MediaType) || m.MediaType.Equals(MediaTypes.Image, StringComparison.OrdinalIgnoreCase));
         if (imageCount == 0)
         {
-            result.Add("media", "C?n �t nh?t m?t ?nh.");
+            result.Add("media", "Cần ít nhất một ảnh.");
         }
 
         return result;
@@ -174,20 +174,23 @@ public static class ListingValidator
             var item = attributes[i];
             if (string.IsNullOrWhiteSpace(item.Name))
             {
-                result.Add($"attributes[{i}].name", "T�n thu?c t�nh l� b?t bu?c.");
+                result.Add($"attributes[{i}].name", "Tên thuộc tính là bắt buộc.");
                 continue;
             }
 
             if (item.Name.Trim().Length > AttributeNameMaxLength)
             {
-                result.Add($"attributes[{i}].name", "T�n thu?c t�nh kh�ng du?c vu?t qu� 255 k� t?.");
+                result.Add($"attributes[{i}].name", "Tên thuộc tính không được vượt quá 255 ký tự.");
             }
             if (!string.IsNullOrWhiteSpace(item.Value) && item.Value.Trim().Length > AttributeValueMaxLength)
             {
-                result.Add($"attributes[{i}].value", "Gi� tr? thu?c t�nh kh�ng du?c vu?t qu� 255 k� t?.");
+                result.Add($"attributes[{i}].value", "Giá trị thuộc tính không được vượt quá 255 ký tự.");
             }
         }
         return result;
     }
 }
+
+
+
 

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.RegularExpressions;
 using System.Security.Claims;
@@ -26,23 +26,23 @@ public class AuthController : ControllerBase
         var hasPhone = !string.IsNullOrWhiteSpace(request.Phone);
         if (!hasEmail && !hasPhone)
         {
-            return BadRequest("Vui l�ng cung c?p email ho?c s? di?n tho?i.");
+            return BadRequest("Vui lòng cung cấp email hoặc số điện thoại.");
         }
         if (hasEmail && !IsValidEmail(request.Email))
         {
-            return BadRequest("Email kh�ng h?p l?.");
+            return BadRequest("Email không hợp lệ.");
         }
         if (hasPhone && !IsValidPhone(request.Phone))
         {
-            return BadRequest("S? di?n tho?i ph?i g?m d�ng 10 ch? s?.");
+            return BadRequest("Số điện thoại phải gồm đúng 10 chữ số.");
         }
         if (string.IsNullOrWhiteSpace(request.Password))
         {
-            return BadRequest("M?t kh?u l� b?t bu?c.");
+            return BadRequest("Mật khẩu là bắt buộc.");
         }
         if (!IsValidPassword(request.Password))
         {
-            return BadRequest("M?t kh?u ph?i c� �t nh?t 8 k� t? v� bao g?m �t nh?t 1 ch? c�i v� 1 ch? s?.");
+            return BadRequest("Mật khẩu phải có ít nhất 8 ký tự và bao gồm ít nhất 1 chữ cái và 1 chữ số.");
         }
 
         var result = await _authService.RegisterAsync(request, cancellationToken);
@@ -55,7 +55,7 @@ public class AuthController : ControllerBase
     {
         if (!IsValidIdentifier(request.Identifier))
         {
-            return BadRequest("T�i kho?n dang nh?p ph?i l� email ho?c s? di?n tho?i h?p l?.");
+            return BadRequest("Tài khoản đăng nhập phải là email hoặc số điện thoại hợp lệ.");
         }
 
         try
@@ -75,7 +75,7 @@ public class AuthController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.RefreshToken))
         {
-            return BadRequest("Refresh token l� b?t bu?c.");
+            return BadRequest("Refresh token là bắt buộc.");
         }
 
         var result = await _authService.LogoutAsync(request, cancellationToken);
@@ -88,7 +88,7 @@ public class AuthController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.RefreshToken))
         {
-            return BadRequest("Refresh token l� b?t bu?c.");
+            return BadRequest("Refresh token là bắt buộc.");
         }
 
         try
@@ -108,11 +108,11 @@ public class AuthController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.Email))
         {
-            return BadRequest("Email l� b?t bu?c.");
+            return BadRequest("Email là bắt buộc.");
         }
         if (!IsValidEmail(request.Email))
         {
-            return BadRequest("Email kh�ng h?p l?.");
+            return BadRequest("Email không hợp lệ.");
         }
 
         var result = await _authService.VerifyEmailAsync(request, cancellationToken);
@@ -125,11 +125,11 @@ public class AuthController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.Email))
         {
-            return BadRequest("Email l� b?t bu?c.");
+            return BadRequest("Email là bắt buộc.");
         }
         if (!IsValidEmail(request.Email))
         {
-            return BadRequest("Email kh�ng h?p l?.");
+            return BadRequest("Email không hợp lệ.");
         }
 
         var result = await _authService.ResendVerifyEmailAsync(request, cancellationToken);
@@ -142,11 +142,11 @@ public class AuthController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.Email))
         {
-            return BadRequest("Email l� b?t bu?c.");
+            return BadRequest("Email là bắt buộc.");
         }
         if (!IsValidEmail(request.Email))
         {
-            return BadRequest("Email kh�ng h?p l?.");
+            return BadRequest("Email không hợp lệ.");
         }
 
         var result = await _authService.ForgotPasswordAsync(request, cancellationToken);
@@ -159,23 +159,23 @@ public class AuthController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.Code))
         {
-            return BadRequest("M� x�c th?c l� b?t bu?c.");
+            return BadRequest("Mã xác thực là bắt buộc.");
         }
         if (string.IsNullOrWhiteSpace(request.NewPassword))
         {
-            return BadRequest("New M?t kh?u l� b?t bu?c.");
+            return BadRequest("Mật khẩu mới là bắt buộc.");
         }
         if (!IsValidPassword(request.NewPassword))
         {
-            return BadRequest("M?t kh?u ph?i c� �t nh?t 8 k� t? v� bao g?m �t nh?t 1 ch? c�i v� 1 ch? s?.");
+            return BadRequest("Mật khẩu phải có ít nhất 8 ký tự và bao gồm ít nhất 1 chữ cái và 1 chữ số.");
         }
         if (string.IsNullOrWhiteSpace(request.Email))
         {
-            return BadRequest("Email l� b?t bu?c.");
+            return BadRequest("Email là bắt buộc.");
         }
         if (!IsValidEmail(request.Email))
         {
-            return BadRequest("Email kh�ng h?p l?.");
+            return BadRequest("Email không hợp lệ.");
         }
 
         var result = await _authService.ResetPasswordAsync(request, cancellationToken);
@@ -216,7 +216,7 @@ public class AuthController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.IdToken))
         {
-            return BadRequest("IdToken l� b?t bu?c.");
+            return BadRequest("IdToken là bắt buộc.");
         }
 
         try
@@ -254,4 +254,7 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 }
+
+
+
 

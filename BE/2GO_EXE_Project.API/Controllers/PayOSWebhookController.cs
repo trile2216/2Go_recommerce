@@ -24,7 +24,7 @@ public class PayOSWebhookController : ControllerBase
     {
         if (webhook == null)
         {
-            return BadRequest("D? li?u webhook l� b?t bu?c");
+            return BadRequest("Dữ liệu webhook là bắt buộc");
         }
 
         try
@@ -54,4 +54,6 @@ public class PayOSWebhookController : ControllerBase
         }
     }
 }
+
+
 

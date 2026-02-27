@@ -49,7 +49,7 @@ public class ShippingService : IShippingService
         var userId = GetUserId(userPrincipal);
         var order = await _uow.Orders.Query()
             .FirstOrDefaultAsync(o => o.OrderId == request.OrderId, cancellationToken);
-        if (order == null) throw new InvalidOperationException("Không tìm th?y don hàng.");
+        if (order == null) throw new InvalidOperationException("Không tìm thấy don hàng.");
         if (order.SellerId != userId) throw new InvalidOperationException("Chỉ người bán mới có thể tạo vận chuyển.");
 
         var existing = await _uow.ShippingRequests.Query()
@@ -145,7 +145,7 @@ public class ShippingService : IShippingService
         var userId = GetUserId(userPrincipal);
         var order = await _uow.Orders.Query()
             .FirstOrDefaultAsync(o => o.OrderId == request.OrderId, cancellationToken);
-        if (order == null) throw new InvalidOperationException("Không tìm th?y don hàng.");
+        if (order == null) throw new InvalidOperationException("Không tìm thấy don hàng.");
         if (order.SellerId != userId) throw new InvalidOperationException("Chỉ người bán mới có thể tạo vận chuyển.");
 
         var existing = await _uow.ShippingRequests.Query()
@@ -693,6 +693,7 @@ public class ShippingService : IShippingService
         }
     }
 }
+
 
 
 

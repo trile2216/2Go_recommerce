@@ -53,7 +53,7 @@ public class PaymentService : IPaymentService
         var order = await _uow.Orders.GetByIdAsync(request.OrderId);
         if (order == null)
         {
-            throw new InvalidOperationException("Không tìm th?y don hàng.");
+            throw new InvalidOperationException("Không tìm thấy don hàng.");
         }
         if (order.BuyerId != userId)
         {
@@ -709,7 +709,7 @@ public class PaymentService : IPaymentService
                 (!requireActive || p.IsActive), cancellationToken);
         if (plan == null)
         {
-            throw new InvalidOperationException("Không tìm th?y gói dang bài.");
+            throw new InvalidOperationException("Không tìm thấy gói đăng bài.");
         }
 
         return plan;
@@ -866,6 +866,8 @@ public class PaymentService : IPaymentService
         }
     }
 }
+
+
 
 
 

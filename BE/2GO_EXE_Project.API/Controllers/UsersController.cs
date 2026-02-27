@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using _2GO_EXE_Project.BAL.DTOs.Auth;
 using _2GO_EXE_Project.BAL.Interfaces;
@@ -36,7 +36,7 @@ public class UsersController : ControllerBase
     {
         if (!IsValidPassword(request.NewPassword))
         {
-            return BadRequest("M?t kh?u ph?i c� �t nh?t 8 k� t? v� bao g?m �t nh?t 1 ch? c�i v� 1 ch? s?.");
+            return BadRequest("Mật khẩu phải có ít nhất 8 ký tự và bao gồm ít nhất 1 chữ cái và 1 chữ số.");
         }
         var result = await _authService.ChangePasswordAsync(User, request, cancellationToken);
         if (!result.Success)
@@ -79,4 +79,7 @@ public class UsersController : ControllerBase
         return hasLetter && hasDigit;
     }
 }
+
+
+
 

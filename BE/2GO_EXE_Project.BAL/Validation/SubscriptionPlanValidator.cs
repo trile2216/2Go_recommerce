@@ -19,7 +19,7 @@ public static class SubscriptionPlanValidator
         var result = new ValidationResult();
         if (request.Price < 0)
         {
-            result.Add("price", "Giá ph?i l?n hon ho?c b?ng 0.");
+            result.Add("price", "Giá phải lớn hon hoặc bằng 0.");
         }
         return result;
     }
@@ -41,36 +41,40 @@ public static class SubscriptionPlanValidator
 
         if (string.IsNullOrWhiteSpace(name))
         {
-            result.Add("name", "Tên là b?t bu?c.");
+            result.Add("name", "Tên là bắt buộc.");
         }
         else if (name.Trim().Length > 255)
         {
-            result.Add("name", "Tên không du?c vu?t quá 255 ký t?.");
+            result.Add("name", "Tên không được vượt quá 255 ký tự.");
         }
 
         if (price < 0)
         {
-            result.Add("price", "Giá ph?i l?n hon ho?c b?ng 0.");
+            result.Add("price", "Giá phải lớn hon hoặc bằng 0.");
         }
 
         if (durationDays <= 0)
         {
-            result.Add("durationDays", "DurationDays ph?i l?n hon 0.");
+            result.Add("durationDays", "DurationDays phải lớn hơn 0.");
         }
 
         if (monthlyLimit.HasValue && monthlyLimit.Value <= 0)
         {
-            result.Add("monthlyListingLimit", "MonthlyListingLimit ph?i l?n hon 0 khi có cung c?p.");
+            result.Add("monthlyListingLimit", "MonthlyListingLimit phải lớn hơn 0 khi có cung cấp.");
         }
 
         if (sortOrder < 0)
         {
-            result.Add("sortOrder", "SortOrder ph?i l?n hon ho?c b?ng 0.");
+            result.Add("sortOrder", "SortOrder phải lớn hon hoặc bằng 0.");
         }
 
         return result;
     }
 }
+
+
+
+
 
 
 
