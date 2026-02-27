@@ -85,7 +85,7 @@ public class CartService : ICartService
         var userId = GetUserId(userPrincipal);
         var listing = await _uow.Listings.Query()
             .FirstOrDefaultAsync(l => l.ListingId == request.ListingId, cancellationToken);
-        if (listing == null) throw new InvalidOperationException("Không tìm th?y bài dang.");
+        if (listing == null) throw new InvalidOperationException("Không tìm thấy bài đăng.");
         if (!string.Equals(listing.Status, ListingStatuses.Active, StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException("Bài đăng không khả dụng.");
@@ -97,7 +97,7 @@ public class CartService : ICartService
         }
         if (!listing.SellerId.HasValue)
         {
-            throw new InvalidOperationException("Không tìm th?y ngu?i bán c?a bài dang.");
+            throw new InvalidOperationException("Không tìm thấy người bán của bài đăng.");
         }
 
         var cart = await EnsureCartAsync(userId, cancellationToken);
@@ -284,7 +284,7 @@ public class CartService : ICartService
         {
             if (item.Listing == null)
             {
-                errors.Add(new CartValidationError(item.CartItemId, "Không tìm th?y bài dang."));
+                errors.Add(new CartValidationError(item.CartItemId, "Không tìm thấy bài đăng."));
                 continue;
             }
             if (!string.Equals(item.Listing.Status, ListingStatuses.Active, StringComparison.OrdinalIgnoreCase))
@@ -299,7 +299,7 @@ public class CartService : ICartService
             }
             if (!item.Listing.SellerId.HasValue)
             {
-                errors.Add(new CartValidationError(item.CartItemId, "Không tìm th?y ngu?i bán c?a bài dang."));
+                errors.Add(new CartValidationError(item.CartItemId, "Không tìm thấy người bán của bài đăng."));
                 continue;
             }
             if ((item.Quantity ?? 0) != 1)
@@ -435,6 +435,9 @@ public class CartService : ICartService
     }
 
 }
+
+
+
 
 
 

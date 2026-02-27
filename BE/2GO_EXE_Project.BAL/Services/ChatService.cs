@@ -173,7 +173,7 @@ public class ChatService : IChatService
         var receiverId = chat.User1Id == userId ? chat.User2Id : chat.User1Id;
         if (receiverId.HasValue)
         {
-            await NotifyAsync(receiverId.Value, "CHAT", "Tin nhắn mới", "Bạn có Tin nh?n m?i.", $"/chat/{chatId}", cancellationToken);
+            await NotifyAsync(receiverId.Value, "CHAT", "Tin nhắn mới", "Bạn có tin nhắn mới.", $"/chat/{chatId}", cancellationToken);
         }
         return new BasicResponse(true, "Đã gửi tin nhắn.");
     }

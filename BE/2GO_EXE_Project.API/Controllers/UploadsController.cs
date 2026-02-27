@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using _2GO_EXE_Project.BAL.DTOs.Media;
 using _2GO_EXE_Project.BAL.Interfaces;
@@ -28,12 +28,12 @@ public class UploadsController : ControllerBase
     {
         if (file == null || file.Length == 0)
         {
-            return BadRequest("File l� b?t bu?c.");
+            return BadRequest("File là bắt buộc.");
         }
 
         if (!file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
         {
-            return BadRequest("Ch? cho ph�p file ?nh.");
+            return BadRequest("Chỉ cho phép file ảnh.");
         }
 
         try
@@ -60,12 +60,12 @@ public class UploadsController : ControllerBase
     {
         if (file == null || file.Length == 0)
         {
-            return BadRequest("File l� b?t bu?c.");
+            return BadRequest("File là bắt buộc.");
         }
 
         if (!file.ContentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase))
         {
-            return BadRequest("Ch? cho ph�p file video.");
+            return BadRequest("Chỉ cho phép file video.");
         }
 
         try
@@ -82,4 +82,7 @@ public class UploadsController : ControllerBase
         }
     }
 }
+
+
+
 

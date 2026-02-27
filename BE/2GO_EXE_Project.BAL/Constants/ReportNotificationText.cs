@@ -4,7 +4,7 @@ public static class ReportNotificationText
 {
     public static (string Title, string Message) ForStatus(string? status, long reportId)
     {
-        var normalized = status?.Trim();
+        var normalized = statusố.Trim();
         return normalized switch
         {
             ReportStatuses.WaitingOtherParty => ("Cập nhật báo cáo", $"Báo cáo #{reportId} đang chờ phản hồi từ bạn."),
@@ -16,6 +16,7 @@ public static class ReportNotificationText
         };
     }
 }
+
 
 
 

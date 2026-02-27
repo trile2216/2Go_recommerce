@@ -208,7 +208,7 @@ public class AiQualityCheckService : IAiQualityCheckService
 
             var prompt =
                 "Danh gia chat luong anh san pham (ro net/anh sang) tren thang diem 1-10. " +
-                "Chi tra ve diem dang so va mot cau ngan ly do.";
+                "Chi tra ve diem đăng so va mot cau ngan ly do.";
             var text = await _geminiService.GenerateFromImageAsync(prompt, imageUrl, null, cancellationToken);
             if (string.IsNullOrWhiteSpace(text)) return null;
 
@@ -279,7 +279,7 @@ public class AiQualityCheckService : IAiQualityCheckService
     {
         if (IsGeminiDown()) return null;
         var prompt =
-            "Ban dang thuc hien kiem duyet hinh anh cho mot nen tang mua ban/thanh ly do dung cu.\n\n" +
+            "Ban đăng thuc hien kiem duyet hinh anh cho mot nen tang mua ban/thanh ly do dung cu.\n\n" +
             "Hay phan loai hinh anh vao dung MOT trong ba nhan sau:\n" +
             "SAFE\n" +
             "SUGGESTIVE\n" +
@@ -287,13 +287,13 @@ public class AiQualityCheckService : IAiQualityCheckService
             "Dinh nghia:\n\n" +
             "SAFE:\n" +
             "- Khong co noi dung khoa than hoac tinh duc.\n" +
-            "- Anh san pham thong thuong (quan ao, dien thoai, do gia dung, noi that, v.v.).\n" +
-            "- Nguoi mac trang phuc day du, tao dang binh thuong, khong goi duc.\n" +
+            "- Anh san pham thong thương (quan ao, dien thoai, do gia dung, noi that, v.v.).\n" +
+            "- Nguoi mac trang phuc day du, tao đăng binh thương, khong goi duc.\n" +
             "- Do boi, do the thao, mannequin hoac tuong nghe thuat duoc chup theo cach trung tinh, khong nhan manh yeu to tinh duc.\n" +
-            "- Anh quan ao, do lot duoc chup nhu san pham thong thuong, khong tao dang khieu goi.\n\n" +
+            "- Anh quan ao, do lot duoc chup nhu san pham thong thương, khong tao đăng khieu goi.\n\n" +
             "SUGGESTIVE:\n" +
-            "- Tu the tao dang goi cam hoac nhan manh bo phan co the.\n" +
-            "- Trang phuc ho hang (bikini, do lot, lingerie) kem tao dang goi duc.\n" +
+            "- Tu the tao đăng goi cam hoac nhan manh bo phan co the.\n" +
+            "- Trang phuc ho hang (bikini, do lot, lingerie) kem tao đăng goi duc.\n" +
             "- Bieu cam hoac goc chup mang tinh khieu goi.\n" +
             "- Ham y khoa than nhung khong lo ro bo phan sinh duc.\n\n" +
             "NSFW:\n" +
@@ -304,7 +304,7 @@ public class AiQualityCheckService : IAiQualityCheckService
             "- Bat ky noi dung tinh duc nao lien quan den tre vi thanh nien.\n\n" +
             "Quy tac quan trong:\n" +
             "- Danh gia dua tren muc do ro rang va y do tinh duc, khong chi dua vao luong da lo ra.\n" +
-            "- Anh san pham binh thuong luon duoc xem la SAFE neu khong co yeu to goi duc.\n" +
+            "- Anh san pham binh thương luon duoc xem la SAFE neu khong co yeu to goi duc.\n" +
             "- Neu phan van giua SAFE va SUGGESTIVE, chon SUGGESTIVE.\n" +
             "- Neu co yeu to tinh duc ro rang, chon NSFW.\n" +
             "- Chi tra ve duy nhat mot trong ba nhan: SAFE, SUGGESTIVE, hoac NSFW.\n" +
@@ -470,6 +470,8 @@ public class AiQualityCheckService : IAiQualityCheckService
 
     private sealed record ImageInfo(bool IsImage, int? Width, int? Height, long? ContentLength);
 }
+
+
 
 
 

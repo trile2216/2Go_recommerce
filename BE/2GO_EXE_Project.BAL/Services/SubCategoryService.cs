@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using _2GO_EXE_Project.BAL.DTOs.SubCategories;
 using _2GO_EXE_Project.BAL.Interfaces;
 using _2GO_EXE_Project.DAL.Entities;
@@ -72,7 +72,7 @@ public class SubCategoryService : ISubCategoryService
         var categoryExists = await _uow.Categories.Query().AnyAsync(c => c.CategoryId == categoryId, cancellationToken);
         if (!categoryExists)
         {
-            throw new InvalidOperationException("Kh�ng t�m th?y danh m?c.");
+            throw new InvalidOperationException("Không tìm thấy danh mục.");
         }
 
         var entity = new SubCategory
@@ -123,4 +123,8 @@ public class SubCategoryService : ISubCategoryService
         return true;
     }
 }
+
+
+
+
 

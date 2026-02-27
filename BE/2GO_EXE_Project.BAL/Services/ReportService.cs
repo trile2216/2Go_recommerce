@@ -50,7 +50,7 @@ public class ReportService : IReportService
         var order = await _uow.Orders.GetByIdAsync(request.OrderId);
         if (order == null)
         {
-            throw new InvalidOperationException("Không tìm th?y don hàng.");
+            throw new InvalidOperationException("Không tìm thấy don hàng.");
         }
 
         var isBuyer = order.BuyerId == userId;
@@ -63,7 +63,7 @@ public class ReportService : IReportService
         var targetUserId = isBuyer ? order.SellerId : order.BuyerId;
         if (!targetUserId.HasValue)
         {
-            throw new InvalidOperationException("Không tìm th?y ngu?i dùng m?c tiêu.");
+            throw new InvalidOperationException("Không tìm thấy người dùng mục tiêu.");
         }
         if (request.TargetUserId.HasValue && request.TargetUserId.Value != targetUserId.Value)
         {
@@ -112,7 +112,7 @@ public class ReportService : IReportService
         {
             await NotifyAsync(targetUserId.Value, "REPORT", "Bạn bị báo cáo", $"Một báo cáo mới đã được tạo (ID #{report.ReportId}).", $"/reports/{report.ReportId}", cancellationToken);
         }
-        await NotifyAdminsAsync("REPORT", "Có báo cáo m?i", $"Có báo cáo m?i (ID #{report.ReportId}).", $"/admin/reports/{report.ReportId}", cancellationToken);
+        await NotifyAdminsAsync("REPORT", "Có báo cáo mới", $"Có báo cáo mới (ID #{report.ReportId}).", $"/admin/reports/{report.ReportId}", cancellationToken);
 
         return new ReportResponse(report.ReportId, report.OrderId ?? 0, report.ReporterId, report.TargetUserId, report.Reason, ParseEvidenceUrls(report.EvidenceUrls), report.Status, report.WaitingForUserId, report.CreatedAt);
     }
@@ -282,6 +282,9 @@ public class ReportService : IReportService
         }
     }
 }
+
+
+
 
 
 
