@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using _2GO_EXE_Project.BAL.DTOs.Ai;
 using _2GO_EXE_Project.BAL.Interfaces;
 
@@ -20,11 +20,13 @@ public class GeminiController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.Prompt))
         {
-            return BadRequest(new { message = "Prompt l� b?t bu?c." });
+            return BadRequest(new { message = "Prompt là bắt buộc." });
         }
 
         var text = await _geminiService.GenerateAsync(request.Prompt, null, cancellationToken);
         return Ok(new GeminiGenerateResponse(text));
     }
 }
+
+
 

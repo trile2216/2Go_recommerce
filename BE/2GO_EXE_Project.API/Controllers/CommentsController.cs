@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using _2GO_EXE_Project.BAL.DTOs.Comments;
 using _2GO_EXE_Project.BAL.Interfaces;
@@ -28,7 +28,7 @@ public class CommentsController : ControllerBase
             // Ensure listingId matches
             if (request.ListingId != listingId)
             {
-                return BadRequest("ListingId kh�ng kh?p.");
+                return BadRequest("ListingId không khợp.");
             }
 
             var result = await _commentService.CreateAsync(User, request, cancellationToken);
@@ -132,4 +132,6 @@ public class CommentsController : ControllerBase
         }
     }
 }
+
+
 

@@ -55,7 +55,7 @@ public class OrderService : IOrderService
         }
         if (!listing.SellerId.HasValue)
         {
-            throw new InvalidOperationException("Không tìm th?y ngu?i bán.");
+            throw new InvalidOperationException("Không tìm thấy người bán.");
         }
         if (listing.SellerId.Value == buyerId)
         {
@@ -610,6 +610,8 @@ public class OrderService : IOrderService
             .FirstOrDefaultAsync(o => o.OrderCode == orderCode, cancellationToken);
     }
 }
+
+
 
 
 

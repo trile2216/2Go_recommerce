@@ -126,7 +126,7 @@ public class ChatbotService : IChatbotService
             "toi can",
             "cần mua",
             "can mua",
-            "muá»‘n mua",
+            "muốn mua",
             "muon mua",
             "tìm",
             "tim",
@@ -248,6 +248,10 @@ public class ChatbotService : IChatbotService
         public List<string> Keywords { get; set; } = new();
     }
 }
+
+
+
+
 
 
 

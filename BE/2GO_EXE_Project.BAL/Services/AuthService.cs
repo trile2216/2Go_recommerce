@@ -41,11 +41,11 @@ public class AuthService : IAuthService
         // FIX 1: Validate JWT Settings at construction time
         if (string.IsNullOrWhiteSpace(_jwtSettings.Secret))
         {
-            throw new InvalidOperationException("JWT Secret chua du?c c?u hình. Vui lòng ki?m tra appsettings.json.");
+            throw new InvalidOperationException("JWT Secret chưa được cấu hình. Vui lòng kiểm tra appsettings.json.");
         }
         if (_jwtSettings.RefreshTokenLifetimeDays <= 0)
         {
-            throw new InvalidOperationException("JWT RefreshTokenLifetimeDays ph?i l?n hon 0.");
+            throw new InvalidOperationException("JWT RefreshTokenLifetimeDays phải lớn hơn 0.");
         }
     }
 
@@ -115,13 +115,13 @@ public class AuthService : IAuthService
 
         if (user is null || string.IsNullOrEmpty(user.PasswordHash) || string.IsNullOrEmpty(user.Salt))
         {
-            throw new UnauthorizedAccessException("Thông tin dang nh?p không dúng.");
+            throw new UnauthorizedAccessException("Thông tin đăng nhập không đúng.");
         }
 
         // FIX 3: Check user status before allowing login
         if (!string.Equals(user.Status, UserStatuses.Active, StringComparison.OrdinalIgnoreCase))
         {
-            throw new UnauthorizedAccessException("Tài kho?n không ho?t d?ng.");
+            throw new UnauthorizedAccessException("Tài khoản không hoạt động.");
         }
 
         var normalizedRole = UserRoles.Normalize(user.Role);
@@ -191,7 +191,7 @@ public class AuthService : IAuthService
         // FIX 3: Check user status when refreshing token
         if (!string.Equals(user.Status, UserStatuses.Active, StringComparison.OrdinalIgnoreCase))
         {
-            throw new UnauthorizedAccessException("Tài kho?n không ho?t d?ng.");
+            throw new UnauthorizedAccessException("Tài khoản không hoạt động.");
         }
 
         var (accessToken, expiresAt) = _tokenService.GenerateAccessToken(user);
@@ -308,7 +308,7 @@ public class AuthService : IAuthService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Invalid Firebase ID token");
-            throw new UnauthorizedAccessException("Firebase token không h?p l?.");
+            throw new UnauthorizedAccessException("Firebase token không hợp lệ.");
         }
 
         decoded.Claims.TryGetValue("phone_number", out var phoneObj);
@@ -343,7 +343,7 @@ public class AuthService : IAuthService
             
             if (!string.Equals(user.Status, UserStatuses.Active, StringComparison.OrdinalIgnoreCase))
             {
-                throw new UnauthorizedAccessException("Tài kho?n không ho?t d?ng.");
+                throw new UnauthorizedAccessException("Tài khoản không hoạt động.");
             }
 
             var normalizedRole = UserRoles.Normalize(user.Role);
@@ -406,7 +406,7 @@ public class AuthService : IAuthService
 
         if (!long.TryParse(sub, out var userId))
         {
-            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
+            throw new UnauthorizedAccessException("User id trong token không hợp lệ.");
         }
 
         var user = await _uow.Users.Query()
@@ -426,7 +426,7 @@ public class AuthService : IAuthService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Invalid Firebase ID token");
-            throw new UnauthorizedAccessException("Firebase token không h?p l?.");
+            throw new UnauthorizedAccessException("Firebase token không hợp lệ.");
         }
 
         decoded.Claims.TryGetValue("phone_number", out var phoneObj);
@@ -494,7 +494,7 @@ public class AuthService : IAuthService
 
         if (!long.TryParse(sub, out var userId))
         {
-            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
+            throw new UnauthorizedAccessException("User id trong token không hợp lệ.");
         }
 
         var user = await _uow.Users.Query()
@@ -514,7 +514,7 @@ public class AuthService : IAuthService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Invalid Firebase ID token");
-            throw new UnauthorizedAccessException("Firebase token không h?p l?.");
+            throw new UnauthorizedAccessException("Firebase token không hợp lệ.");
         }
 
         decoded.Claims.TryGetValue("phone_number", out var phoneObj);
@@ -577,7 +577,7 @@ public class AuthService : IAuthService
 
         if (!long.TryParse(sub, out var userId))
         {
-            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
+            throw new UnauthorizedAccessException("User id trong token không hợp lệ.");
         }
 
         var user = await _uow.Users.Query()
@@ -675,7 +675,7 @@ public class AuthService : IAuthService
 
         if (!long.TryParse(sub, out var userId))
         {
-            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
+            throw new UnauthorizedAccessException("User id trong token không hợp lệ.");
         }
 
         var user = await _uow.Users.Query()
@@ -697,7 +697,7 @@ public class AuthService : IAuthService
                 .AnyAsync(b => b.Bin == bankBin && b.IsActive, cancellationToken);
             if (!bankActive)
             {
-                throw new InvalidOperationException("BankBin không h?p l? ho?c không ho?t d?ng.");
+                throw new InvalidOperationException("BankBin không hợp lệ hoặc không hoạt động.");
             }
         }
 
@@ -833,7 +833,7 @@ public class AuthService : IAuthService
 
         if (!long.TryParse(sub, out var userId))
         {
-            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
+            throw new UnauthorizedAccessException("User id trong token không hợp lệ.");
         }
 
         var user = await _uow.Users.Query()
@@ -876,7 +876,7 @@ public class AuthService : IAuthService
 
         if (!long.TryParse(sub, out var userId))
         {
-            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
+            throw new UnauthorizedAccessException("User id trong token không hợp lệ.");
         }
 
         var devices = await _uow.UserDevices.Query()
@@ -896,7 +896,7 @@ public class AuthService : IAuthService
 
         if (!long.TryParse(sub, out var userId))
         {
-            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
+            throw new UnauthorizedAccessException("User id trong token không hợp lệ.");
         }
 
         var device = await _uow.UserDevices.Query()
@@ -920,7 +920,7 @@ public class AuthService : IAuthService
 
         if (!long.TryParse(sub, out var userId))
         {
-            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
+            throw new UnauthorizedAccessException("User id trong token không hợp lệ.");
         }
 
         var logs = await _uow.ActivityLogs.Query()
@@ -940,7 +940,7 @@ public class AuthService : IAuthService
 
         if (!long.TryParse(sub, out var userId))
         {
-            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
+            throw new UnauthorizedAccessException("User id trong token không hợp lệ.");
         }
 
         var user = await _uow.Users.Query()
@@ -996,7 +996,7 @@ public class AuthService : IAuthService
 
         if (!long.TryParse(sub, out var userId))
         {
-            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
+            throw new UnauthorizedAccessException("User id trong token không hợp lệ.");
         }
 
         var now = DateTime.UtcNow;
@@ -1034,7 +1034,7 @@ public class AuthService : IAuthService
 
         if (!long.TryParse(sub, out var userId))
         {
-            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
+            throw new UnauthorizedAccessException("User id trong token không hợp lệ.");
         }
 
         var user = await _uow.Users.Query()
@@ -1072,7 +1072,7 @@ public class AuthService : IAuthService
 
         if (!long.TryParse(sub, out var userId))
         {
-            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
+            throw new UnauthorizedAccessException("User id trong token không hợp lệ.");
         }
 
         var user = await _uow.Users.Query()
@@ -1297,6 +1297,10 @@ public class AuthService : IAuthService
         return null;
     }
 }
+
+
+
+
 
 
 

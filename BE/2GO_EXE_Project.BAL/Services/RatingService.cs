@@ -24,7 +24,7 @@ public class RatingService : IRatingService
                   ?? principal.FindFirst(ClaimTypes.Name)?.Value;
         if (!long.TryParse(sub, out var id))
         {
-            throw new UnauthorizedAccessException("User id trong token không h?p l?.");
+            throw new UnauthorizedAccessException("User id trong token không hợp lệ.");
         }
         return id;
     }
@@ -39,15 +39,15 @@ public class RatingService : IRatingService
 
         if (order == null)
         {
-            throw new InvalidOperationException("Không tìm th?y don hàng.");
+            throw new InvalidOperationException("Không tìm thấy don hàng.");
         }
         if (order.BuyerId != raterId)
         {
-            throw new InvalidOperationException("Ch? ngu?i mua m?i có th? dánh giá don hàng này.");
+            throw new InvalidOperationException("Chỉ người mua mới có th? dánh giá don hàng này.");
         }
         if (order.SellerId == null)
         {
-            throw new InvalidOperationException("Không tìm th?y ngu?i bán cho don hàng này.");
+            throw new InvalidOperationException("Không tìm thấy người bán cho don hàng này.");
         }
         if (!string.Equals(order.Status, "Completed", StringComparison.OrdinalIgnoreCase))
         {
@@ -151,6 +151,8 @@ public class RatingService : IRatingService
         return new UserRatingListResponse(total, null, items);
     }
 }
+
+
 
 
 
