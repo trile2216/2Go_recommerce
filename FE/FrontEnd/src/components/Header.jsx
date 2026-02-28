@@ -22,7 +22,8 @@ export default function Header() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(0);
   const [categories, setCategories] = useState([{id: 0, name: "Tất cả"}]);
-  const [selectedWard, setSelectedWard] = useState(0); // 0 = Tất cả phường (lưu id)
+  const [selectedWard, setSelectedWard] = useState(0);
+  const [selectedDistrict, setSelectedDistrict] = useState(0); // 0 = Tất cả quận
   const [userAddress, setUserAddress] = useState(null);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [showFavoritesMenu, setShowFavoritesMenu] = useState(false);
@@ -30,7 +31,8 @@ export default function Header() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showCartMenu, setShowCartMenu] = useState(false);
   const [districts, setDistricts] = useState([]);
-  const [wards, setWards] = useState([{id: 0, name: "Tất cả phường"}]);
+  const [allWards, setAllWards] = useState([]);
+  const [wards, setWards] = useState([{ id: 0, name: 'Tất cả phường' }]);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
@@ -154,10 +156,22 @@ export default function Header() {
     const fetchDistrictsAndWards = async () => {
       try {
         const districtsData = await fetchAllDistricts();
-        setDistricts([{ id: 0, name: "Tất cả quận" }, ...districtsData.items.map(dist => ({id: dist.districtId, name: dist.name}))]);
-        
+        setDistricts([
+          { id: 0, name: 'Tất cả quận/huyện' },
+          ...(districtsData.items || districtsData || []).map(d => ({
+            id: d.districtId,
+            name: d.name
+          }))
+        ]);
+
         const wardsData = await fetchAllWards();
-        setWards([{ id: 0, name: "Tất cả phường" }, ...wardsData.items.map(ward  => ({id: ward.wardId, name: ward.name}))]);
+        const wardList = (wardsData.items || wardsData || []).map(w => ({
+          id: w.wardId,
+          name: w.name,
+          districtId: w.districtId,
+        }));
+        setAllWards(wardList);
+        setWards([{ id: 0, name: 'Tất cả phường/xã' }, ...wardList]);
       }
       catch (error) {
         console.error('Error fetching districts or wards:', error);
@@ -288,7 +302,7 @@ export default function Header() {
           <img src={logo} alt="2GO Logo" className="logo-badge" />
           <div className="logo-text">
             <h1 className="logo-title">2GO</h1>
-            <p className="logo-subtitle">Thủ Đức</p>
+            <p className="logo-subtitle">Mua bán đồ cũ</p>
           </div>
         </Link>
 
@@ -327,9 +341,13 @@ export default function Header() {
                     {(() => {
                       if (selectedWard !== 0) {
                         const ward = wards.find(w => w.id === selectedWard);
-                        return ward ? ward.name.replace('Phường ', '') : 'Thủ Đức';
+                        return ward ? ward.name.replace(/^Phường |^Xã /, '') : 'Khu vực';
                       }
-                      return 'Thủ Đức';
+                      if (selectedDistrict !== 0) {
+                        const dist = districts.find(d => d.id === selectedDistrict);
+                        return dist ? dist.name : 'Khu vực';
+                      }
+                      return 'Khu vực';
                     })()}
                   </span>
                   <ChevronDown size={16} />
@@ -347,21 +365,48 @@ export default function Header() {
                       </button>
                     </div>
                     <div className="location-menu-body">
+                      {/* Quận/Huyện */}
                       <div className="location-group">
-                        <label className="location-group-label">Tỉnh/Thành phố</label>
-                        <input
-                          type="text"
-                          className="location-input"
-                          defaultValue="Thành phố Thủ Đức"
-                          disabled
-                        />
+                        <label className="location-group-label">Quận/Huyện</label>
+                        <select
+                          className="location-select"
+                          value={selectedDistrict}
+                          onChange={(e) => {
+                            const distId = Number(e.target.value);
+                            setSelectedDistrict(distId);
+                            setSelectedWard(0); // reset ward khi đổi quận
+                            if (distId === 0) {
+                              setWards([{ id: 0, name: 'Tất cả phường/xã' }, ...allWards]);
+                            } else {
+                              const filtered = allWards.filter(w => w.districtId === distId);
+                              setWards([{ id: 0, name: 'Tất cả phường/xã' }, ...filtered]);
+                            }
+                          }}
+                        >
+                          {districts.map((dist) => (
+                            <option key={dist.id} value={dist.id}>
+                              {dist.name}
+                            </option>
+                          ))}
+                        </select>
                       </div>
+
+                      {/* Phường/Xã */}
                       <div className="location-group">
-                        <label className="location-group-label">Phường/Xã</label>
+                        <label className="location-group-label">
+                          Phường/Xã
+                          {selectedDistrict === 0 && (
+                            <span style={{ fontSize: '11px', color: '#9ca3af', marginLeft: 6, fontWeight: 400 }}>
+                              (chọn quận trước)
+                            </span>
+                          )}
+                        </label>
                         <select
                           className="location-select"
                           value={selectedWard}
                           onChange={(e) => setSelectedWard(Number(e.target.value))}
+                          disabled={selectedDistrict === 0}
+                          style={selectedDistrict === 0 ? { opacity: 0.45, cursor: 'not-allowed' } : {}}
                         >
                           {wards.map((ward) => (
                             <option key={ward.id} value={ward.id}>
@@ -370,12 +415,18 @@ export default function Header() {
                           ))}
                         </select>
                       </div>
+
                       <div className="location-menu-actions">
                         <button
                           className="cancel-btn"
-                          onClick={() => setShowLocationPicker(false)}
+                          onClick={() => {
+                            setSelectedDistrict(0);
+                            setSelectedWard(0);
+                            setWards([{ id: 0, name: 'Tất cả phường/xã' }, ...allWards]);
+                            setShowLocationPicker(false);
+                          }}
                         >
-                          Hủy
+                          Đặt lại
                         </button>
                         <button
                           className="apply-location-btn"

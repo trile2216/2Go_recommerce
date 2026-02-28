@@ -89,7 +89,7 @@ export default function RelatedProducts({ products }) {
             <div 
               key={product.listingId} 
               className="related-product-card"
-              onClick={() => navigate(`/product/${product.listingId}`)}
+              onClick={() => navigate(`/listings/${product.listingId}`)}
               style={{ cursor: 'pointer' }}
             >
               <div className="related-image-wrapper">
