@@ -824,8 +824,30 @@ const Profile = () => {
             <View style={styles.menuDivider} />
             <MenuItem
               icon="help-circle"
-              label="Trợ giúp & Hỗ trợ"
-              onPress={() => Alert.alert("Thông báo", "Chức năng đang phát triển")}
+              label="Trung tâm trợ giúp"
+              onPress={() => navigation.navigate("HelpCenter")}
+            />
+          </View>
+        )}
+
+        {!isEditing && (
+          <View style={styles.menuCard}>
+            <MenuItem
+              icon="file-document"
+              label="Chính sách phí & Subscription"
+              onPress={() => navigation.navigate("PricingPolicy")}
+            />
+            <View style={styles.menuDivider} />
+            <MenuItem
+              icon="shield-check"
+              label="Chính sách bảo mật"
+              onPress={() => navigation.navigate("PrivacyPolicy")}
+            />
+            <View style={styles.menuDivider} />
+            <MenuItem
+              icon="file-text"
+              label="Quy định sử dụng"
+              onPress={() => navigation.navigate("TermsOfUse")}
             />
           </View>
         )}

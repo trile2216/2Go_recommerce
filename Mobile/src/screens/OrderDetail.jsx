@@ -735,13 +735,13 @@ const OrderDetail = () => {
         </View>
 
         {/* Contact Seller / Buyer */}
-        <Pressable
+        {/* <Pressable
           style={styles.contactButton}
           onPress={() => navigation.navigate("Chat")}
         >
           <MaterialCommunityIcons name="chat-outline" size={20} color="#359EFF" />
           <Text style={styles.contactButtonText}>{isBuyer ? "Liên hệ người bán" : "Liên hệ người mua"}</Text>
-        </Pressable>
+        </Pressable> */}
       </ScrollView>
 
       {/* Shipping Modal */}

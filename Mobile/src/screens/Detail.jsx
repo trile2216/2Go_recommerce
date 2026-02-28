@@ -919,28 +919,49 @@ const Detail = () => {
               navigation.navigate("Login");
               return;
             }
+            
+            // Check if user is trying to chat with themselves
+            if (user?.id && productDetail.sellerId && parseInt(user.id, 10) === parseInt(productDetail.sellerId, 10)) {
+              Alert.alert("Thông báo", "Bạn không thể nhắn tin với chính mình.");
+              return;
+            }
+            
             if (!productDetail.sellerId) {
+              console.log("Missing sellerId in productDetail:", productDetail);
               Alert.alert("Lỗi", "Không tìm thấy thông tin người bán.");
               return;
             }
+
+            const sellerId = parseInt(productDetail.sellerId, 10);
+            if (isNaN(sellerId)) {
+              console.log("Invalid sellerId:", productDetail.sellerId);
+              Alert.alert("Lỗi", "Thông tin người bán không hợp lệ.");
+              return;
+            }
+
             try {
-              const chat = await createOrGetChat(productDetail.sellerId);
+              console.log("Creating chat with sellerId:", sellerId);
+              const chat = await createOrGetChat(sellerId);
+              console.log("Chat response:", chat);
+              
               if (chat && chat.chatId) {
                 navigation.navigate("Conversation", { 
                   chatId: chat.chatId,
                   otherUser: {
-                    userId: productDetail.sellerId,
+                    userId: sellerId,
                     email: productDetail.sellerEmail,
-                    fullName: productDetail.sellerName || `Người bán #${productDetail.sellerId}`,
+                    fullName: productDetail.sellerName || `Người bán #${sellerId}`,
                     avatarUrl: productDetail.sellerAvatarUrl || null,
                   }
                 });
               } else {
+                console.log("Invalid chat response:", chat);
                 Alert.alert("Lỗi", "Không thể tạo cuộc trò chuyện với người bán.");
               }
             } catch (error) {
               console.error("Error creating chat:", error);
-              Alert.alert("Lỗi", "Đã xảy ra lỗi khi tạo cuộc trò chuyện.");
+              const errorMessage = error?.response?.data?.message || error?.message || "Đã xảy ra lỗi khi tạo cuộc trò chuyện.";
+              Alert.alert("Lỗi", errorMessage);
             }
           }}
         >

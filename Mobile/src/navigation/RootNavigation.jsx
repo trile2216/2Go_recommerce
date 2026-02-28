@@ -34,6 +34,12 @@ import RepairShopMap from "../screens/RepairShopMap";
 import Notifications from "../screens/Notifications";
 import SellerListingDetail from "../screens/SellerListingDetail";
 
+// Policy Screens
+import HelpCenter from "../screens/Policy/HelpCenter";
+import PricingPolicy from "../screens/Policy/PricingPolicy";
+import PrivacyPolicy from "../screens/Policy/PrivacyPolicy";
+import TermsOfUse from "../screens/Policy/TermsOfUse";
+
 const Stack = createStackNavigator();
 const Tabs = createBottomTabNavigator();
 const ChatStack = createStackNavigator();
@@ -231,6 +237,12 @@ const RootNavigation = () => {
             <Stack.Screen name="PaymentResult" component={PaymentResult} />
             <Stack.Screen name="RepairShopMap" component={RepairShopMap} />
             <Stack.Screen name="SellerListingDetail" component={SellerListingDetail} />
+            
+            {/* Policy Screens */}
+            <Stack.Screen name="HelpCenter" component={HelpCenter} />
+            <Stack.Screen name="PricingPolicy" component={PricingPolicy} />
+            <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
+            <Stack.Screen name="TermsOfUse" component={TermsOfUse} />
           </>
         )}
       </Stack.Navigator>
