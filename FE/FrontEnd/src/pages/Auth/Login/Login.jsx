@@ -8,7 +8,7 @@ import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../../../config/firebase';
 
 const Login = () => {
-  useTitle('Login');
+  useTitle('Đăng nhập');
 
   const [credentials, setCredentials] = useState({
     identifier: '',

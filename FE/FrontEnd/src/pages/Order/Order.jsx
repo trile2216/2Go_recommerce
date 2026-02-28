@@ -44,6 +44,7 @@ const getStatusColor = (status) => {
 };
 
 function OrderCard({ order }) {
+  useTitle('Đơn hàng của tôi');
   const navigate = useNavigate();
 
   const formatPrice = (price) =>
@@ -113,7 +114,7 @@ function EmptyState({ activeTab }) {
 }
 
 export default function Orders() {
-  useTitle('My Orders');
+  useTitle('Đơn hàng của tôi');
   const toast = useToast();
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);

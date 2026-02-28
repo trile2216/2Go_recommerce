@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, use } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -11,6 +11,7 @@ import { AlertCircle, MapPin, Navigation, Phone, Star, Clock, Wrench } from 'luc
 // Fix for default Leaflet icons not showing in React/Vite/Webpack
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+import { useTitle } from '../../hooks/useTitle';
 
 let DefaultIcon = L.icon({
     iconUrl: icon,
@@ -74,6 +75,7 @@ const FlyToLocation = ({ center }) => {
 };
 
 const RepairShopMap = () => {
+    useTitle('Bản đồ tiệm sửa chữa');
     const [userLocation, setUserLocation] = useState(null);
     const [shopsWithDistance, setShopsWithDistance] = useState([]);
     const [selectedShop, setSelectedShop] = useState(null);

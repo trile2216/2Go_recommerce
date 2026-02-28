@@ -5,8 +5,10 @@ import { removeFromCompare, clearCompare } from '../../store/slices/compareSlice
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import './Compare.css';
+import { useTitle } from '../../hooks/useTitle';
 
 const Compare = () => {
+  useTitle('So sánh sản phẩm');
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const products = useSelector(state => state.compare.items);

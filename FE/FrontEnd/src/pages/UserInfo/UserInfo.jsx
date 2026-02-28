@@ -19,7 +19,7 @@ import '../../styles/loader.css';
 import './userinfo.css';
 
 export default function UserInfo() {
-  useTitle('My Profile');
+  useTitle('Thông tin cá nhân');
   const toast = useToast();
   const dispatch = useDispatch();
   const avatarInputRef = useRef(null);

@@ -27,7 +27,7 @@ const SORT_OPTIONS = [
 ];
 
 export default function Listings() {
-  useTitle('Browse Listings');
+  useTitle('Tin đăng');
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Products state

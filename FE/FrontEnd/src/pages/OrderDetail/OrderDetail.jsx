@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, use } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import UserLayout from "../../layouts/UserLayout";
 import { useToast } from "../../context/ToastContext";
@@ -37,10 +37,12 @@ import {
 } from "lucide-react";
 import "./OrderDetail.css";
 import PageEmptyState from "../../components/PageEmptyState";
+import { useTitle } from "../../hooks/useTitle";
 
 
 
 export default function OrderDetail() {
+  useTitle('Chi tiết đơn hàng');
   const { orderId } = useParams();
   const navigate = useNavigate();
   const toast = useToast();

@@ -25,7 +25,7 @@ const DEPOSIT_THRESHOLD = 2_000_000;
 const DEPOSIT_RATE = 0.1;
 
 export default function Checkout() {
-  useTitle('Checkout');
+  useTitle('Thanh toán');
   const navigate = useNavigate();
   const location = useLocation();
   const { cartItems, removeFromCart, getTotalPrice, clearCart, fetchCartData } = useCart();

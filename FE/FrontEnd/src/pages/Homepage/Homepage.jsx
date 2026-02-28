@@ -14,7 +14,7 @@ import { fetchProducts } from '../../service/home/api.product';
 const PAGE_SIZE = 20;
 
 export default function Homepage() {
-  useTitle('Home');
+  useTitle('Thanh toán nhanh, mua đồ lành');
   const role = useSelector((state) => state.user.role);
   const [products, setProducts] = useState([]);
   const [totalCount, setTotalCount] = useState(0);

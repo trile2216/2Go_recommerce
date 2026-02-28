@@ -11,7 +11,7 @@ import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../../../config/firebase';
 
 const Register = () => {
-  useTitle('Register');
+  useTitle('Đăng ký');
   const [userInfo, setUserInfo] = useState({
     email: '',
     phone: '',

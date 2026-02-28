@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import './SubscriptionPlans.css';
 import { fetchSubscriptionPlans, fetchMySubscription } from '../../service/home/api.subscription';
 import { createSubscriptionPayment } from '../../service/home/api.payment';
 import { Check, Package, Loader2 } from 'lucide-react';
 import PageEmptyState from '../../components/PageEmptyState';
 import { useToast } from '../../context/ToastContext';
+import { useTitle } from '../../hooks/useTitle';
 
 const SubscriptionPlans = () => {
+    useTitle('Gói hội viên');
     const [plans, setPlans] = useState([]);
     const [currentPlan, setCurrentPlan] = useState(null);
     const [loading, setLoading] = useState(true);

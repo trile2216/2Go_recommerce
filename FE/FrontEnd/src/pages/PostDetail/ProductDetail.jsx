@@ -14,7 +14,7 @@ import { fetchProductById, fetchProducts } from '../../service/home/api.product'
 
 export default function ProductDetail() {
   const { id } = useParams();
-  useTitle('Product Details');
+  useTitle('Chi tiết sản phẩm');
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(true);

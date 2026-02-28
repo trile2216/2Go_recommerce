@@ -40,7 +40,7 @@ const { TextArea } = Input;
 const { Option } = Select;
 
 export default function PostListing() {
-    useTitle('Post Listing');
+    useTitle('Đăng tin bán hàng');
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const editId = searchParams.get('edit');

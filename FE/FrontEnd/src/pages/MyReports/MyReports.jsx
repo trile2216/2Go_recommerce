@@ -20,7 +20,7 @@ const STATUS_MAP = {
 const PAGE_SIZE = 10;
 
 export default function MyReports() {
-  useTitle('My Reports');
+  useTitle('Phiếu báo cáo của tôi');
   const toast = useToast();
   const { user } = useAuth();
 

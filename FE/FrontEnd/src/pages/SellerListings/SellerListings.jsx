@@ -62,7 +62,7 @@ const STATUS_CLASS = {
 const REVIEW_NOTE_KEY = 'listingReviewNotes';
 
 export default function SellerListings() {
-  useTitle('My Listings');
+  useTitle('Bài đăng của tôi');
   const navigate = useNavigate();
   const toast = useToast();
 

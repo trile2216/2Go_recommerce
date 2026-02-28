@@ -11,7 +11,7 @@ import { Bookmark, Loader2, Trash2 } from 'lucide-react';
 import './SavedListings.css';
 
 export default function SavedListings() {
-  useTitle('Saved Items');
+  useTitle('Tin đã lưu');
   const navigate = useNavigate();
   const toast = useToast();
 

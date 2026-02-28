@@ -49,7 +49,7 @@ const QUICK_REPLIES = [
 ];
 
 export default function Chat() {
-  useTitle('Messages');
+  useTitle('Chat với người bán');
   const { chatId: chatIdParam } = useParams();
   const { user } = useAuth();
   const currentUserId = user?.userId;

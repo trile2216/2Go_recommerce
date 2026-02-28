@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import UserLayout from '../../layouts/UserLayout';
 import { getMyListingById, deleteListing, publishListing, archiveListing } from '../../service/home/api.sellerListing';
@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Image, Button, Modal, Tag as AntTag, Descriptions, Card, Divider, Spin } from 'antd';
 import './SellerListingDetail.css';
+import { useTitle } from '../../hooks/useTitle';
 
 const STATUS_COLORS = {
   Draft: 'default',
@@ -44,6 +45,7 @@ const STATUS_LABELS = {
 };
 
 export default function SellerListingDetail() {
+  useTitle('Chi tiết bài đăng');
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();

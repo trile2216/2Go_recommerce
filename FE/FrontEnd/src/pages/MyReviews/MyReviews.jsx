@@ -20,7 +20,7 @@ const SCORE_LABELS = {
 const PAGE_SIZE = 10;
 
 export default function MyReviews() {
-  useTitle('My Reviews');
+  useTitle('Đánh giá của tôi');
   const toast = useToast();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("received"); // "sent" | "received"
