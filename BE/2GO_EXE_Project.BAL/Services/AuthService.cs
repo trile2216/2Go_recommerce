@@ -22,6 +22,7 @@ public class AuthService : IAuthService
     private readonly IEmailService _emailService;
     private readonly JwtSettings _jwtSettings;
     private readonly ILogger<AuthService> _logger;
+    private static readonly TimeZoneInfo VnTimeZone = ResolveVnTimeZone();
 
     public AuthService(
         IUnitOfWork uow,
@@ -1006,13 +1007,16 @@ public class AuthService : IAuthService
         var usedCount = 0;
         if (plan != null)
         {
-            var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-            var nextMonthStart = monthStart.AddMonths(1);
+            var vnNow = TimeZoneInfo.ConvertTimeFromUtc(now, VnTimeZone);
+            var monthStartVn = new DateTime(vnNow.Year, vnNow.Month, 1, 0, 0, 0, DateTimeKind.Unspecified);
+            var nextMonthStartVn = monthStartVn.AddMonths(1);
+            var monthStartUtc = TimeZoneInfo.ConvertTimeToUtc(monthStartVn, VnTimeZone);
+            var nextMonthStartUtc = TimeZoneInfo.ConvertTimeToUtc(nextMonthStartVn, VnTimeZone);
             usedCount = await _uow.Listings.Query()
                 .Where(l => l.SellerId == userId &&
                             l.PublishedAt.HasValue &&
-                            l.PublishedAt.Value >= monthStart &&
-                            l.PublishedAt.Value < nextMonthStart)
+                            l.PublishedAt.Value >= monthStartUtc &&
+                            l.PublishedAt.Value < nextMonthStartUtc)
                 .CountAsync(cancellationToken);
         }
 
@@ -1023,6 +1027,18 @@ public class AuthService : IAuthService
         }
 
         return new UserSubscriptionUsageResponse(limit, usedCount, remaining);
+    }
+
+    private static TimeZoneInfo ResolveVnTimeZone()
+    {
+        try
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+        }
+        catch
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+        }
     }
 
     public async Task<BasicResponse> UpdateAvatarAsync(ClaimsPrincipal userPrincipal, UpdateAvatarRequest request, CancellationToken cancellationToken = default)
