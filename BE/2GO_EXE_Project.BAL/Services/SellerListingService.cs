@@ -20,6 +20,7 @@ public class SellerListingService : ISellerListingService
     private readonly INotificationService _notificationService;
     private readonly IAiListingService _aiListingService;
     private readonly string _cloudinaryCloudName;
+    private static readonly TimeZoneInfo VnTimeZone = ResolveVnTimeZone();
 
     public SellerListingService(
         IUnitOfWork uow,
@@ -550,13 +551,16 @@ public class SellerListingService : ISellerListingService
         var plan = await ResolveCurrentPlanAsync(user.UserId, now, cancellationToken);
         if (plan?.MonthlyListingLimit is int limit)
         {
-            var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-            var nextMonthStart = monthStart.AddMonths(1);
+            var vnNow = TimeZoneInfo.ConvertTimeFromUtc(now, VnTimeZone);
+            var monthStartVn = new DateTime(vnNow.Year, vnNow.Month, 1, 0, 0, 0, DateTimeKind.Unspecified);
+            var nextMonthStartVn = monthStartVn.AddMonths(1);
+            var monthStartUtc = TimeZoneInfo.ConvertTimeToUtc(monthStartVn, VnTimeZone);
+            var nextMonthStartUtc = TimeZoneInfo.ConvertTimeToUtc(nextMonthStartVn, VnTimeZone);
             var publishedCount = await _uow.Listings.Query()
                 .Where(l => l.SellerId == sellerId &&
                             l.PublishedAt.HasValue &&
-                            l.PublishedAt.Value >= monthStart &&
-                            l.PublishedAt.Value < nextMonthStart)
+                            l.PublishedAt.Value >= monthStartUtc &&
+                            l.PublishedAt.Value < nextMonthStartUtc)
                 .CountAsync(cancellationToken);
             if (publishedCount >= limit)
             {
@@ -853,6 +857,18 @@ public class SellerListingService : ISellerListingService
         }
 
         return null;
+    }
+
+    private static TimeZoneInfo ResolveVnTimeZone()
+    {
+        try
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+        }
+        catch
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+        }
     }
 }
 
