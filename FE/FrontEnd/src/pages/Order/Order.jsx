@@ -12,9 +12,22 @@ const STATUS_MAP = {
   Pending: "Chờ thanh toán",
   Paid: "Đã thanh toán",
   Confirmed: "Đã xác nhận",
-  Shipping: "Đang giao hàng",
+  Delivering: "Đang giao hàng",
+  Delivered: "Đã giao hàng",  
   Completed: "Hoàn thành",
   Cancelled: "Đã hủy",
+  Reserved: "Đang giữ hàng",
+};
+
+// Lấy label đúng cho Reserved dựa trên paymentMethod và depositPaid
+const getOrderStatusLabel = (order) => {
+  if (order.status === 'Reserved') {
+    if (order.paymentMethod === 'PAYOS' && order.depositPaid === true) {
+      return 'Đã đặt cọc';
+    }
+    return 'Đang giữ hàng'; 
+  }
+  return STATUS_MAP[order.status] || order.status;
 };
 
 const getStatusColor = (status) => {
@@ -22,7 +35,8 @@ const getStatusColor = (status) => {
     Pending: "status-warning",
     Paid: "status-info",
     Confirmed: "status-info",
-    Shipping: "status-info",
+    Delivering: "status-info",
+    Delivered: "status-info",
     Completed: "status-success",
     Cancelled: "status-danger",
   };
@@ -58,7 +72,7 @@ function OrderCard({ order }) {
         </div>
         <div className="order-card-actions">
           <span className={`order-status ${getStatusColor(order.status)}`}>
-            {STATUS_MAP[order.status] || order.status}
+            {getOrderStatusLabel(order)}
           </span>
           <button
             className="order-detail-btn"

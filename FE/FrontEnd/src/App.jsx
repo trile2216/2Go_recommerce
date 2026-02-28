@@ -43,6 +43,10 @@ import AdminMarketPrice from './pages/Admin/AdminMarketPrice/AdminMarketPrice';
 import MyReports from './pages/MyReports/MyReports';
 import AdminListingDetail from './pages/Admin/AdminListing/AdminListingDetail';
 import AdminCustomerDetail from './pages/Admin/AdminCustomer/AdminCustomerDetail';
+import PricingPolicy from './pages/Policy/PricingPolicy';
+import HelpCenter from './pages/Policy/HelpCenter';
+import TermsOfUse from './pages/Policy/TermsOfUse';
+import PrivacyPolicy from './pages/Policy/PrivacyPolicy';
 
 // Moderator Pages
 import ModUsers from './pages/Mod/ModUsers/ModUsers';
@@ -80,6 +84,11 @@ const router = createBrowserRouter([
         ) 
       },
       
+      { path: "/pricing-policy", element: <PricingPolicy /> },
+      { path: "/help-center", element: <HelpCenter /> },
+      { path: "/terms-of-use", element: <TermsOfUse /> },
+      { path: "/privacy-policy", element: <PrivacyPolicy /> },
+
       // Protected Routes - Requires login
       {
         element: <ProtectedRoute allowedRoles={['User']} />,

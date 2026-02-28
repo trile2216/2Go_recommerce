@@ -91,10 +91,11 @@ export default function AdminCustomers() {
   };
 
   const filteredCustomers = customers.filter(customer => {
-    const matchesSearch = 
-      (customer.fullName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.phone.toLowerCase().includes(searchTerm.toLowerCase());
+    const term = searchTerm.toLowerCase();
+    const matchesSearch =
+      (customer.fullName?.toLowerCase() || '').includes(term) ||
+      (customer.email?.toLowerCase() || '').includes(term) ||
+      (customer.phone?.toLowerCase() || '').includes(term);
     const matchesStatus = filterStatus === 'All' || customer.status === filterStatus;
     const matchesRole = filterRole === 'All' || customer.role === filterRole;
     return matchesSearch && matchesStatus && matchesRole;
@@ -187,16 +188,6 @@ export default function AdminCustomers() {
   return (
     <AdminLayout>
       <div className="admin-customers-page">
-        {/* Alerts */}
-
-        {/* Page Header */}
-        <div className="admin-page-header">
-          <div>
-            <h1>Customers</h1>
-            <p>Manage customer accounts and information</p>
-          </div>
-        </div>
-
         {/* Filters & Search */}
         <div className="admin-filters-section">
           <div className="admin-search-wrapper">

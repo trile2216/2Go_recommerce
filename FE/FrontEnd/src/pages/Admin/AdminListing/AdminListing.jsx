@@ -189,14 +189,6 @@ export default function AdminListing() {
   return (
     <AdminLayout>
       <div className="admin-listing-page">
-        {/* Header */}
-        <div className="admin-page-header">
-          <div>
-            <h1>Listings</h1>
-            <p>Manage product listings and moderation</p>
-          </div>
-        </div>
-
         {/* Filters & Search */}
         <div className="admin-filters-section">
           <div className="admin-search-wrapper">

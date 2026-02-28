@@ -20,7 +20,7 @@ const STATUS_TABS = [
   { key: 'Draft', label: 'Nháp' },
   { key: 'PendingReview', label: 'Chờ duyệt' },
   { key: 'Active', label: 'Đang bán' },
-  { key: 'Reserved', label: 'Đã đặt cọc' },
+  { key: 'Reserved', label: 'Đang giữ hàng' },
   { key: 'Sold', label: 'Đã bán' },
   { key: 'Archived', label: 'Đã ẩn' },
   { key: 'Rejected', label: 'Bị từ chối' },
@@ -31,12 +31,20 @@ const STATUS_LABEL = {
   Draft: 'Nháp',
   PendingReview: 'Chờ duyệt',
   Active: 'Đang bán',
-  Reserved: 'Đã đặt cọc',
+  Reserved: 'Đang giữ hàng',
   Sold: 'Đã bán',
   Rejected: 'Bị từ chối',
   Archived: 'Đã ẩn',
   Flagged: 'Bị báo cáo',
   Deleted: 'Đã xóa',
+};
+
+// Helper: lấy label đúng cho trạng thái Reserved dựa trên activeOrderPaymentMethod và activeOrderDepositPaid
+const getReservedLabel = (item) => {
+  if (item.activeOrderPaymentMethod === 'PAYOS' && item.activeOrderDepositPaid === true) {
+    return 'Đã đặt cọc';
+  }
+  return 'Đang giữ hàng';
 };
 
 const STATUS_CLASS = {
@@ -197,7 +205,8 @@ export default function SellerListings() {
     }
   };
 
-  const renderBadge = (status, listingId) => {
+  const renderBadge = (item) => {
+    const { status, listingId } = item;
     const draftNote = status === 'Draft' ? getDraftNote(listingId) : null;
     const shortDraftNote = draftNote?.includes('Ảnh chưa đạt chất lượng')
       ? 'Cần cập nhật ảnh'
@@ -214,7 +223,9 @@ export default function SellerListings() {
       }
     }
 
-    const label = STATUS_LABEL[status] || status;
+    const label = status === 'Reserved'
+      ? getReservedLabel(item)
+      : (STATUS_LABEL[status] || status);
     const title = draftNote || note || undefined;
     return (
       <span
@@ -336,7 +347,7 @@ export default function SellerListings() {
                 <ListingCard
                   key={item.listingId}
                   listing={item}
-                  badge={renderBadge(item.status, item.listingId)}
+                  badge={renderBadge(item)}
                   meta={
                     <>
                       <span>Ngày tạo: {formatDate(item.createdAt)}</span>

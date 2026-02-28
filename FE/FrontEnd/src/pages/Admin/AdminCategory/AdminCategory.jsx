@@ -237,24 +237,6 @@ export default function AdminCategory() {
   return (
     <AdminLayout>
       <div className="admin-category-page">
-        {/* Page Header */}
-        <div className="admin-page-header">
-          <div>
-            <h1>Categories</h1>
-            <p>Manage product categories and subcategories</p>
-          </div>
-          <button
-            onClick={() => handleOpenModal()}
-            className="admin-btn admin-btn-primary"
-          >
-            <Plus size={20} />
-            Add Category
-          </button>
-        </div>
-
-        {/* Alerts */}
-
-
         {/* Filters & Search */}
         <div className="admin-filters-section">
           <div className="admin-search-wrapper">

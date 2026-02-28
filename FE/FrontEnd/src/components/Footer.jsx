@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 export default function Footer() {
   return (
     <footer className="footer">
@@ -28,20 +30,21 @@ export default function Footer() {
           <div className="footer-column">
             <h4 className="footer-subtitle">Liên kết nhanh</h4>
             <nav className="footer-nav">
-              <a href="#" className="hp-footer-link">Trang chủ</a>
-              <a href="#" className="hp-footer-link">Tìm kiếm</a>
-              <a href="#" className="hp-footer-link">Tin nhắn</a>
-              <a href="#" className="hp-footer-link">Đơn của tôi</a>
+              <Link to="/" className="hp-footer-link">Trang chủ</Link>
+              <Link to="/listings" className="hp-footer-link">Tìm kiếm</Link>
+              <Link to="/chat" className="hp-footer-link">Tin nhắn</Link>
+              <Link to="/orders" className="hp-footer-link">Đơn của tôi</Link>
+              <Link to="/subscription-plans" className="hp-footer-link">Gói hội viên</Link>
             </nav>
           </div>
 
           <div className="footer-column">
             <h4 className="footer-subtitle">Hỗ trợ</h4>
             <nav className="footer-nav">
-              <a href="#" className="hp-footer-link">Trung tâm trợ giúp</a>
-              <a href="#" className="hp-footer-link">Quy định sử dụng</a>
-              <a href="#" className="hp-footer-link">Chính sách bảo mật</a>
-              <a href="#" className="hp-footer-link">Giải quyết khiếu nại</a>
+              <Link to="/help-center" className="hp-footer-link">Trung tâm trợ giúp</Link>
+              <Link to="/terms-of-use" className="hp-footer-link">Quy định sử dụng</Link>
+              <Link to="/privacy-policy" className="hp-footer-link">Chính sách bảo mật</Link>
+              <Link to="/pricing-policy" className="hp-footer-link">Chính sách phí dịch vụ</Link>
             </nav>
           </div>
 

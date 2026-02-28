@@ -256,7 +256,6 @@ export default function AdminCustomerDetail() {
                 <div style={{gridColumn: '1 / -1'}}>
                   <InfoRow label="Bio" value={profile.bio || 'N/A'} />
                 </div>
-                <InfoRow label="Avatar URL" value={profile.avatarUrl || 'N/A'} />
               </div>
             )}
           </div>

@@ -116,25 +116,16 @@ export default function AdminReports() {
   return (
     <AdminLayout>
       <div className="admin-products-page"> {/* Reuse existing class for layout */}
-        {/* Page Header */}
-        <div className="admin-page-header">
-          <div>
-            <h1>User Reports</h1>
-            <p>Manage and resolve user reports</p>
-          </div>
-        </div>
-
         {/* Filters */}
         <div className="admin-filters-section">
-          {/* <div className="admin-search-wrapper">
-             Search could be added if backend supports searching by reporter/target 
+          <div className="admin-search-wrapper">
             <Search size={20} className="admin-search-icon" />
             <input
               type="text"
               placeholder="Search reports..."
               className="admin-search-field"
             />
-          </div> */}
+          </div>
 
           <div className="admin-filter-group">
             <Filter size={20} />

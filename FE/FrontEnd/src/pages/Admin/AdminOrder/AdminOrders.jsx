@@ -51,6 +51,13 @@ export default function AdminOrders() {
   }, []);
 
   useEffect(() => {
+    if (activeTab === 'orders') {
+      // Reset page về 1 mỗi khi search hoặc filter thay đổi
+      setPagination(prev => ({ ...prev, page: 1 }));
+    }
+  }, [searchTerm, filterStatus]);
+
+  useEffect(() => {
     if (activeTab === 'orders') fetchOrders();
   }, [pagination.page, filterStatus, searchTerm, activeTab]);
 
@@ -80,14 +87,13 @@ export default function AdminOrders() {
       if (filterStatus !== 'All') {
         params.status = filterStatus;
       }
-      if (searchTerm) {
-        // Search by Order Code if numeric, otherwise we might need other filters
-        // The API supports orderCode (long), buyerId, sellerId.
-        // For text search like customer name, the backend doesn't seem to support it directly yet based on the controller.
-        // We will try to parse order code.
-        if (!isNaN(searchTerm)) {
-            params.orderCode = parseInt(searchTerm);
+      if (searchTerm.trim()) {
+        const trimmed = searchTerm.trim();
+        if (!isNaN(trimmed) && trimmed !== '') {
+          params.orderCode = parseInt(trimmed);
         }
+        // Nếu search là text (không phải số) thì không truyền param
+        // vì API chỉ hỗ trợ search theo orderCode (số)
       }
 
       const data = await getOrders(params);
@@ -279,18 +285,6 @@ export default function AdminOrders() {
   return (
     <AdminLayout>
       <div className="admin-orders-page">
-        {/* Page Header */}
-        <div className="admin-page-header">
-          <div>
-            <h1>Orders</h1>
-            <p>View and manage all customer orders</p>
-          </div>
-          <button className="admin-btn admin-btn-secondary" onClick={activeTab === 'orders' ? fetchOrders : fetchPayouts} disabled={loading || payoutsLoading}>
-            <RefreshCcw size={18} className={(loading || payoutsLoading) ? 'spin' : ''} />
-            Refresh
-          </button>
-        </div>
-
         {/* Tab Switcher */}
         <div className="admin-tabs">
           <button
@@ -340,6 +334,11 @@ export default function AdminOrders() {
                   <option value="Disputed">Disputed</option>
                 </select>
               </div>
+
+              <button className="admin-btn admin-btn-secondary" onClick={activeTab === 'orders' ? fetchOrders : fetchPayouts} disabled={loading || payoutsLoading}>
+                <RefreshCcw size={18} className={(loading || payoutsLoading) ? 'spin' : ''} />
+                Refresh
+              </button>
             </div>
 
             {/* Orders Table */}

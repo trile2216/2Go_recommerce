@@ -1,0 +1,299 @@
+/* Policy Pages – Shared Styles */
+
+.policy-page {
+  min-height: 70vh;
+  background: #f8fafc;
+  padding: 15px;
+}
+
+.policy-container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.policy-breadcrumb {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 24px;
+}
+
+.policy-breadcrumb a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.policy-breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.policy-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 8px;
+  line-height: 1.3;
+}
+
+.policy-last-updated {
+  font-size: 13px;
+  color: #9ca3af;
+  margin-bottom: 32px;
+}
+
+.policy-intro {
+  font-size: 16px;
+  color: #4b5563;
+  line-height: 1.7;
+  margin-bottom: 32px;
+  padding: 16px;
+  background: #eff6ff;
+  border-radius: 8px;
+  border-left: 4px solid #2563eb;
+}
+
+.policy-section {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px 28px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.policy-section h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #f3f4f6;
+}
+
+.policy-section p {
+  color: #4b5563;
+  line-height: 1.7;
+  margin-bottom: 12px;
+}
+
+.policy-section ul {
+  padding-left: 20px;
+  margin-top: 4px;
+  margin-bottom: 12px;
+}
+
+.policy-section ul li {
+  color: #4b5563;
+  line-height: 1.8;
+  margin-bottom: 4px;
+}
+
+.policy-section a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.policy-section a:hover {
+  text-decoration: underline;
+}
+
+.policy-highlight {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: #166534;
+  font-size: 14px;
+  margin: 12px 0;
+}
+
+.policy-warning {
+  background: #fef9c3;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #92400e;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+/* ── Pricing Grid ── */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.pricing-card {
+  border-radius: 12px;
+  padding: 20px;
+  position: relative;
+  border: 2px solid #e5e7eb;
+  background: #fff;
+  transition: box-shadow 0.2s;
+}
+
+.pricing-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.pricing-card.premium {
+  border-color: #3b82f6;
+}
+
+.pricing-card.vip {
+  border-color: #f59e0b;
+}
+
+.pricing-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: #e5e7eb;
+  color: #374151;
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  letter-spacing: 0.5px;
+}
+
+.pricing-badge.popular {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.pricing-badge.vip-badge {
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+  color: #fff;
+}
+
+.pricing-card h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 6px;
+}
+
+.pricing-price {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 14px;
+}
+
+.pricing-price span {
+  font-size: 13px;
+  font-weight: 400;
+  color: #6b7280;
+}
+
+.pricing-card ul {
+  padding-left: 0;
+  list-style: none;
+  margin: 0;
+}
+
+.pricing-card ul li {
+  font-size: 13px;
+  color: #4b5563;
+  padding: 4px 0;
+}
+
+/* ── Help Topics Grid ── */
+.help-topics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.help-topic-card {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 18px;
+  transition: box-shadow 0.2s;
+}
+
+.help-topic-card:hover {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  border-color: #d1d5db;
+}
+
+.help-topic-icon {
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+
+.help-topic-card h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 10px;
+}
+
+.help-topic-card ul {
+  padding-left: 16px;
+  margin: 0;
+}
+
+.help-topic-card ul li {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.8;
+  list-style-type: disc;
+}
+
+/* ── Contact Grid ── */
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.contact-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.contact-card-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.contact-card-label {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-bottom: 2px;
+}
+
+.contact-card-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  text-decoration: none;
+}
+
+a.contact-card-value:hover {
+  color: #2563eb;
+}
+
+@media (max-width: 640px) {
+  .pricing-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .policy-section {
+    padding: 18px 16px;
+  }
+
+  .policy-title {
+    font-size: 22px;
+  }
+}

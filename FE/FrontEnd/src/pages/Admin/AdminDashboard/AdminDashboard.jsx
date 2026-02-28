@@ -116,12 +116,6 @@ export default function AdminDashboard() {
   return (
     <AdminLayout>
       <div className="admin-dashboard">
-        {/* Page Header */}
-        <div className="admin-page-header">
-          <h1>Dashboard</h1>
-          <p>Welcome back! Here's your business performance</p>
-        </div>
-
         {/* Stats Cards */}
         <div className="admin-stats-grid">
           <div className="admin-stat-card">
