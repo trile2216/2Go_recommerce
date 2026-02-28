@@ -108,47 +108,62 @@
   position: relative;
   display: flex;
   align-items: center;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  transition: border-color 0.2s;
+}
+
+.search-input-container:focus-within {
+  border-color: #3b82f6;
 }
 
 .search-input {
+  flex: 1;
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  /* Leave room for location button (approx 110px) */
+  padding-right: 116px;
+  border: none;
+  border-radius: 0;
   font-size: 14px;
-  padding-right: 100px;
-  transition: all 0.2s;
+  outline: none;
+  background: transparent;
+  transition: none;
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #3b82f6;
-  background-color: white;
+  border-color: transparent;
+  background-color: transparent;
 }
 
 /* ===== Location Selector ===== */
 .location-selector {
   position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
+  right: 0;
+  top: 0;
+  bottom: 0;
   display: flex;
   align-items: center;
+  border-left: 1px solid #e5e7eb;
 }
 
 .location-btn {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 8px;
-  background: none;
+  padding: 0 10px;
+  height: 100%;
+  background: transparent;
   border: none;
   cursor: pointer;
   font-size: 12px;
-  color: #6b7280;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  color: #374151;
   white-space: nowrap;
+  /* Bo góc phải khớp với container để hover không tràn */
+  border-radius: 0 5px 5px 0;
+  transition: background-color 0.2s;
 }
 
 .location-btn:hover {
