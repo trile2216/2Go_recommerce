@@ -299,10 +299,6 @@ export default function SellerListingDetail() {
               <div className="sld-location">
                 <MapPin size={20} className="text-gray-500" />
                 <span>
-                 {/*  TODO: Need ward/district info in ListingDetail if not available. 
-                      Assuming listing has full address or seller info. 
-                      For now showing simplified location if not available in basic fetch 
-                  */}
                   {listing.sellerAddress || 'Thông tin địa chỉ đang cập nhật'} 
                 </span>
               </div>

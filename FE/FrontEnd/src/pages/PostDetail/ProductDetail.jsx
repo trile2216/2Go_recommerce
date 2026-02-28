@@ -119,7 +119,13 @@ export default function ProductDetail() {
         <div className="product-detail-container">
           <div className="detail-layout">
             <div className="detail-gallery-section">
-              <ProductGallery images={product.images || [product.primaryImageUrl]} />
+              <ProductGallery images={
+                product.media && product.media.length > 0
+                  ? [...product.media]
+                      .sort((a, b) => a.sortOrder - b.sortOrder)
+                      .map(m => m.url)
+                  : [product.primaryImageUrl].filter(Boolean)
+              } />
             </div>
             
             <div className="detail-info-section">
