@@ -16,7 +16,7 @@ public class ChatbotService : IChatbotService
     private readonly ILogger<ChatbotService> _logger;
     private readonly string _faqPath;
     private static readonly object LockObj = new();
-    private static List<FaqItem>? Cache;
+    private static List<FaqEntry>? Cache;
 
     public ChatbotService(IUnitOfWork uow, IGeminiService geminiService, ILogger<ChatbotService> logger)
     {
@@ -52,15 +52,17 @@ public class ChatbotService : IChatbotService
             return new ChatbotAskResponse(noResultAnswer, "LOW", "LISTINGS", "product_search");
         }
 
-        FaqItem? best = null;
+        FaqEntry? best = null;
         var bestScore = 0.0;
+        var bestPriority = int.MaxValue;
         foreach (var item in faq)
         {
             var score = Score(item, normalized);
-            if (score > bestScore)
+            if (score > bestScore || (Math.Abs(score - bestScore) < 0.0001 && item.Priority < bestPriority))
             {
                 bestScore = score;
                 best = item;
+                bestPriority = item.Priority;
             }
         }
 
@@ -71,8 +73,8 @@ public class ChatbotService : IChatbotService
         if (best != null && bestScore > 0)
         {
             answer = best.Answer;
-            intent = best.Id;
-            confidence = bestScore >= 0.6 ? "HIGH" : bestScore >= 0.4 ? "MEDIUM" : "LOW";
+            intent = string.IsNullOrWhiteSpace(best.Intent) ? best.Id : best.Intent;
+            confidence = bestScore >= 0.7 ? "HIGH" : bestScore >= 0.45 ? "MEDIUM" : "LOW";
         }
         else
         {
@@ -85,7 +87,7 @@ public class ChatbotService : IChatbotService
         return new ChatbotAskResponse(answer, confidence, "FAQ_JSON", intent);
     }
 
-    private List<FaqItem> LoadFaq()
+    private List<FaqEntry> LoadFaq()
     {
         if (Cache != null) return Cache;
         lock (LockObj)
@@ -93,24 +95,32 @@ public class ChatbotService : IChatbotService
             if (Cache != null) return Cache;
             if (string.IsNullOrWhiteSpace(_faqPath) || !File.Exists(_faqPath))
             {
-                Cache = new List<FaqItem>();
+                Cache = new List<FaqEntry>();
                 return Cache;
             }
 
             var json = File.ReadAllText(_faqPath);
-            Cache = JsonSerializer.Deserialize<List<FaqItem>>(json, new JsonSerializerOptions
+            Cache = JsonSerializer.Deserialize<List<FaqEntry>>(json, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
-            }) ?? new List<FaqItem>();
+            }) ?? new List<FaqEntry>();
             return Cache;
         }
     }
 
-    private static double Score(FaqItem item, string question)
+    private static double Score(FaqEntry item, string question)
     {
-        if (item.Keywords == null || item.Keywords.Count == 0) return 0;
-        var hits = item.Keywords.Count(k => question.Contains(Normalize(k), StringComparison.OrdinalIgnoreCase));
-        return (double)hits / item.Keywords.Count;
+        if (item.Patterns == null || item.Patterns.Count == 0) return 0;
+        if (item.NegativePatterns != null && item.NegativePatterns.Any(np =>
+                question.Contains(Normalize(np), StringComparison.OrdinalIgnoreCase)))
+        {
+            return 0;
+        }
+
+        var hits = item.Patterns.Count(p => question.Contains(Normalize(p), StringComparison.OrdinalIgnoreCase));
+        if (hits == 0) return 0;
+        var ratio = (double)hits / item.Patterns.Count;
+        return ratio;
     }
 
     private static string Normalize(string input)
@@ -240,12 +250,15 @@ public class ChatbotService : IChatbotService
         }
     }
 
-    private sealed class FaqItem
+    private sealed class FaqEntry
     {
         public string Id { get; set; } = "";
-        public string Question { get; set; } = "";
+        public string Domain { get; set; } = "";
+        public string Intent { get; set; } = "";
+        public int Priority { get; set; } = 2;
+        public List<string> Patterns { get; set; } = new();
+        public List<string> NegativePatterns { get; set; } = new();
         public string Answer { get; set; } = "";
-        public List<string> Keywords { get; set; } = new();
     }
 }
 
