@@ -19,3 +19,15 @@ export const fetchMySubscription = async () => {
         throw error;
     }
 };
+
+// GET /subscription-plans/me/usage
+// Response: { monthlyListingLimit, usedCount, remainingCount }
+export const fetchMySubscriptionUsage = async () => {
+    try {
+        const response = await api.get('/subscription-plans/me/usage');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching subscription usage:', error);
+        throw error;
+    }
+};

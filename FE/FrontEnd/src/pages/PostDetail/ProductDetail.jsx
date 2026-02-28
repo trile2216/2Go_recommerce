@@ -100,7 +100,7 @@ export default function ProductDetail() {
 
   const specifications = {
     highlights: [
-      `Tình trạng: ${product.condition === "USED" ? 'Đã sử dụng' : 'Mới'} `,
+      `Tình trạng: ${product.condition === "USED" || product.condition === "used" ? 'Đã sử dụng' : 'Mới'} `,
       `Thương lượng: ${product.hasNegotiation ? 'Có' : 'Không'}`,
       `Hãng: ${product.brand}`,
       `Danh mục: ${product.categoryName}`,
@@ -139,6 +139,7 @@ export default function ProductDetail() {
             description={descriptionText}
             specifications={specifications}
             listingId={product.listingId}
+            location={[product.wardName, product.districtName].filter(Boolean).join(', ') || null}
           />
         </div>
          {relatedProducts.length > 0 &&  

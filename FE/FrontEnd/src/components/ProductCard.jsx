@@ -163,13 +163,13 @@ export default function ProductCard({ product }) {
         )}
         
         <div className="product-meta">
-          <div className="hp-meta-item">
+          {/* <div className="hp-meta-item">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
               <path d="M10 5C10 7.4965 7.2305 10.0965 6.3005 10.8995C6.21386 10.9646 6.1084 10.9999 6 10.9999C5.8916 10.9999 5.78614 10.9646 5.6995 10.8995C4.7695 10.0965 2 7.4965 2 5C2 3.93913 2.42143 2.92172 3.17157 2.17157C3.92172 1.42143 4.93913 1 6 1C7.06087 1 8.07828 1.42143 8.82843 2.17157C9.57857 2.92172 10 3.93913 10 5Z" stroke="#6B7280" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M6 6.5C6.82843 6.5 7.5 5.82843 7.5 5C7.5 4.17157 6.82843 3.5 6 3.5C5.17157 3.5 4.5 4.17157 4.5 5C4.5 5.82843 5.17157 6.5 6 6.5Z" stroke="#6B7280" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <span>{product.status}</span>
-          </div>
+          </div> */}
           <div className="hp-meta-item">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
               <path d="M6 11C8.76142 11 11 8.76142 11 6C11 3.23858 8.76142 1 6 1C3.23858 1 1 3.23858 1 6C1 8.76142 3.23858 11 6 11Z" stroke="#6B7280" strokeLinecap="round" strokeLinejoin="round"/>

@@ -186,7 +186,7 @@ function CommentItem({ comment, listingId, currentUserId, onReplySubmit, onUpdat
   );
 }
 
-export default function ProductDescription({ description, specifications, listingId }) {
+export default function ProductDescription({ description, specifications, listingId, location }) {
   const [comments, setComments] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -298,6 +298,13 @@ export default function ProductDescription({ description, specifications, listin
               <li key={index}>{item}</li>
             ))}
           </ul>
+
+          {location && (
+            <div className="product-location-info">
+              <span className="product-location-icon">📍</span>
+              <span className="product-location-text">{location}</span>
+            </div>
+          )}
 
         </div>
 
