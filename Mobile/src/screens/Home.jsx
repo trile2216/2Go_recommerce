@@ -388,7 +388,7 @@ const Home = () => {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.logoContainer}>
-            <Image source={require("../../assets/logo.jpg")} style={{ width: 20, height: 20 }} />
+            <Image source={require("../../assets/logo.png")} style={{ width: 20, height: 20 }} />
           </View>
           <View>
             <Text style={styles.appTitle}>2Go </Text>
@@ -573,7 +573,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(53, 158, 255, 0.1)",
+    // backgroundColor: "rgba(53, 158, 255, 0.1)",
     justifyContent: "center",
     alignItems: "center",
   },
