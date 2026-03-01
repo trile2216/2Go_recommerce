@@ -158,8 +158,6 @@ export default function AdminCustomers() {
         avatarUrl: editFormData.avatarUrl.trim() || ''
       };
       
-      console.log('Sending update data:', updateData);
-      
       await updateCustomerById(editFormData.userId, updateData);
       toast.success('Customer updated successfully');
       setShowEditModal(false);

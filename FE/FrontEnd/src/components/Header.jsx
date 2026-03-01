@@ -199,7 +199,6 @@ export default function Header() {
             );
             
             if (matchingWard && matchingWard.id !== 0) {
-              console.log('Auto-setting ward to:', matchingWard);
               setSelectedWard(matchingWard.id); // Lưu id thay vì object
             }
           }

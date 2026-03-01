@@ -23,7 +23,6 @@ export default function LocationPermissionPopup() {
       // User already granted permission - automatically get location in background
       const updateLocation = async () => {
         try {
-          console.log('Auto-updating user location...');
           const locationData = await getUserLocationWithAddress({
             enableHighAccuracy: false,
             timeout: 15000,
@@ -32,7 +31,6 @@ export default function LocationPermissionPopup() {
           
           // Update location data in localStorage
           localStorage.setItem('userLocation', JSON.stringify(locationData));
-          console.log('Location auto-updated:', locationData);
           
           // Dispatch custom event to notify other components
           window.dispatchEvent(new Event('locationUpdated'));

@@ -25,6 +25,9 @@ export const listingPrecheck = async (data) => {
         const response = await api.post('/ai/listings/precheck', data);
         return response.data;
     } catch (error) {
+        if (error.response?.status === 429) {
+            throw new Error('Gemini quota exceeded. Vui lòng thử lại sau.');
+        }
         throw error;
     }
 };

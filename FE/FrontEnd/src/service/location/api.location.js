@@ -88,7 +88,6 @@ export const getUserLocationWithAddress = (options = {}) => {
             address: addressData,
             timestamp: position.timestamp
           });
-          console.log('Geolocation position obtained:', addressData);
         } catch (error) {
           // If reverse geocoding fails, still return coordinates
           resolve({

@@ -153,12 +153,6 @@ export default function AdminListing() {
         return;
       }
 
-      console.log('Updating status:', {
-        listingId: statusFormData.listingId,
-        from: statusFormData.currentStatus,
-        to: statusFormData.newStatus
-      });
-
       await updateListingStatusById(statusFormData.listingId, statusFormData.newStatus);
       toast.success('Listing status updated successfully');
       setShowStatusModal(false);
@@ -366,11 +360,6 @@ export default function AdminListing() {
                     value={statusFormData.newStatus}
                     onChange={(e) => {
                       const newValue = e.target.value;
-                      console.log('Status selection:', {
-                        current: statusFormData.currentStatus,
-                        selected: newValue,
-                        isValid: isValidTransition(statusFormData.currentStatus, newValue)
-                      });
                       setStatusFormData({...statusFormData, newStatus: newValue});
                     }}
                     className="admin-input"
