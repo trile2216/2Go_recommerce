@@ -49,6 +49,8 @@ export default function PostListing() {
     const toast = useToast();
     const [isFormDirty, setIsFormDirty] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false); // To prevent blocker when submitting
+    const [isPosting, setIsPosting] = useState(false);       // Show loading overlay
+    const [loadingMessage, setLoadingMessage] = useState('Đang xử lý...');
     
     // Blocker for navigation
     const blocker = useBlocker(
@@ -519,12 +521,12 @@ export default function PostListing() {
         try {
             let forcePendingReview = false;
             let precheckNote = null;
+            setIsPosting(true);
             // Start loading with appropriate message
             if (submitStatus === 'Draft') {
-                toast.info("Đang lưu nháp...");
+                setLoadingMessage('Đang lưu nháp...');
             } else {
-                // For PendingReview: show initial message about checking
-                toast.info("Đang kiểm tra bài đăng...");
+                setLoadingMessage('Đang kiểm tra bài đăng...');
             }
 
             // Upload images
@@ -584,6 +586,7 @@ export default function PostListing() {
                 
                 if (!userId) {
                     toast.error("Lỗi: Không tìm thấy ID người dùng. Vui lòng đăng nhập lại.");
+                    setIsPosting(false);
                     setIsSubmitting(false);
                     return;
                 }
@@ -591,6 +594,7 @@ export default function PostListing() {
                 // Validate mediaUrls
                 if (allMediaUrls.length === 0) {
                     toast.error("Lỗi: Không có hình ảnh hoặc video để gửi kiểm tra.");
+                    setIsPosting(false);
                     setIsSubmitting(false);
                     return;
                 }
@@ -618,6 +622,7 @@ export default function PostListing() {
                             precheckResult.risk?.message ||
                             "Bài đăng không đủ điều kiện. Vui lòng kiểm tra lại!"
                         );
+                        setIsPosting(false);
                         setIsSubmitting(false);
                         return;
                     }
@@ -736,6 +741,8 @@ export default function PostListing() {
                 } else {
                     toast.success("Cập nhật bài đăng thành công!");
                 }
+                setIsPosting(false);
+                setIsSubmitting(false);
                 navigate(`/seller/listings/${editId}`);
             } else {
                 // Create new listing
@@ -762,6 +769,7 @@ export default function PostListing() {
                             };
                             localStorage.setItem(key, JSON.stringify(stored));
                         }
+                        setIsPosting(false);
                         setIsFormDirty(false);
                         if (blocker.state === "blocked") {
                             blocker.proceed();
@@ -771,15 +779,9 @@ export default function PostListing() {
                         return;
                     }
                     // Show intermediate message after draft created
-                    toast.info("Tin đã được tạo. Đang gửi duyệt...");
+                    setLoadingMessage('Tin đã được tạo. Đang gửi duyệt...');
 
                     try {
-                        // Deep check happens on BE during publish:
-                        // - NSFW/damage check
-                        // - Eligibility check
-                        // - Quota limits check
-                        // - If pass -> Active or PendingReview (for manual review)
-                        // - If fail or quota exceeded -> Manual review (PendingReview)
                         const publishRes = await publishListing(newListingId);
                         
                         toast.success(getPublishSuccessMessage(publishRes));
@@ -799,6 +801,7 @@ export default function PostListing() {
                 }
 
                 // Handle blocker/navigation
+                setIsPosting(false);
                 setIsFormDirty(false); // Mark form as clean before leaving
                 if (blocker.state === "blocked") {
                     blocker.proceed();
@@ -808,6 +811,7 @@ export default function PostListing() {
             }
 
         } catch (error) {
+            setIsPosting(false);
             setIsSubmitting(false); // Allow user to retry or save as draft
             console.error("Error in listing submission:", error);
             
@@ -832,6 +836,39 @@ export default function PostListing() {
 
     return (
         <div className="post-listing-container" style={{ backgroundColor: "#f5f5f5", minHeight: "100vh", paddingBottom: "40px" }}>
+
+            {/* Loading overlay when submitting */}
+            {isPosting && (
+                <div style={{
+                    position: 'fixed', inset: 0,
+                    background: 'rgba(0,0,0,0.45)',
+                    zIndex: 9999,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 16,
+                }}>
+                    <div style={{
+                        width: 52, height: 52,
+                        border: '5px solid rgba(255,255,255,0.3)',
+                        borderTop: '5px solid #fff',
+                        borderRadius: '50%',
+                        animation: 'spin 0.8s linear infinite',
+                    }} />
+                    <p style={{
+                        color: '#fff',
+                        fontSize: 16,
+                        fontWeight: 600,
+                        background: 'rgba(0,0,0,0.5)',
+                        padding: '8px 20px',
+                        borderRadius: 8,
+                        margin: 0,
+                    }}>{loadingMessage}</p>
+                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                </div>
+            )}
+
             <div style={{ maxWidth: 900, margin: "0 auto", padding: "20px" }}>
                 <Title level={2} style={{ marginBottom: 20 }}>
                     {editId ? `Chỉnh sửa tin đăng #${editId}` : 'Đăng tin mới'}
