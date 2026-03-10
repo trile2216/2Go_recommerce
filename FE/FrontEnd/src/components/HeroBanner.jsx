@@ -71,7 +71,7 @@ export default function HeroBanner() {
   return (
     <section className="hero-banner">
       <img 
-        src="https://api.builder.io/api/v1/image/assets/TEMP/8f1289c9da77db6112fd900daa77b9dcc319fba9?width=2764" 
+        src="https://res.cloudinary.com/dfatrgovp/image/upload/v1773127596/k6nc0lvz7egpp3sx63a6.jpg" 
         alt="Hero Banner"
         className="hero-image"
       />
