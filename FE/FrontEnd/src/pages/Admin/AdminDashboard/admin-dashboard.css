@@ -392,3 +392,71 @@
     padding: 0.75rem;
   }
 }
+
+.admin-stat-card.is-clickable {
+  cursor: pointer;
+}
+
+.admin-stat-card.is-clickable .admin-stat-change {
+  text-decoration: underline;
+}
+
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.admin-modal {
+  background: white;
+  border-radius: 10px;
+  width: 92%;
+  max-width: 980px;
+  max-height: 90vh;
+  overflow: auto;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
+}
+
+.admin-modal-xl {
+  max-width: 1100px;
+}
+
+.admin-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.admin-modal-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--admin-dark);
+}
+
+.admin-modal-close {
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: var(--admin-text-light);
+}
+
+.admin-modal-close:hover {
+  color: var(--admin-dark);
+}
+
+.admin-modal-body {
+  padding: 1rem 1.5rem;
+}
+
+.admin-modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--admin-border);
+}
