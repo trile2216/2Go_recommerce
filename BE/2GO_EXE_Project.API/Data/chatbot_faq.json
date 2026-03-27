@@ -874,6 +874,8 @@
         "priority":  1,
         "patterns":  [
                          "tôi muốn mua đồ trên 2go",
+                         "mua hàng như thế nào",
+                         "hướng dẫn tôi mua hàng",
                          "mua hàng trên 2go như thế nào",
                          "cách mua trên 2go",
                          "tôi muốn tìm đồ để mua",
@@ -893,6 +895,7 @@
         "priority":  1,
         "patterns":  [
                          "tôi muốn bán đồ trên 2go",
+                         "hướng dẫn cách bán hàng cho tôi",
                          "cách bán hàng trên 2go",
                          "đăng bán trên 2go như thế nào",
                          "người mới muốn bán thì làm sao",
@@ -941,5 +944,266 @@
 
                               ],
         "answer":  "Mình có thể hỗ trợ bạn theo 3 nhóm chính: giới thiệu 2GO, hướng dẫn mua hoặc bán, và giải thích về an toàn giao dịch. Bạn cứ nói ngắn gọn điều bạn đang cần, ví dụ: muốn mua đồ, muốn bán đồ, muốn hỏi về giá, hoặc muốn biết cách giao dịch an toàn."
+    },
+    {
+        "id":  "deposit_required",
+        "domain":  "payment",
+        "intent":  "deposit_requirement",
+        "priority":  2,
+        "patterns":  [
+                         "có cần đặt cọc không",
+                         "khi nào cần đặt cọc",
+                         "điều kiện đặt cọc",
+                         "đơn nào cần cọc",
+                         "phí đặt cọc khi nào áp dụng"
+                     ],
+        "negative_patterns":  [
+                                  "hoàn cọc",
+                                  "mất cọc"
+                              ],
+        "answer":  "Khi buyer tạo order, hệ thống sẽ kiểm tra tổng giá trị. Nếu tổng \u003e= 2.000.000 thì cần đặt cọc 10%, nếu thấp hơn thì không cần cọc."
+    },
+    {
+        "id":  "deposit_amount",
+        "domain":  "payment",
+        "intent":  "deposit_amount",
+        "priority":  2,
+        "patterns":  [
+                         "đặt cọc bao nhiêu",
+                         "mức cọc bao nhiêu",
+                         "cọc 10%",
+                         "tính phí đặt cọc",
+                         "tiền đặt cọc là bao nhiêu"
+                     ],
+        "negative_patterns":  [
+                                  "hoàn cọc",
+                                  "mất cọc"
+                              ],
+        "answer":  "Mức đặt cọc là 10% tổng giá trị đơn hàng (áp dụng cho đơn có tổng \u003e= 2.000.000)."
+    },
+    {
+        "id":  "deposit_process",
+        "domain":  "payment",
+        "intent":  "deposit_process",
+        "priority":  2,
+        "patterns":  [
+                         "quy trình đặt cọc",
+                         "cách đặt cọc",
+                         "đặt cọc như thế nào",
+                         "thanh toán cọc",
+                         "xác nhận cọc"
+                     ],
+        "negative_patterns":  [
+
+                              ],
+        "answer":  "Quy trình: (1) Buyer tạo order, hệ thống xác định có cần cọc không. (2) Buyer thanh toán cọc; khi cọc thành công order chuyển Confirmed và seller được tạo shipping."
+    },
+    {
+        "id":  "deposit_deadline",
+        "domain":  "payment",
+        "intent":  "deposit_deadline",
+        "priority":  2,
+        "patterns":  [
+                         "deadline đặt cọc",
+                         "hạn đặt cọc",
+                         "bao lâu phải cọc",
+                         "72h đặt cọc",
+                         "quá hạn cọc"
+                     ],
+        "negative_patterns":  [
+                                  "hoàn cọc",
+                                  "mất cọc"
+                              ],
+        "answer":  "Mốc 72h chỉ áp dụng khi order còn Pending (chưa cọc xong). Nếu quá 72h mà vẫn Pending thì order bị hủy và mất cọc (nếu đã đặt)."
+    },
+    {
+        "id":  "deposit_cancel",
+        "domain":  "payment",
+        "intent":  "deposit_cancel_policy",
+        "priority":  2,
+        "patterns":  [
+                         "hủy đơn có hoàn cọc không",
+                         "hủy đơn mất cọc",
+                         "hủy trước deadline",
+                         "hủy sau deadline",
+                         "hoàn tiền đặt cọc"
+                     ],
+        "negative_patterns":  [
+
+                              ],
+        "answer":  "Buyer hủy trước deadline thì được hoàn cọc. Buyer hủy sau deadline thì mất cọc."
+    },
+    {
+        "id":  "deposit_forfeit_payout",
+        "domain":  "payment",
+        "intent":  "deposit_forfeit_payout",
+        "priority":  2,
+        "patterns":  [
+                         "mất cọc thì tiền đi đâu",
+                         "tịch thu cọc",
+                         "payout khi mất cọc",
+                         "cọc bị mất thì sao",
+                         "cọc chuyển cho ai"
+                     ],
+        "negative_patterns":  [
+
+                              ],
+        "answer":  "Khi cọc bị tịch thu, hệ thống tự động payout cho seller. Nếu payout lỗi, hệ thống sẽ tự retry và admin có thể retry thủ công."
+    },
+    {
+        "id":  "service_fee_policy",
+        "domain":  "legal",
+        "intent":  "service_fee_policy",
+        "priority":  2,
+        "patterns":  [
+                         "phí dịch vụ là gì",
+                         "phí hoa hồng",
+                         "2go thu phí bao nhiêu",
+                         "phí giao dịch",
+                         "phí nền tảng"
+                     ],
+        "negative_patterns":  [
+                                  "đặt cọc"
+                              ],
+        "answer":  "2GO áp dụng mô hình Freemium. Người dùng mới được đăng miễn phí 02 bài. Sau đó có thể trả phí hoa hồng theo giao dịch hoặc mua gói subscription. Phí hoa hồng hiện là 7% trên tổng giá trị giao dịch thành công và được khấu trừ khi giao dịch hoàn tất."
+    },
+    {
+        "id":  "subscription_plans",
+        "domain":  "legal",
+        "intent":  "subscription_plans",
+        "priority":  2,
+        "patterns":  [
+                         "gói subscription",
+                         "các gói dịch vụ",
+                         "gói premium pro vip",
+                         "giá gói tháng",
+                         "gói đăng bài"
+                     ],
+        "negative_patterns":  [
+
+                              ],
+        "answer":  "Các gói: Basic miễn phí (02 bài/tháng). Premium 33.000đ/tháng (tối đa 07 bài, ưu tiên duyệt nhanh). Pro 55.000đ/tháng (tối đa 15 bài, boosted listing, hỗ trợ ưu tiên). VIP 88.000đ/tháng (không giới hạn bài, hiển thị đầu trang, priority support). Gói có hiệu lực 30 ngày và không hoàn phí giữa kỳ."
+    },
+    {
+        "id":  "terms_of_use",
+        "domain":  "legal",
+        "intent":  "terms_of_use_summary",
+        "priority":  2,
+        "patterns":  [
+                         "điều khoản sử dụng",
+                         "quy định sử dụng",
+                         "vi phạm điều khoản",
+                         "chính sách sử dụng",
+                         "trách nhiệm người dùng"
+                     ],
+        "negative_patterns":  [
+                                  "bảo mật",
+                                  "privacy"
+                              ],
+        "answer":  "Người dùng phải cung cấp thông tin chính xác, tự bảo mật tài khoản và không chia sẻ cho người khác. Cấm đăng hàng giả, hàng cấm, nội dung lừa đảo. 2GO có quyền gỡ nội dung vi phạm và xử lý vi phạm theo mức độ. Giao dịch dùng cơ chế ký quỹ; 2GO là nền tảng trung gian và không chịu trách nhiệm trực tiếp về chất lượng hàng hóa."
+    },
+    {
+        "id":  "privacy_policy",
+        "domain":  "legal",
+        "intent":  "privacy_policy_summary",
+        "priority":  2,
+        "patterns":  [
+                         "chính sách bảo mật",
+                         "privacy policy",
+                         "dữ liệu cá nhân",
+                         "thông tin thu thập",
+                         "quyền dữ liệu"
+                     ],
+        "negative_patterns":  [
+
+                              ],
+        "answer":  "2GO thu thập thông tin tài khoản, giao dịch, thanh toán, dữ liệu kỹ thuật và nội dung người dùng tạo. Dữ liệu dùng cho xác thực, xử lý thanh toán, chống gian lận và hỗ trợ khách hàng. Có thể chia sẻ với đối tác thanh toán/vận chuyển hoặc cơ quan nhà nước khi có yêu cầu hợp pháp. Người dùng có quyền chỉnh sửa, yêu cầu xóa hoặc cung cấp dữ liệu cá nhân theo quy định."
+    },
+    {
+        "id":  "help_center_contact",
+        "domain":  "support",
+        "intent":  "help_center_contact",
+        "priority":  2,
+        "patterns":  [
+                         "liên hệ hỗ trợ",
+                         "liên hệ cskh",
+                         "hotline",
+                         "email hỗ trợ",
+                         "trung tâm trợ giúp"
+                     ],
+        "negative_patterns":  [
+
+                              ],
+        "answer":  "Liên hệ hỗ trợ: Email support@2go.vn, Hotline/Zalo 0xxx xxx xxx. Thời gian hỗ trợ 08:00 – 22:00 (Thứ 2 – Chủ Nhật)."
+    },
+    {
+        "id":  "listing_posting_guide",
+        "domain":  "listing",
+        "intent":  "listing_posting_guide",
+        "priority":  2,
+        "patterns":  [
+                         "hướng dẫn đăng bài",
+                         "cách đăng bài",
+                         "đăng bài như thế nào",
+                         "tạo bài đăng",
+                         "đăng tin bán hàng"
+                     ],
+        "negative_patterns":  [
+
+                              ],
+        "answer":  "Để đăng bài: chuẩn bị ảnh rõ nét, nhập tiêu đề/mô tả trung thực, chọn danh mục, tình trạng, giá và khu vực. Hệ thống sẽ precheck AI nội dung/ảnh trước khi duyệt."
+    },
+    {
+        "id":  "listing_image_resolution_requirement",
+        "domain":  "listing",
+        "intent":  "listing_image_resolution_requirement",
+        "priority":  2,
+        "patterns":  [
+                         "ảnh tối thiểu bao nhiêu",
+                         "yêu cầu kích thước ảnh",
+                         "ảnh 300x300",
+                         "ảnh chất lượng cao",
+                         "độ phân giải ảnh"
+                     ],
+        "negative_patterns":  [
+                                  "số lượng ảnh",
+                                  "bao nhiêu ảnh"
+                              ],
+        "answer":  "Ảnh đăng bài cần rõ nét, không bị mờ và có độ phân giải tối thiểu 300x300 trở lên. Ảnh phải thể hiện đúng sản phẩm, không che khuất."
+    },
+    {
+        "id":  "listing_sensitive_content_policy",
+        "domain":  "listing",
+        "intent":  "listing_sensitive_content_policy",
+        "priority":  2,
+        "patterns":  [
+                         "ảnh phản cảm",
+                         "nội dung phản cảm",
+                         "từ khóa nhạy cảm",
+                         "nội dung bị cấm",
+                         "ảnh đồi trụy"
+                     ],
+        "negative_patterns":  [
+
+                              ],
+        "answer":  "Nội dung/ảnh có tính phản cảm, đồi trụy hoặc vi phạm quy định sẽ bị từ chối. Hệ thống có precheck AI để lọc nội dung nhạy cảm trước khi duyệt."
+    },
+    {
+        "id":  "listing_ai_precheck_admin_review",
+        "domain":  "listing",
+        "intent":  "listing_ai_precheck_admin_review",
+        "priority":  2,
+        "patterns":  [
+                         "precheck ai",
+                         "ai kiểm duyệt",
+                         "chờ admin duyệt",
+                         "duyệt thủ công",
+                         "vì sao phải chờ duyệt"
+                     ],
+        "negative_patterns":  [
+                                  "bị từ chối",
+                                  "rejected"
+                              ],
+        "answer":  "Bài đăng sẽ được AI precheck trước. Nếu phát hiện rủi ro hoặc cần xác minh thêm, bài sẽ chuyển sang trạng thái chờ admin duyệt thủ công."
     }
 ]
