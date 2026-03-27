@@ -49,6 +49,7 @@ export default function UserInfo() {
   // Form states
   const [profileForm, setProfileForm] = useState({
     fullName: '',
+    phone: '',
     birthday: '',
     gender: '',
     address: '',
@@ -93,6 +94,7 @@ export default function UserInfo() {
     if (storedUser) {
       setProfileForm({
         fullName: storedUser.profile?.fullName || '',
+        phone: storedUser.phone || '',
         birthday: storedUser.profile?.birthday || '',
         gender: storedUser.profile?.gender || '',
         address: storedUser.profile?.address || '',
@@ -119,6 +121,7 @@ export default function UserInfo() {
       // Pre-fill form with profile data
       setProfileForm({
         fullName: data.profile?.fullName || '',
+        phone: data.phone || '',
         birthday: data.profile?.birthday || '',
         gender: data.profile?.gender || '',
         address: data.profile?.address || '',
@@ -243,6 +246,7 @@ export default function UserInfo() {
   const startEditing = () => {
     setProfileForm({
       fullName: userInfo?.profile?.fullName || '',
+      phone: userInfo?.phone || '',
       birthday: userInfo?.profile?.birthday || '',
       gender: userInfo?.profile?.gender || '',
       address: userInfo?.profile?.address || '',
@@ -819,17 +823,14 @@ export default function UserInfo() {
                     />
                   </div>
                   <div className="ui-form-group">
-                    <label>Giới tính</label>
-                    <select
-                      name="gender"
-                      value={profileForm.gender}
+                    <label>Số điện thoại</label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={profileForm.phone}
                       onChange={handleProfileFormChange}
-                    >
-                      <option value="">Chọn giới tính</option>
-                      <option value="Male">Nam</option>
-                      <option value="Female">Nữ</option>
-                      <option value="Other">Khác</option>
-                    </select>
+                      placeholder="Nhập số điện thoại"
+                    />
                   </div>
                 </div>
 
@@ -844,15 +845,29 @@ export default function UserInfo() {
                     />
                   </div>
                   <div className="ui-form-group">
-                    <label>Địa chỉ</label>
-                    <input
-                      type="text"
-                      name="address"
-                      value={profileForm.address}
+                    <label>Giới tính</label>
+                    <select
+                      name="gender"
+                      value={profileForm.gender}
                       onChange={handleProfileFormChange}
-                      placeholder="Nhập địa chỉ"
-                    />
+                    >
+                      <option value="">Chọn giới tính</option>
+                      <option value="Male">Nam</option>
+                      <option value="Female">Nữ</option>
+                      <option value="Other">Khác</option>
+                    </select>
                   </div>
+                </div>
+
+                <div className="ui-form-group">
+                  <label>Địa chỉ</label>
+                  <input
+                    type="text"
+                    name="address"
+                    value={profileForm.address}
+                    onChange={handleProfileFormChange}
+                    placeholder="Nhập địa chỉ"
+                  />
                 </div>
 
                 <div className="ui-form-row">
