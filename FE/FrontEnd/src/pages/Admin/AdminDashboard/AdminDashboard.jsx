@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, Users, ShoppingCart, ArrowUp, ArrowDown } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, ShoppingCart, ArrowUp, ArrowDown, CreditCard, Percent } from 'lucide-react';
 import AdminLayout from '../../../layouts/AdminLayout';
 import './admin-dashboard.css'
 
 import { getDashboardSummary, getDashboardTimeseries } from '../../../service/admin/api.admin.dashboard';
 import { getOrders } from '../../../service/admin/api.admin.order';
+import { getAdminPayments } from '../../../service/admin/api.admin.payment';
 
 // Available metrics for the chart selector
 const CHART_METRICS = [
@@ -24,6 +25,8 @@ export default function AdminDashboard() {
     totalCustomers: 0,
     totalOrders: 0,
     totalRevenue: 0,
+    subscriptionRevenue: 0,
+    commissionRevenue: 0,
     ordersToday: 0,
     customersThisMonth: 0
   });
@@ -32,6 +35,14 @@ export default function AdminDashboard() {
   const [chartMetric, setChartMetric] = useState('ordersTotal');
   const [recentOrders, setRecentOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentType, setPaymentType] = useState('');
+  const [paymentItems, setPaymentItems] = useState([]);
+  const [paymentTotal, setPaymentTotal] = useState(0);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentSkip, setPaymentSkip] = useState(0);
+  const paymentTake = 10;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -48,6 +59,8 @@ export default function AdminDashboard() {
           totalCustomers: summary.summary.usersNew, 
           totalOrders: summary.summary.ordersTotal,
           totalRevenue: summary.summary.gmvCompleted,
+          subscriptionRevenue: summary.summary.subscriptionRevenue,
+          commissionRevenue: summary.summary.commissionRevenue,
           ordersToday: 0, 
           customersThisMonth: 0 
         });
@@ -97,6 +110,19 @@ export default function AdminDashboard() {
     return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
   };
 
+  const formatDateTime = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleString('vi-VN');
+  };
+
+  const formatRate = (rate) => {
+    if (rate === null || rate === undefined) return 'N/A';
+    const numericRate = Number(rate);
+    if (Number.isNaN(numericRate)) return 'N/A';
+    if (numericRate <= 1) return `${(numericRate * 100).toFixed(2)}%`;
+    return `${numericRate}%`;
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'Completed':
@@ -112,6 +138,46 @@ export default function AdminDashboard() {
         return 'badge-secondary';
     }
   };
+
+  const fetchPayments = async (type, nextSkip = 0) => {
+    setPaymentLoading(true);
+    try {
+      const response = await getAdminPayments({
+        paymentType: type,
+        status: 'Paid',
+        skip: nextSkip,
+        take: paymentTake
+      });
+      const items = response.items || response.Items || [];
+      const total = response.total ?? response.Total ?? 0;
+      setPaymentItems(items);
+      setPaymentTotal(total);
+      setPaymentSkip(nextSkip);
+    } catch (error) {
+      console.error('Failed to fetch payment details', error);
+      setPaymentItems([]);
+      setPaymentTotal(0);
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  const openPaymentModal = async (type) => {
+    setPaymentType(type);
+    setPaymentModalOpen(true);
+    await fetchPayments(type, 0);
+  };
+
+  const closePaymentModal = () => {
+    setPaymentModalOpen(false);
+    setPaymentType('');
+    setPaymentItems([]);
+    setPaymentTotal(0);
+    setPaymentSkip(0);
+  };
+
+  const paymentTitle = paymentType === 'SUBSCRIPTION' ? 'Subscription Revenue Details' : 'Commission Revenue Details';
+  const isSubscription = paymentType === 'SUBSCRIPTION';
 
   return (
     <AdminLayout>
@@ -166,6 +232,32 @@ export default function AdminDashboard() {
               <h3>{formatPrice(stats.totalRevenue)}</h3>
               <span className="admin-stat-change positive">
                 <ArrowUp size={16} /> 15% increase
+              </span>
+            </div>
+          </div>
+
+          <div className="admin-stat-card is-clickable" onClick={() => openPaymentModal('SUBSCRIPTION')}>
+            <div className="admin-stat-icon bg-info">
+              <CreditCard size={24} />
+            </div>
+            <div className="admin-stat-content">
+              <p className="admin-stat-label">Subscription Revenue</p>
+              <h3>{formatPrice(stats.subscriptionRevenue)}</h3>
+              <span className="admin-stat-change positive">
+                <ArrowUp size={16} /> View details
+              </span>
+            </div>
+          </div>
+
+          <div className="admin-stat-card is-clickable" onClick={() => openPaymentModal('COMMISSION')}>
+            <div className="admin-stat-icon bg-success">
+              <Percent size={24} />
+            </div>
+            <div className="admin-stat-content">
+              <p className="admin-stat-label">Commission Revenue</p>
+              <h3>{formatPrice(stats.commissionRevenue)}</h3>
+              <span className="admin-stat-change positive">
+                <ArrowUp size={16} /> View details
               </span>
             </div>
           </div>
@@ -303,6 +395,111 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {paymentModalOpen && (
+        <div className="admin-modal-overlay" onClick={closePaymentModal}>
+          <div className="admin-modal admin-modal-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <h3>{paymentTitle}</h3>
+              <button className="admin-modal-close" onClick={closePaymentModal}>?</button>
+            </div>
+            <div className="admin-modal-body">
+              {paymentLoading ? (
+                <p style={{ textAlign: 'center', padding: '16px' }}>Loading...</p>
+              ) : (
+                <>
+                  <div className="admin-table-wrapper">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Payment ID</th>
+                          {isSubscription ? (
+                            <>
+                              <th>User</th>
+                              <th>Plan</th>
+                              <th>Amount</th>
+                              <th>Valid Until</th>
+                              <th>Status</th>
+                              <th>Created At</th>
+                            </>
+                          ) : (
+                            <>
+                              <th>Order Code</th>
+                              <th>Listing</th>
+                              <th>Order Total</th>
+                              <th>Rate</th>
+                              <th>Commission</th>
+                              <th>Status</th>
+                              <th>Created At</th>
+                            </>
+                          )}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paymentItems.length > 0 ? (
+                          paymentItems.map((p) => (
+                            <tr key={p.paymentId}>
+                              <td className="admin-order-id">#{p.paymentId}</td>
+                              {isSubscription ? (
+                                <>
+                                  <td>{p.userEmail || 'N/A'}</td>
+                                  <td>{p.subscriptionPlanCode || 'N/A'}</td>
+                                  <td>{formatPrice(p.amount || 0)}</td>
+                                  <td>{p.subscriptionValidUntil ? formatDateTime(p.subscriptionValidUntil) : 'N/A'}</td>
+                                  <td>{p.status || 'N/A'}</td>
+                                  <td>{formatDateTime(p.createdAt)}</td>
+                                </>
+                              ) : (
+                                <>
+                                  <td>{p.orderCode ? `#${p.orderCode}` : 'N/A'}</td>
+                                  <td>{p.listingTitle || 'N/A'}</td>
+                                  <td>{formatPrice(p.orderTotalAmount || 0)}</td>
+                                  <td>{formatRate(p.commissionRate)}</td>
+                                  <td>{formatPrice(p.commissionAmount || 0)}</td>
+                                  <td>{p.status || 'N/A'}</td>
+                                  <td>{formatDateTime(p.createdAt)}</td>
+                                </>
+                              )}
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan="7" style={{ textAlign: 'center', padding: '16px' }}>
+                              No data available
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="admin-modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
+                      Showing {paymentItems.length === 0 ? 0 : paymentSkip + 1} - {Math.min(paymentSkip + paymentItems.length, paymentTotal)} of {paymentTotal}
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        className="admin-action-btn"
+                        disabled={paymentSkip <= 0 || paymentLoading}
+                        onClick={() => fetchPayments(paymentType, Math.max(paymentSkip - paymentTake, 0))}
+                      >
+                        Prev
+                      </button>
+                      <button
+                        className="admin-action-btn"
+                        disabled={paymentSkip + paymentTake >= paymentTotal || paymentLoading}
+                        onClick={() => fetchPayments(paymentType, paymentSkip + paymentTake)}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }
