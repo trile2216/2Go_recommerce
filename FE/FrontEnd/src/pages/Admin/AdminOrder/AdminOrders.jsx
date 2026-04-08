@@ -4,7 +4,7 @@ import AdminLayout from '../../../layouts/AdminLayout';
 import './admin-orders.css';
 import { useToast } from '../../../context/ToastContext';
 import ConfirmationModal from '../../../components/Admin/ConfirmationModal';
-import { getOrders, updateOrderStatus } from '../../../service/admin/api.admin.order';
+import { getOrders, updateOrderStatus, getOrderById } from '../../../service/admin/api.admin.order';
 import { createTransfer } from '../../../service/admin/api.admin.transfer';
 import { fetchCustomerById } from '../../../service/admin/api.customer';
 import { getBanks } from '../../../service/payment/api.bank';
@@ -36,6 +36,11 @@ export default function AdminOrders() {
   // Notification Modal State
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
   const [notifyTarget, setNotifyTarget] = useState({ userId: null, userName: '', defaultTitle: '', defaultMessage: '' });
+
+  // View Order Modal State
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [viewOrderDetails, setViewOrderDetails] = useState(null);
+  const [viewOrderLoading, setViewOrderLoading] = useState(false);
 
   // Failed Payouts State
   const [payouts, setPayouts] = useState([]);
@@ -207,19 +212,12 @@ export default function AdminOrders() {
 
         setSelectedOrderForTransfer(order);
         setTransferDetails({
-            amount: (order.totalAmount || 0) * 0.93, // Assuming 7% platform fee, or fetch commission rule
-            // Ideally we transfer the payout amount, which might be total - fee. 
-            // For now, I'll default to totalAmount but in a real app this should be calculated.
-            // Wait, usually transfer is for Payout. 
-            // I'll leave amount editable or set to Total for now.
-            // Let's use order.totalAmount for now and let admin verify.
-            // Actually, better to transfer what the seller earned.
-            // Since logic isn't fully clear on frontend, I'll allow admin to review.
+            amount: (order.totalAmount || 0) * 0.93, 
             displayAmount: order.totalAmount, 
             toBin: bank.bin,
             toAccountNumber: bankAccountNumber,
             bankName: bank.shortName,
-            description: `Payout for Order #${order.orderCode}`
+            description: `Order #${order.orderCode}`
         });
         setTransferModalOpen(true);
 
@@ -236,7 +234,7 @@ export default function AdminOrders() {
 
     try {
         await createTransfer({
-            amount: transferDetails.displayAmount, // In real app, calculate fee
+            amount: transferDetails.amount, 
             description: transferDetails.description,
             toBin: transferDetails.toBin,
             toAccountNumber: transferDetails.toAccountNumber,
@@ -248,6 +246,21 @@ export default function AdminOrders() {
     } catch (error) {
         console.error('Transfer failed:', error);
         toast.error('Transfer failed. Check console for details.');
+    }
+  };
+
+  const handleViewOrder = async (orderId) => {
+    setViewModalOpen(true);
+    setViewOrderLoading(true);
+    try {
+      const data = await getOrderById(orderId);
+      setViewOrderDetails(data);
+    } catch (error) {
+      console.error('Error fetching order details:', error);
+      toast.error('Failed to load order details');
+      setViewModalOpen(false);
+    } finally {
+      setViewOrderLoading(false);
     }
   };
 
@@ -275,13 +288,7 @@ export default function AdminOrders() {
       default: return 'badge-secondary';
     }
   };
-
-  const getPaymentColor = (method) => {
-    // This is Payment Method, not status. Status is not in OrderListItem separately in some views,
-    // but DTO has PaymentMethod (COD, PayOS).
-    return 'badge-secondary'; 
-  };
-
+  
   return (
     <AdminLayout>
       <div className="admin-orders-page">
@@ -374,7 +381,7 @@ export default function AdminOrders() {
                       orders.map((order) => (
                         <tr key={order.orderId}>
                           <td className="admin-order-id">
-                            <strong>#{order.orderCode}</strong>
+                            <strong>{order.orderCode}</strong>
                           </td>
                           <td>
                             <div className="order-product-info">
@@ -404,6 +411,13 @@ export default function AdminOrders() {
                           </td>
                           <td>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : '-'}</td>
                           <td className="admin-actions">
+                            <button 
+                              className="admin-action-icon view"
+                              title="View Order Details"
+                              onClick={() => handleViewOrder(order.orderId)}
+                            >
+                              <Eye size={18} />
+                            </button>
                             {order.status === 'Completed' && (
                                 <button 
                                     className="admin-action-icon edit" 
@@ -612,7 +626,7 @@ export default function AdminOrders() {
                     <div style={{marginTop: '10px', padding: '10px', background: '#f5f7fa', borderRadius: '6px'}}>
                         <p><strong>Bank:</strong> {transferDetails.bankName}</p>
                         <p><strong>Account:</strong> {transferDetails.toAccountNumber}</p>
-                        <p><strong>Amount:</strong> {formatPrice(transferDetails.displayAmount)}</p>
+                        <p><strong>Amount:</strong> {formatPrice(transferDetails.amount)}</p>
                         <p><strong>Desc:</strong> {transferDetails.description}</p>
                     </div>
                 </div>
@@ -656,6 +670,118 @@ export default function AdminOrders() {
         confirmText={retryingId ? 'Retrying...' : 'Retry Payout'}
         type="warning"
       />
+
+      {/* View Order Modal */}
+      {viewModalOpen && (
+        <div className="admin-modal-overlay" onClick={() => { setViewModalOpen(false); setViewOrderDetails(null); }}>
+          <div className="admin-modal" style={{ maxWidth: '800px', width: '90%' }} onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <h3>Order Details</h3>
+              <button 
+                className="admin-modal-close" 
+                onClick={() => { setViewModalOpen(false); setViewOrderDetails(null); }}
+              >
+                &times;
+              </button>
+            </div>
+            <div className="admin-modal-body" style={{ maxHeight: '70vh', overflowY: 'auto', padding: '20px' }}>
+              {viewOrderLoading ? (
+                <div style={{ textAlign: 'center', padding: '20px' }}>Loading...</div>
+              ) : viewOrderDetails ? (
+                <div className="order-details-content" style={{ display: 'grid', gap: '15px', color: '#1e293b' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', padding: '15px', backgroundColor: '#f8fafc', borderRadius: '8px' }}>
+                    <div>
+                      <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Order Code</p>
+                      <p style={{ fontWeight: '600', fontSize: '16px' }}>#{viewOrderDetails.orderCode}</p>
+                    </div>
+                    <div>
+                      <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</p>
+                      <span className={`admin-badge ${getStatusColor(viewOrderDetails.status)}`}>
+                        {viewOrderDetails.status}
+                      </span>
+                    </div>
+                    <div>
+                      <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Amount</p>
+                      <p style={{ fontWeight: '700', color: '#2563eb', fontSize: '18px' }}>{formatPrice(viewOrderDetails.totalAmount)}</p>
+                    </div>
+                    <div>
+                      <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Payment Method</p>
+                      <p style={{ fontWeight: '600', fontSize: '16px' }}>{viewOrderDetails.paymentMethod || 'N/A'}</p>
+                    </div>
+                  </div>
+                  
+                  <div style={{ padding: '15px', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                    <h4 style={{ marginBottom: '12px', fontSize: '15px', color: '#0f172a', fontWeight: '600', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>Listing Information</h4>
+                    <div style={{ display: 'grid', gap: '8px' }}>
+                      <p style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: '#64748b' }}>Title:</span> 
+                        <span style={{ fontWeight: '500', textAlign: 'right', flex: 1, marginLeft: '10px' }}>{viewOrderDetails.listingTitle || 'N/A'}</span>
+                      </p>
+                      <p style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#64748b' }}>Price:</span> 
+                        <span style={{ fontWeight: '600' }}>{formatPrice(viewOrderDetails.listingPrice)}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                    <div style={{ padding: '15px', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                      <h4 style={{ marginBottom: '12px', fontSize: '15px', color: '#0f172a', fontWeight: '600', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>Buyer</h4>
+                      <div style={{ display: 'grid', gap: '8px' }}>
+                        <p style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#64748b' }}>Email:</span>
+                          <span style={{ fontWeight: '600' }}>{viewOrderDetails.buyerEmail}</span>
+                        </p>
+                        <p style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#64748b' }}>Phone: </span>
+                          <span style={{ fontWeight: '600' }}>{viewOrderDetails.buyerPhone}</span>
+                        </p>
+                      </div>
+                    </div>
+                    <div style={{ padding: '15px', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                      <h4 style={{ marginBottom: '12px', fontSize: '15px', color: '#0f172a', fontWeight: '600', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>Seller</h4>
+                      <div style={{ display: 'grid', gap: '8px' }}>
+                        <p style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#64748b' }}>Email:</span>
+                          <span style={{ fontWeight: '600' }}>{viewOrderDetails.sellerEmail}</span>
+                        </p>
+                        <p style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#64748b' }}>Phone: </span>
+                          <span style={{ fontWeight: '600' }}>{viewOrderDetails.sellerPhone}</span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  {viewOrderDetails.depositRequired && (
+                  <div style={{ padding: '15px', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                     <h4 style={{ marginBottom: '12px', fontSize: '15px', color: '#0f172a', fontWeight: '600', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>Additional Details</h4>
+                     <div style={{ display: 'grid', gap: '8px' }}>
+                       <p style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                         <span style={{ color: '#64748b' }}>Escrow Status:</span>
+                         <span className={`admin-badge ${getEscrowColor(viewOrderDetails.escrowStatus)}`}>{viewOrderDetails.escrowStatus || 'N/A'}</span>
+                       </p>
+                       <p style={{ display: 'flex', justifyContent: 'space-between' }}>
+                         <span style={{ color: '#64748b' }}>Created At:</span>
+                         <span style={{ fontWeight: '500' }}>{viewOrderDetails.createdAt ? new Date(viewOrderDetails.createdAt).toLocaleString() : 'N/A'}</span>
+                       </p>
+                     </div>
+                  </div>)}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#ef4444' }}>Failed to load data.</div>
+              )}
+            </div>
+            <div className="admin-modal-footer">
+              <button 
+                className="admin-btn admin-btn-secondary" 
+                onClick={() => { setViewModalOpen(false); setViewOrderDetails(null); }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }
