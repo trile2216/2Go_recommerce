@@ -241,6 +241,16 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+// Configure Kestrel to listen on PORT environment variable (required by Render)
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(port))
+{
+    builder.WebHost.ConfigureKestrel(options =>
+    {
+        options.ListenAnyIP(int.Parse(port));
+    });
+}
+
 var app = builder.Build();
 app.Logger.LogInformation("Database connection: {ConnectionString}", sanitizedConnectionString);
 
@@ -267,7 +277,11 @@ app.Use(async (context, next) =>
     }
 });
 
-app.UseHttpsRedirection();
+// Only use HTTPS redirection in development; Render handles TLS termination
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
