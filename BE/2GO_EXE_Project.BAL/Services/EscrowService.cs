@@ -327,11 +327,11 @@ public class EscrowService : IEscrowService
             var amount = escrow.DepositAmount ?? 0m;
             if (amount <= 0m) return;
 
-            var existingPaid = await _uow.EscrowTransactions.Query()
+            var existingInFlight = await _uow.EscrowTransactions.Query()
                 .AnyAsync(t => t.EscrowId == escrow.EscrowId &&
                                t.Type == "FORFEIT_PAYOUT" &&
-                               t.Status == "PAID", cancellationToken);
-            if (existingPaid) return;
+                               (t.Status == "PAID" || t.Status == "PENDING"), cancellationToken);
+            if (existingInFlight) return;
 
             var seller = await _uow.Users.Query()
                 .Include(u => u.UserProfiles)
@@ -393,11 +393,11 @@ public class EscrowService : IEscrowService
             var amount = escrow.DepositAmount ?? 0m;
             if (amount <= 0m) return;
 
-            var existingPaid = await _uow.EscrowTransactions.Query()
+            var existingInFlight = await _uow.EscrowTransactions.Query()
                 .AnyAsync(t => t.EscrowId == escrow.EscrowId &&
                                t.Type == "DEPOSIT_PAYOUT" &&
-                               t.Status == "PAID", cancellationToken);
-            if (existingPaid) return;
+                               (t.Status == "PAID" || t.Status == "PENDING"), cancellationToken);
+            if (existingInFlight) return;
 
             var seller = await _uow.Users.Query()
                 .Include(u => u.UserProfiles)
@@ -458,11 +458,11 @@ public class EscrowService : IEscrowService
             if (!escrow.SellerId.HasValue) return;
             if (amount <= 0m) return;
 
-            var existingPaid = await _uow.EscrowTransactions.Query()
+            var existingInFlight = await _uow.EscrowTransactions.Query()
                 .AnyAsync(t => t.EscrowId == escrow.EscrowId &&
                                t.Type == "REMAINING_PAYOUT" &&
-                               t.Status == "PAID", cancellationToken);
-            if (existingPaid) return;
+                               (t.Status == "PAID" || t.Status == "PENDING"), cancellationToken);
+            if (existingInFlight) return;
 
             var seller = await _uow.Users.Query()
                 .Include(u => u.UserProfiles)
