@@ -41,7 +41,7 @@ const Register = () => {
     try {
       // Validate input
       if (!userInfo.email || !userInfo.phone || !userInfo.password || !userInfo.fullName) {
-        setError('Please fill in all fields');
+        setError('Vui lòng điền đầy đủ tất cả các trường');
         setLoading(false);
         return;
       }
@@ -55,14 +55,11 @@ const Register = () => {
         }));
       }
       
-      toast.success('Register successfully!');
+      toast.success('Đăng ký thành công!');
       navigate('/auth/login');
     } catch (err) {
       console.error('Registration error:', err);
-      const responseData = err.response?.data;
-      const errorMessage = typeof responseData === 'string' 
-        ? responseData 
-        : responseData?.message || err.message || 'Register failed. Please try again.';
+      const errorMessage = err.response?.data?.message || err.message || 'Đăng ký thất bại. Vui lòng thử lại.';
       setError(errorMessage);
     } finally {
       setLoading(false);
