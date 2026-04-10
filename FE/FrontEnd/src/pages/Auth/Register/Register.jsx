@@ -89,7 +89,7 @@ const Register = () => {
       }, 100);
     } catch (error) {
       console.error('OAuth login error:', error);
-      setError(error.response?.data?.message || 'OAuth login failed. Please try again.');
+      setError(error.response?.data?.message || 'Đăng nhập OAuth thất bại. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -102,7 +102,7 @@ const Register = () => {
           {/* Header */}
           <div className="auth-card-header">
             <div className="auth-header-title">
-              <h6 className="sign-up-text">Sign up with</h6>
+              <h6 className="sign-up-text">Đăng ký bằng</h6>
             </div>
             
             {/* OAuth Buttons */}
@@ -128,7 +128,7 @@ const Register = () => {
           {/* Form */}
           <div className="auth-card-body">
             <div className="auth-form-intro">
-              <small>Or sign up with credentials</small>
+              <small>Hoặc đăng ký bằng tài khoản</small>
             </div>
 
             {error && <div className="auth-error-message">{error}</div>}
@@ -136,7 +136,7 @@ const Register = () => {
             <form onSubmit={handleSubmit}>
               <div className="auth-form-group">
                 <label htmlFor="fullName" className="auth-form-label">
-                  Name
+                  Họ và tên
                 </label>
                 <input
                   id="fullName"
@@ -144,7 +144,7 @@ const Register = () => {
                   name="fullName"
                   value={userInfo.fullName}
                   onChange={handleChange}
-                  placeholder="Name"
+                  placeholder="Họ và tên"
                   className="auth-form-input"
                   required
                 />
@@ -168,7 +168,7 @@ const Register = () => {
 
               <div className="auth-form-group">
                 <label htmlFor="phone" className="auth-form-label">
-                  Phone
+                  Số điện thoại
                 </label>
                 <input
                   id="phone"
@@ -176,7 +176,7 @@ const Register = () => {
                   name="phone"
                   value={userInfo.phone}
                   onChange={handleChange}
-                  placeholder="Phone Number"
+                  placeholder="Số điện thoại"
                   className="auth-form-input"
                   required
                 />
@@ -184,7 +184,7 @@ const Register = () => {
 
               <div className="auth-form-group">
                 <label htmlFor="password" className="auth-form-label">
-                  Password
+                  Mật khẩu
                 </label>
                 <input
                   id="password"
@@ -192,7 +192,7 @@ const Register = () => {
                   name="password"
                   value={userInfo.password}
                   onChange={handleChange}
-                  placeholder="Password"
+                  placeholder="Mật khẩu"
                   className="auth-form-input"
                   required
                 />
@@ -201,7 +201,7 @@ const Register = () => {
               
 
               <button type="submit" className="auth-submit-btn" disabled={loading}>
-                {loading ? 'Loading...' : 'Create Account'}
+                {loading ? 'Đang tải...' : 'Tạo tài khoản'}
               </button>
             </form>
           </div>
@@ -210,9 +210,9 @@ const Register = () => {
         {/* Footer Link */}
         <div className="register-footer">
           <div className="footer-text">
-            Already have an account?{' '}
+            Đã có tài khoản?{' '}
             <Link to="/auth/login" className="auth-footer-link register-footer-link">
-              Login here
+              Đăng nhập tại đây
             </Link>
           </div>
         </div>

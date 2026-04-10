@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { X, Phone } from 'lucide-react';
@@ -6,12 +7,15 @@ import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import './Compare.css';
 import { useTitle } from '../../hooks/useTitle';
+import { fetchProductById } from '../../service/home/api.product';
 
 const Compare = () => {
   useTitle('So sánh sản phẩm');
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const products = useSelector(state => state.compare.items);
+  const productItems = useSelector(state => state.compare.items);
+  const [detailedProducts, setDetailedProducts] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const formatPrice = (price) => {
     if (!price) return '—';
@@ -37,7 +41,34 @@ const Compare = () => {
     navigate('/');
   };
 
-  if (products.length === 0) {
+  const productIdsString = productItems.map(p => p.id).join(',');
+
+  useEffect(() => {
+    const loadProductDetails = async () => {
+      if (productItems.length === 0) {
+        setDetailedProducts([]);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const details = await Promise.all(
+          productItems.map(item => fetchProductById(item.id))
+        );
+        // The API returns listingId, we map it to id as well for consistency
+        const mappedDetails = details.filter(Boolean).map(d => ({...d, id: d.listingId || d.id}));
+        setDetailedProducts(mappedDetails);
+      } catch (error) {
+        console.error("Error fetching comparison details:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadProductDetails();
+  }, [productIdsString]);
+
+  if (productItems.length === 0) {
     return (
       <div className="compare-page">
         <Header />
@@ -65,7 +96,10 @@ const Compare = () => {
         <div className="compare-wrapper">
           {/* Product Cards */}
           <div className="compare-cards">
-            {products.map((product) => (
+            {loading ? (
+              <div className="compare-loading">Đang tải thông tin chi tiết...</div>
+            ) : (
+             detailedProducts.map((product) => (
               <div key={product.id} className="compare-product-card">
                 <div className="compare-product-image-wrapper">
                   {product.primaryImageUrl ? (
@@ -110,7 +144,8 @@ const Compare = () => {
                   </div>
                 </div>
               </div>
-            ))}
+             ))
+            )}
           </div>
 
           {/* Comparison Table */}
@@ -122,13 +157,17 @@ const Compare = () => {
                 {comparisonItems.map((item) => (
                   <tr key={item.key} className="spec-row">
                     <td className="spec-label">{item.label}</td>
-                    {products.map((product) => (
-                      <td key={`${product.id}-${item.key}`} className="spec-value">
-                        {item.format 
-                          ? item.format(product[item.key]) 
-                          : (product[item.key] || '—')}
-                      </td>
-                    ))}
+                    {loading ? (
+                       <td colSpan={productItems.length} className="spec-value" style={{textAlign: 'center'}}>Đang tải...</td>
+                    ) : (
+                      detailedProducts.map((product) => (
+                        <td key={`${product.id}-${item.key}`} className="spec-value">
+                          {item.format 
+                            ? item.format(product[item.key]) 
+                            : (product[item.key] || '—')}
+                        </td>
+                      ))
+                    )}
                   </tr>
                 ))}
               </tbody>

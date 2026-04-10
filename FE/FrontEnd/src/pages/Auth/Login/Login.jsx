@@ -35,7 +35,7 @@ const Login = () => {
       await login(credentials);
     } catch (err) {
       console.error('Login error:', err);
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      setError(err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -60,7 +60,7 @@ const Login = () => {
       });
     } catch (error) {
       console.error('OAuth login error:', error);
-      setError(error.response?.data?.message || 'OAuth login failed. Please try again.');
+      setError(error.response?.data?.message || 'Đăng nhập OAuth thất bại. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -73,7 +73,7 @@ const Login = () => {
           {/* Header */}
           <div className="auth-card-header login-card-header">
             <div className="auth-header-title">
-              <h6 className="sign-in-text">Sign in with</h6>
+              <h6 className="sign-in-text">Đăng nhập bằng</h6>
             </div>
             
             {/* OAuth Buttons */}
@@ -118,7 +118,7 @@ const Login = () => {
 
               <div className="auth-form-group">
                 <label htmlFor="password" className="auth-form-label">
-                  Password
+                  Mật khẩu
                 </label>
                 <input
                   id="password"
@@ -126,7 +126,7 @@ const Login = () => {
                   name="password"
                   value={credentials.password}
                   onChange={handleChange}
-                  placeholder="Password"
+                  placeholder="Mật khẩu"
                   className="auth-form-input"
                   required
                 />
@@ -135,7 +135,7 @@ const Login = () => {
               
 
               <button type="submit" className="auth-submit-btn" disabled={loading}>
-                {loading ? 'Loading...' : 'Sign In'}
+                {loading ? 'Đang tải...' : 'Đăng nhập'}
               </button>
             </form>
             <hr className="auth-divider" />
@@ -143,12 +143,12 @@ const Login = () => {
             <div className="login-footer">
               <div className="footer-left">
                 <a href="#pablo" onClick={(e) => e.preventDefault()} className="auth-footer-link login-footer-link">
-                  <small>Forgot password?</small>
+                  <small>Quên mật khẩu?</small>
                 </a>
               </div>
               <div className="footer-right">
                 <Link to="/auth/register" className="auth-footer-link login-footer-link">
-                  <small>Create new account</small>
+                  <small>Tạo tài khoản mới</small>
                 </Link>
               </div>
             </div>

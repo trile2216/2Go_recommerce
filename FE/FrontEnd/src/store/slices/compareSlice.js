@@ -10,10 +10,11 @@ const compareSlice = createSlice({
   reducers: {
     addToCompare: (state, action) => {
       const product = action.payload;
-      const exists = state.items.find(item => item.id === product.id);
+      const productId = product.id || product.listingId;
+      const exists = state.items.find(item => item.id === productId);
       if (!exists && state.items.length < 5) {
-        // Max 5 products to compare
-        state.items.push(product);
+        // Max 5 products to compare, store only id to fetch details later
+        state.items.push({ id: productId });
       }
     },
     removeFromCompare: (state, action) => {
