@@ -99,3 +99,23 @@ export const getCurrentUser = async () => {
         throw error;
     }
 };
+
+export const forgotPassword = async (data) => {
+    try {
+        const response = await api.post('/Auth/forgot-password', data);
+        return response.data;
+    } catch (error) {
+        console.error('Error during forgot password:', error);
+        throw error;
+    }
+};
+
+export const resetPassword = async (data) => {
+    try {
+        const response = await api.post('/Auth/reset-password', data);
+        return response.data;
+    } catch (error) {
+        console.error('Error during reset password:', error);
+        throw error;
+    }
+};

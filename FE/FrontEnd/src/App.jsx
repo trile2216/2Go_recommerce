@@ -10,6 +10,7 @@ import './App.css'
 import Homepage from './pages/Homepage/Homepage';
 import Login from './pages/Auth/Login/Login';
 import Register from './pages/Auth/Register/Register';
+import ForgotPassword from './pages/Auth/ForgotPassword/ForgotPassword';
 import ProductDetail from './pages/PostDetail/ProductDetail';
 import Compare from './pages/ComparePage/Compare';
 import Listings from './pages/Listings/Listings';
@@ -71,6 +72,7 @@ const router = createBrowserRouter([
       { path: "/", element: <Homepage /> },
       { path: "/auth/login", element: <Login /> },
       { path: "/auth/register", element: <Register /> },
+      { path: "/auth/forgot-password", element: <ForgotPassword /> },
       { path: "/listings/:id", element: <ProductDetail /> },
       { path: "/compare", element: <Compare /> },
       { path: "/listings", element: <Listings /> },

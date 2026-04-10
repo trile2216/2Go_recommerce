@@ -60,7 +60,7 @@ const Login = () => {
       });
     } catch (error) {
       console.error('OAuth login error:', error);
-      setError(error.response?.data?.message || 'Đăng nhập OAuth thất bại. Vui lòng thử lại.');
+      setError(error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -142,9 +142,9 @@ const Login = () => {
              {/* Footer Links */}
             <div className="login-footer">
               <div className="footer-left">
-                <a href="#pablo" onClick={(e) => e.preventDefault()} className="auth-footer-link login-footer-link">
+                <Link to="/auth/forgot-password" className="auth-footer-link login-footer-link">
                   <small>Quên mật khẩu?</small>
-                </a>
+                </Link>
               </div>
               <div className="footer-right">
                 <Link to="/auth/register" className="auth-footer-link login-footer-link">

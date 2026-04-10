@@ -59,8 +59,10 @@ const Register = () => {
       navigate('/auth/login');
     } catch (err) {
       console.error('Registration error:', err);
-      const errorMessage = err.response?.data?.message || err.message || 'Đăng ký thất bại. Vui lòng thử lại.';
-      setError(errorMessage);
+      const responseData = err.response?.data;
+      const errorMessage = typeof responseData === 'string' 
+        ? responseData 
+        : responseData?.message || err.message || 'Register failed. Please try again.';      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -89,7 +91,7 @@ const Register = () => {
       }, 100);
     } catch (error) {
       console.error('OAuth login error:', error);
-      setError(error.response?.data?.message || 'Đăng nhập OAuth thất bại. Vui lòng thử lại.');
+      setError(error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
