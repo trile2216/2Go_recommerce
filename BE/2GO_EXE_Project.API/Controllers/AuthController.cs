@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.RegularExpressions;
 using System.Security.Claims;
@@ -26,23 +26,23 @@ public class AuthController : ControllerBase
         var hasPhone = !string.IsNullOrWhiteSpace(request.Phone);
         if (!hasEmail && !hasPhone)
         {
-            return BadRequest("Please provide email or phone number.");
+            return BadRequest("Vui lòng cung cấp email hoặc số điện thoại.");
         }
         if (hasEmail && !IsValidEmail(request.Email))
         {
-            return BadRequest("Invalid email address.");
+            return BadRequest("Email không hợp lệ.");
         }
         if (hasPhone && !IsValidPhone(request.Phone))
         {
-            return BadRequest("Phone number must be exactly 10 digits.");
+            return BadRequest("Số điện thoại phải gồm đúng 10 chữ số.");
         }
         if (string.IsNullOrWhiteSpace(request.Password))
         {
-            return BadRequest("Password is required.");
+            return BadRequest("Mật khẩu là bắt buộc.");
         }
         if (!IsValidPassword(request.Password))
         {
-            return BadRequest("Password must be at least 8 characters and include at least 1 letter and 1 number.");
+            return BadRequest("Mật khẩu phải có ít nhất 8 ký tự và bao gồm ít nhất 1 chữ cái và 1 chữ số.");
         }
 
         var result = await _authService.RegisterAsync(request, cancellationToken);
@@ -55,7 +55,7 @@ public class AuthController : ControllerBase
     {
         if (!IsValidIdentifier(request.Identifier))
         {
-            return BadRequest("Login identifier must be a valid email or phone number.");
+            return BadRequest("Tài khoản đăng nhập phải là email hoặc số điện thoại hợp lệ.");
         }
 
         try
@@ -75,7 +75,7 @@ public class AuthController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.RefreshToken))
         {
-            return BadRequest("Refresh token is required.");
+            return BadRequest("Refresh token là bắt buộc.");
         }
 
         var result = await _authService.LogoutAsync(request, cancellationToken);
@@ -88,7 +88,7 @@ public class AuthController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.RefreshToken))
         {
-            return BadRequest("Refresh token is required.");
+            return BadRequest("Refresh token là bắt buộc.");
         }
 
         try
@@ -108,11 +108,11 @@ public class AuthController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.Email))
         {
-            return BadRequest("Email is required.");
+            return BadRequest("Email là bắt buộc.");
         }
         if (!IsValidEmail(request.Email))
         {
-            return BadRequest("Invalid email address.");
+            return BadRequest("Email không hợp lệ.");
         }
 
         var result = await _authService.VerifyEmailAsync(request, cancellationToken);
@@ -125,11 +125,11 @@ public class AuthController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.Email))
         {
-            return BadRequest("Email is required.");
+            return BadRequest("Email là bắt buộc.");
         }
         if (!IsValidEmail(request.Email))
         {
-            return BadRequest("Invalid email address.");
+            return BadRequest("Email không hợp lệ.");
         }
 
         var result = await _authService.ResendVerifyEmailAsync(request, cancellationToken);
@@ -142,11 +142,11 @@ public class AuthController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.Email))
         {
-            return BadRequest("Email is required.");
+            return BadRequest("Email là bắt buộc.");
         }
         if (!IsValidEmail(request.Email))
         {
-            return BadRequest("Invalid email address.");
+            return BadRequest("Email không hợp lệ.");
         }
 
         var result = await _authService.ForgotPasswordAsync(request, cancellationToken);
@@ -159,23 +159,23 @@ public class AuthController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.Code))
         {
-            return BadRequest("Verification code is required.");
+            return BadRequest("Mã xác thực là bắt buộc.");
         }
         if (string.IsNullOrWhiteSpace(request.NewPassword))
         {
-            return BadRequest("New password is required.");
+            return BadRequest("Mật khẩu mới là bắt buộc.");
         }
         if (!IsValidPassword(request.NewPassword))
         {
-            return BadRequest("Password must be at least 8 characters and include at least 1 letter and 1 number.");
+            return BadRequest("Mật khẩu phải có ít nhất 8 ký tự và bao gồm ít nhất 1 chữ cái và 1 chữ số.");
         }
         if (string.IsNullOrWhiteSpace(request.Email))
         {
-            return BadRequest("Email is required.");
+            return BadRequest("Email là bắt buộc.");
         }
         if (!IsValidEmail(request.Email))
         {
-            return BadRequest("Invalid email address.");
+            return BadRequest("Email không hợp lệ.");
         }
 
         var result = await _authService.ResetPasswordAsync(request, cancellationToken);
@@ -216,7 +216,7 @@ public class AuthController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.IdToken))
         {
-            return BadRequest("IdToken is required.");
+            return BadRequest("IdToken là bắt buộc.");
         }
 
         try

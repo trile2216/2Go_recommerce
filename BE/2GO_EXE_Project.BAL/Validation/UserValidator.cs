@@ -1,4 +1,4 @@
-using _2GO_EXE_Project.BAL.Constants;
+﻿using _2GO_EXE_Project.BAL.Constants;
 using _2GO_EXE_Project.BAL.DTOs.Auth;
 
 namespace _2GO_EXE_Project.BAL.Validation;
@@ -19,32 +19,32 @@ public static class UserValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.Phone))
         {
-            result.Add("email", "Email or phone number is required.");
-            result.Add("phone", "Email or phone number is required.");
+            result.Add("email", "Email hoặc số điện thoại là bắt buộc.");
+            result.Add("phone", "Email hoặc số điện thoại là bắt buộc.");
         }
 
         if (!string.IsNullOrWhiteSpace(request.Email))
         {
             var email = request.Email.Trim();
-            result.AddIf(email.Length > EmailMaxLength, "email", "Email must not exceed 255 characters.");
-            result.AddIf(!ValidationRules.IsValidEmail(email), "email", "Invalid email address.");
+            result.AddIf(email.Length > EmailMaxLength, "email", "Email không được vượt quá 255 ký tự.");
+            result.AddIf(!ValidationRules.IsValidEmail(email), "email", "Email không hợp lệ.");
         }
 
         if (!string.IsNullOrWhiteSpace(request.Phone))
         {
             var phone = request.Phone.Trim();
-            result.AddIf(phone.Length > PhoneMaxLength, "phone", "Phone number must not exceed 20 characters.");
-            result.AddIf(!ValidationRules.IsValidPhone(phone), "phone", "Phone number must be exactly 10 digits.");
+            result.AddIf(phone.Length > PhoneMaxLength, "phone", "Số điện thoại không được vượt quá 20 ký tự.");
+            result.AddIf(!ValidationRules.IsValidPhone(phone), "phone", "Số điện thoại phải gồm đúng 10 chữ số.");
         }
 
         if (!IsValidPassword(request.Password))
         {
-            result.Add("password", "Password must be at least 8 characters and include at least 1 letter and 1 number.");
+            result.Add("password", "Mật khẩu phải có ít nhất 8 ký tự và bao gồm ít nhất 1 chữ cái và 1 chữ số.");
         }
 
         if (!string.IsNullOrWhiteSpace(request.FullName))
         {
-            result.AddIf(request.FullName.Trim().Length > FullNameMaxLength, "fullName", "Full name must not exceed 255 characters.");
+            result.AddIf(request.FullName.Trim().Length > FullNameMaxLength, "fullName", "Họ tên không được vượt quá 255 ký tự.");
         }
 
         return result;
@@ -55,18 +55,18 @@ public static class UserValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.Identifier))
         {
-            result.Add("identifier", "Login identifier is required.");
+            result.Add("identifier", "Tài khoản đăng nhập là bắt buộc.");
             return result;
         }
 
         var identifier = request.Identifier.Trim();
         var isEmail = ValidationRules.IsValidEmail(identifier);
         var isPhone = ValidationRules.IsValidPhone(identifier);
-        result.AddIf(!isEmail && !isPhone, "identifier", "Login identifier must be a valid email or phone number.");
+        result.AddIf(!isEmail && !isPhone, "identifier", "Tài khoản đăng nhập phải là email hoặc số điện thoại hợp lệ.");
 
         if (string.IsNullOrWhiteSpace(request.Password))
         {
-            result.Add("password", "Password is required.");
+            result.Add("password", "Mật khẩu là bắt buộc.");
         }
 
         return result;
@@ -77,16 +77,16 @@ public static class UserValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.Email))
         {
-            result.Add("email", "Email is required.");
+            result.Add("email", "Email là bắt buộc.");
         }
         else
         {
-            result.AddIf(!ValidationRules.IsValidEmail(request.Email), "email", "Invalid email address.");
+            result.AddIf(!ValidationRules.IsValidEmail(request.Email), "email", "Email không hợp lệ.");
         }
 
         if (string.IsNullOrWhiteSpace(request.Code))
         {
-            result.Add("code", "Verification code is required.");
+            result.Add("code", "Mã xác thực là bắt buộc.");
         }
 
         return result;
@@ -97,11 +97,11 @@ public static class UserValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.Email))
         {
-            result.Add("email", "Email is required.");
+            result.Add("email", "Email là bắt buộc.");
         }
         else
         {
-            result.AddIf(!ValidationRules.IsValidEmail(request.Email), "email", "Invalid email address.");
+            result.AddIf(!ValidationRules.IsValidEmail(request.Email), "email", "Email không hợp lệ.");
         }
         return result;
     }
@@ -111,11 +111,11 @@ public static class UserValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.Email))
         {
-            result.Add("email", "Email is required.");
+            result.Add("email", "Email là bắt buộc.");
         }
         else
         {
-            result.AddIf(!ValidationRules.IsValidEmail(request.Email), "email", "Invalid email address.");
+            result.AddIf(!ValidationRules.IsValidEmail(request.Email), "email", "Email không hợp lệ.");
         }
         return result;
     }
@@ -125,21 +125,21 @@ public static class UserValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.Email))
         {
-            result.Add("email", "Email is required.");
+            result.Add("email", "Email là bắt buộc.");
         }
         else
         {
-            result.AddIf(!ValidationRules.IsValidEmail(request.Email), "email", "Invalid email address.");
+            result.AddIf(!ValidationRules.IsValidEmail(request.Email), "email", "Email không hợp lệ.");
         }
 
         if (string.IsNullOrWhiteSpace(request.Code))
         {
-            result.Add("code", "Verification code is required.");
+            result.Add("code", "Mã xác thực là bắt buộc.");
         }
 
         if (!IsValidPassword(request.NewPassword))
         {
-            result.Add("newPassword", "Password must be at least 8 characters and include at least 1 letter and 1 number.");
+            result.Add("newPassword", "Mật khẩu phải có ít nhất 8 ký tự và bao gồm ít nhất 1 chữ cái và 1 chữ số.");
         }
 
         return result;
@@ -150,7 +150,7 @@ public static class UserValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.RefreshToken))
         {
-            result.Add("refreshToken", "Refresh token is required.");
+            result.Add("refreshToken", "Refresh token là bắt buộc.");
         }
         return result;
     }
@@ -160,7 +160,7 @@ public static class UserValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.IdToken))
         {
-            result.Add("idToken", "IdToken is required.");
+            result.Add("idToken", "IdToken là bắt buộc.");
         }
         return result;
     }
@@ -170,7 +170,7 @@ public static class UserValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.IdToken))
         {
-            result.Add("idToken", "IdToken is required.");
+            result.Add("idToken", "IdToken là bắt buộc.");
         }
         return result;
     }
@@ -180,7 +180,7 @@ public static class UserValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.IdToken))
         {
-            result.Add("idToken", "IdToken is required.");
+            result.Add("idToken", "IdToken là bắt buộc.");
         }
         return result;
     }
@@ -190,35 +190,35 @@ public static class UserValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.Email) && string.IsNullOrWhiteSpace(request.Phone))
         {
-            result.Add("email", "Email or phone number is required.");
-            result.Add("phone", "Email or phone number is required.");
+            result.Add("email", "Email hoặc số điện thoại là bắt buộc.");
+            result.Add("phone", "Email hoặc số điện thoại là bắt buộc.");
         }
         if (!string.IsNullOrWhiteSpace(request.Email))
         {
             var email = request.Email.Trim();
-            result.AddIf(email.Length > EmailMaxLength, "email", "Email must not exceed 255 characters.");
-            result.AddIf(!ValidationRules.IsValidEmail(email), "email", "Invalid email address.");
+            result.AddIf(email.Length > EmailMaxLength, "email", "Email không được vượt quá 255 ký tự.");
+            result.AddIf(!ValidationRules.IsValidEmail(email), "email", "Email không hợp lệ.");
         }
         if (!string.IsNullOrWhiteSpace(request.Phone))
         {
             var phone = request.Phone.Trim();
-            result.AddIf(phone.Length > PhoneMaxLength, "phone", "Phone number must not exceed 20 characters.");
-            result.AddIf(!ValidationRules.IsValidPhone(phone), "phone", "Phone number must be exactly 10 digits.");
+            result.AddIf(phone.Length > PhoneMaxLength, "phone", "Số điện thoại không được vượt quá 20 ký tự.");
+            result.AddIf(!ValidationRules.IsValidPhone(phone), "phone", "Số điện thoại phải gồm đúng 10 chữ số.");
         }
 
         if (!UserRoles.All.Contains(request.Role ?? string.Empty, StringComparer.OrdinalIgnoreCase))
         {
-            result.Add("role", "Invalid role. Allowed: User, Manager, Admin.");
+            result.Add("role", "Vai trò không hợp lệ. Cho phép: User, Manager, Admin.");
         }
 
         if (!UserStatuses.All.Contains(request.Status ?? string.Empty, StringComparer.OrdinalIgnoreCase))
         {
-            result.Add("status", "Invalid status. Allowed: Active, Banned, Deleted.");
+            result.Add("status", "Trạng thái không hợp lệ. Cho phép: Active, Banned, Deleted.");
         }
 
         if (!string.IsNullOrEmpty(request.Password) && !IsValidPassword(request.Password))
         {
-            result.Add("password", "Password must be at least 8 characters and include at least 1 letter and 1 number.");
+            result.Add("password", "Mật khẩu phải có ít nhất 8 ký tự và bao gồm ít nhất 1 chữ cái và 1 chữ số.");
         }
 
         result.Merge(ValidateProfileFields(request.FullName, request.Birthday, request.Gender, request.Address, request.Bio, request.AvatarUrl, null, null, null));
@@ -232,18 +232,18 @@ public static class UserValidator
         if (!string.IsNullOrWhiteSpace(request.Email))
         {
             var email = request.Email.Trim();
-            result.AddIf(email.Length > EmailMaxLength, "email", "Email must not exceed 255 characters.");
-            result.AddIf(!ValidationRules.IsValidEmail(email), "email", "Invalid email address.");
+            result.AddIf(email.Length > EmailMaxLength, "email", "Email không được vượt quá 255 ký tự.");
+            result.AddIf(!ValidationRules.IsValidEmail(email), "email", "Email không hợp lệ.");
         }
         if (!string.IsNullOrWhiteSpace(request.Phone))
         {
             var phone = request.Phone.Trim();
-            result.AddIf(phone.Length > PhoneMaxLength, "phone", "Phone number must not exceed 20 characters.");
-            result.AddIf(!ValidationRules.IsValidPhone(phone), "phone", "Phone number must be exactly 10 digits.");
+            result.AddIf(phone.Length > PhoneMaxLength, "phone", "Số điện thoại không được vượt quá 20 ký tự.");
+            result.AddIf(!ValidationRules.IsValidPhone(phone), "phone", "Số điện thoại phải gồm đúng 10 chữ số.");
         }
         if (!string.IsNullOrWhiteSpace(request.Status) && !UserStatuses.All.Contains(request.Status, StringComparer.OrdinalIgnoreCase))
         {
-            result.Add("status", "Invalid status. Allowed: Active, Banned, Deleted.");
+            result.Add("status", "Trạng thái không hợp lệ. Cho phép: Active, Banned, Deleted.");
         }
 
         result.Merge(ValidateProfileFields(request.FullName, request.Birthday, request.Gender, request.Address, request.Bio, request.AvatarUrl, null, null, null));
@@ -257,8 +257,8 @@ public static class UserValidator
         if (!string.IsNullOrWhiteSpace(request.Phone))
         {
             var phone = request.Phone.Trim();
-            result.AddIf(phone.Length > PhoneMaxLength, "phone", "Phone number must not exceed 20 characters.");
-            result.AddIf(!ValidationRules.IsValidPhone(phone), "phone", "Phone number must be exactly 10 digits.");
+            result.AddIf(phone.Length > PhoneMaxLength, "phone", "Số điện thoại không được vượt quá 20 ký tự.");
+            result.AddIf(!ValidationRules.IsValidPhone(phone), "phone", "Số điện thoại phải gồm đúng 10 chữ số.");
         }
 
         return result;
@@ -269,12 +269,12 @@ public static class UserValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.AvatarUrl))
         {
-            result.Add("avatarUrl", "Avatar URL is required.");
+            result.Add("avatarUrl", "AvatarUrl là bắt buộc.");
             return result;
         }
 
         var trimmed = request.AvatarUrl.Trim();
-        result.AddIf(trimmed.Length > AvatarUrlMaxLength, "avatarUrl", "Avatar URL must not exceed 500 characters.");
+        result.AddIf(trimmed.Length > AvatarUrlMaxLength, "avatarUrl", "AvatarUrl không được vượt quá 500 ký tự.");
         return result;
     }
 
@@ -283,11 +283,11 @@ public static class UserValidator
         var result = new ValidationResult();
         if (request.Address == null && request.CityId == null && request.DistrictId == null && request.WardId == null)
         {
-            result.Add("address", "At least one address field is required.");
+            result.Add("address", "Cần ít nhất một thông tin địa chỉ.");
         }
         if (!string.IsNullOrWhiteSpace(request.Address))
         {
-            result.AddIf(request.Address.Trim().Length > AddressMaxLength, "address", "Address must not exceed 255 characters.");
+            result.AddIf(request.Address.Trim().Length > AddressMaxLength, "address", "Địa chỉ không được vượt quá 255 ký tự.");
         }
         return result;
     }
@@ -297,11 +297,11 @@ public static class UserValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.CurrentPassword))
         {
-            result.Add("currentPassword", "Current password is required.");
+            result.Add("currentPassword", "Current Mật khẩu là bắt buộc.");
         }
         if (!IsValidPassword(request.NewPassword))
         {
-            result.Add("newPassword", "Password must be at least 8 characters and include at least 1 letter and 1 number.");
+            result.Add("newPassword", "Mật khẩu phải có ít nhất 8 ký tự và bao gồm ít nhất 1 chữ cái và 1 chữ số.");
         }
         return result;
     }
@@ -311,11 +311,11 @@ public static class UserValidator
         var result = new ValidationResult();
         if (string.IsNullOrWhiteSpace(request.Reason))
         {
-            result.Add("reason", "Reason is required.");
+            result.Add("reason", "Lý do là bắt buộc.");
         }
         if (request.DurationDays.HasValue && request.DurationDays.Value <= 0)
         {
-            result.Add("durationDays", "DurationDays must be greater than 0.");
+            result.Add("durationDays", "DurationDays phải lớn hơn 0.");
         }
         return result;
     }
@@ -334,29 +334,29 @@ public static class UserValidator
         var result = new ValidationResult();
         if (!string.IsNullOrWhiteSpace(fullName))
         {
-            result.AddIf(fullName.Trim().Length > FullNameMaxLength, "fullName", "Full name must not exceed 255 characters.");
+            result.AddIf(fullName.Trim().Length > FullNameMaxLength, "fullName", "Họ tên không được vượt quá 255 ký tự.");
         }
         if (!string.IsNullOrWhiteSpace(address))
         {
-            result.AddIf(address.Trim().Length > AddressMaxLength, "address", "Address must not exceed 255 characters.");
+            result.AddIf(address.Trim().Length > AddressMaxLength, "address", "Địa chỉ không được vượt quá 255 ký tự.");
         }
         if (!string.IsNullOrWhiteSpace(avatarUrl))
         {
-            result.AddIf(avatarUrl.Trim().Length > AvatarUrlMaxLength, "avatarUrl", "Avatar URL must not exceed 500 characters.");
+            result.AddIf(avatarUrl.Trim().Length > AvatarUrlMaxLength, "avatarUrl", "AvatarUrl không được vượt quá 500 ký tự.");
         }
         if (!string.IsNullOrWhiteSpace(bankAccountNumber))
         {
-            result.AddIf(bankAccountNumber.Trim().Length > BankAccountNumberMaxLength, "bankAccountNumber", "Bank account number must not exceed 50 characters.");
+            result.AddIf(bankAccountNumber.Trim().Length > BankAccountNumberMaxLength, "bankAccountNumber", "Số tài khoản không được vượt quá 50 ký tự.");
         }
         if (!string.IsNullOrWhiteSpace(bankBin))
         {
             var trimmedBin = bankBin.Trim();
-            result.AddIf(trimmedBin.Length > BankBinMaxLength, "bankBin", "Bank BIN must not exceed 50 characters.");
-            result.AddIf(!trimmedBin.All(char.IsDigit), "bankBin", "Bank BIN must contain only digits.");
+            result.AddIf(trimmedBin.Length > BankBinMaxLength, "bankBin", "BankBin không được vượt quá 50 ký tự.");
+            result.AddIf(!trimmedBin.All(char.IsDigit), "bankBin", "BankBin chỉ được chưa chữ số.");
         }
         if (!string.IsNullOrWhiteSpace(bankAccountName))
         {
-            result.AddIf(bankAccountName.Trim().Length > BankAccountNameMaxLength, "bankAccountName", "Bank account name must not exceed 255 characters.");
+            result.AddIf(bankAccountName.Trim().Length > BankAccountNameMaxLength, "bankAccountName", "Tên chủ tài khoản không được vượt quá 255 ký tự.");
         }
 
         var normalizedGender = NormalizeGender(gender);
