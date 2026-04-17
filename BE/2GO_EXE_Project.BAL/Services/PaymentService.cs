@@ -10,6 +10,7 @@ using _2GO_EXE_Project.DAL.Entities;
 using _2GO_EXE_Project.DAL.Repositories.Interfaces;
 using PayOS.Models.Webhooks;
 using _2GO_EXE_Project.BAL.Validation;
+using Microsoft.Extensions.Configuration;
 
 namespace _2GO_EXE_Project.BAL.Services;
 
@@ -21,9 +22,10 @@ public class PaymentService : IPaymentService
     private readonly IPayosPaymentGateway _payosGateway;
     private readonly IPayOSService _payosService;
     private readonly INotificationService _notificationService;
+    private readonly IConfiguration _configuration;
     private const decimal CommissionRateValue = 0.07m;
 
-    public PaymentService(IUnitOfWork uow, IPaymentGateway gateway, IEscrowService escrowService, IPayosPaymentGateway payosGateway, IPayOSService payosService, INotificationService notificationService)
+    public PaymentService(IUnitOfWork uow, IPaymentGateway gateway, IEscrowService escrowService, IPayosPaymentGateway payosGateway, IPayOSService payosService, INotificationService notificationService, IConfiguration configuration)
     {
         _uow = uow;
         _gateway = gateway;
@@ -31,6 +33,7 @@ public class PaymentService : IPaymentService
         _payosGateway = payosGateway;
         _payosService = payosService;
         _notificationService = notificationService;
+        _configuration = configuration;
     }
 
     private static long GetUserId(ClaimsPrincipal principal)
@@ -282,6 +285,10 @@ public class PaymentService : IPaymentService
         await _uow.Payments.AddAsync(payment, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
 
+        string frontendBaseUrl = _configuration.GetValue<string>("FrontendBaseUrl") ?? Environment.GetEnvironmentVariable("FRONTEND_BASE_URL") ?? "http://localhost:5173";
+        string returnUrl = $"{frontendBaseUrl}/subscription-plans";
+        string cancelUrl = $"{frontendBaseUrl}/subscription-plans";
+
         string? payUrl = null;
         if (string.Equals(payment.Method, PaymentMethods.PAYOS, StringComparison.OrdinalIgnoreCase))
         {
@@ -293,8 +300,8 @@ public class PaymentService : IPaymentService
                     payment.ReferenceCode!,
                     payosAmount,
                     $"Subscription package ({plan.Name}, {plan.DurationDays} days)",
-                    null,
-                    null,
+                    returnUrl,
+                    cancelUrl,
                     cancellationToken);
 
                 if (long.TryParse(orderCodeStr, out var orderCode))

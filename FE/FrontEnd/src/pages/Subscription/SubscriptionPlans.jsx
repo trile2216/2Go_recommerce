@@ -1,8 +1,9 @@
 import React, { use, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import './SubscriptionPlans.css';
 import { fetchSubscriptionPlans, fetchMySubscription } from '../../service/home/api.subscription';
 import { createSubscriptionPayment } from '../../service/home/api.payment';
-import { Check, Package, Loader2 } from 'lucide-react';
+import { Check, Package, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import PageEmptyState from '../../components/PageEmptyState';
 import { useToast } from '../../context/ToastContext';
 import { useTitle } from '../../hooks/useTitle';
@@ -15,6 +16,34 @@ const SubscriptionPlans = () => {
     const [error, setError] = useState(null)
     const [processingPlan, setProcessingPlan] = useState(null);
     const toast = useToast();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [paymentResultValue, setPaymentResultValue] = useState(null);
+
+    const paymentStatus = searchParams.get('status');
+    const paymentCode = searchParams.get('code');
+    const paymentCancel = searchParams.get('cancel');
+
+    useEffect(() => {
+        if (paymentStatus || paymentCode || paymentCancel) {
+            if (paymentCode === '00' && paymentStatus === 'PAID' && paymentCancel !== 'true') {
+                setPaymentResultValue('success');
+            } else if (paymentCancel === 'true' || paymentStatus === 'CANCELLED') {
+                setPaymentResultValue('cancelled');
+            } else {
+                setPaymentResultValue('pending');
+            }
+            setShowPaymentModal(true);
+        }
+    }, [paymentStatus, paymentCode, paymentCancel]);
+
+    const handleCloseModal = () => {
+        setShowPaymentModal(false);
+        setSearchParams({});
+        if (paymentResultValue === 'success') {
+            window.location.reload();
+        }
+    };
 
     useEffect(() => {
         const loadPlans = async () => {
@@ -182,6 +211,38 @@ const SubscriptionPlans = () => {
                     );
                 })}
             </div>
+
+            {showPaymentModal && (
+                <div className="payment-modal-overlay">
+                    <div className="payment-modal-content">
+                        <div className="payment-modal-icon">
+                            {paymentResultValue === 'success' ? (
+                                <CheckCircle2 size={64} color="#22c55e" />
+                            ) : paymentResultValue === 'cancelled' ? (
+                                <XCircle size={64} color="#ef4444" />
+                            ) : (
+                                <Loader2 size={64} className="animate-spin" color="#3b82f6" />
+                            )}
+                        </div>
+                        <h2 className="payment-modal-title">
+                            {paymentResultValue === 'success' ? 'Thanh toán thành công!' : 
+                             paymentResultValue === 'cancelled' ? 'Thanh toán bị huỷ' : 
+                             'Đang xử lý'}
+                        </h2>
+                        <p className="payment-modal-desc">
+                            {paymentResultValue === 'success' ? 'Bạn đã đăng ký gói dịch vụ thành công.' : 
+                             paymentResultValue === 'cancelled' ? 'Giao dịch thanh toán đã bị huỷ hoặc chưa hoàn tất.' : 
+                             'Giao dịch đang được xử lý, vui lòng chờ giây lát.'}
+                        </p>
+                        <button 
+                            className={`payment-modal-btn ${paymentResultValue || 'pending'}`}
+                            onClick={handleCloseModal}
+                        >
+                            Đóng
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
